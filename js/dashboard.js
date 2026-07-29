@@ -107,8 +107,32 @@ async function initializeDashboard() {
         item.addEventListener('click', () => {
             const target = item.getAttribute('data-target');
             if (target) switchSection(target);
+            
+            // Close mobile drawer on item select
+            const sidebar = document.querySelector('.sidebar');
+            const overlay = document.getElementById('sidebar-overlay');
+            if (sidebar && overlay) {
+                sidebar.classList.remove('active');
+                overlay.classList.remove('active');
+            }
         });
     });
+
+    // 4b. Mobile Sidebar Drawer controls
+    const menuBtn = document.getElementById('dashboard-menu-btn');
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if (menuBtn && sidebar && overlay) {
+        menuBtn.addEventListener('click', () => {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+        });
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+    }
 
     // 5. Logout event
     document.getElementById('sidebar-logout').addEventListener('click', () => {

@@ -358,13 +358,40 @@
             <i data-lucide="shield-check" style="width: 26px; height: 26px;"></i>
             <span>CloudVault</span>
         </div>
+        <!-- Desktop Nav -->
         <nav class="nav-links">
             <a href="#features" class="nav-link">Features</a>
             <a href="#how-it-works" class="nav-link">How It Works</a>
             <a href="login.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Sign In</a>
             <a href="register.html" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Sign Up</a>
         </nav>
+        <!-- Mobile Menu Trigger -->
+        <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="Toggle Menu">
+            <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
+        </button>
     </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-drawer" class="mobile-drawer">
+        <div class="drawer-header">
+            <div class="logo-container">
+                <i data-lucide="shield-check" style="width: 26px; height: 26px; color: var(--primary);"></i>
+                <span>CloudVault</span>
+            </div>
+            <button id="drawer-close-btn" class="drawer-close-btn">
+                <i data-lucide="x" style="width: 24px; height: 24px;"></i>
+            </button>
+        </div>
+        <div class="drawer-body">
+            <a href="#features" class="drawer-link">Features</a>
+            <a href="#how-it-works" class="drawer-link">How It Works</a>
+            <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; width: 100%;">
+                <a href="login.html" class="btn btn-secondary" style="justify-content: center; width: 100%;">Sign In</a>
+                <a href="register.html" class="btn btn-primary" style="justify-content: center; width: 100%;">Sign Up</a>
+            </div>
+        </div>
+    </div>
+    <div id="drawer-overlay" class="drawer-overlay"></div>
 
     <!-- Hero Section -->
     <section class="hero-section">
@@ -590,6 +617,33 @@
                 }
             }, 100);
             setTimeout(() => clearInterval(checkDb), 10000);
+
+            // Mobile Drawer Controls
+            const menuBtn = document.getElementById('mobile-menu-btn');
+            const drawer = document.getElementById('mobile-drawer');
+            const overlay = document.getElementById('drawer-overlay');
+            const closeBtn = document.getElementById('drawer-close-btn');
+            const drawerLinks = document.querySelectorAll('.drawer-link');
+
+            if (menuBtn && drawer && overlay && closeBtn) {
+                const openDrawer = () => {
+                    drawer.classList.add('active');
+                    overlay.classList.add('active');
+                };
+
+                const closeDrawer = () => {
+                    drawer.classList.remove('active');
+                    overlay.classList.remove('active');
+                };
+
+                menuBtn.addEventListener('click', openDrawer);
+                closeBtn.addEventListener('click', closeDrawer);
+                overlay.addEventListener('click', closeDrawer);
+
+                drawerLinks.forEach(link => {
+                    link.addEventListener('click', closeDrawer);
+                });
+            }
         });
 
         function setupRetriever() {

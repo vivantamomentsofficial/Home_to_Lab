@@ -55,14 +55,21 @@
                 v1.0.0 &bull; CloudVault
             </div>
         </aside>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
         <!-- Main Workspace -->
         <main class="main-content">
             <!-- Top Navbar -->
             <header class="top-navbar">
-                <div class="top-navbar-title">
-                    <h1 id="navbar-section-title">Dashboard Overview</h1>
-                    <p id="navbar-greeting">Welcome back, User!</p>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <button id="dashboard-menu-btn" class="dashboard-menu-btn" style="display: none; background: none; border: none; cursor: pointer; color: var(--text-primary); padding: 8px; border-radius: var(--radius-sm);">
+                        <i data-lucide="menu" style="width: 24px; height: 24px;"></i>
+                    </button>
+                    <div class="top-navbar-title">
+                        <h1 id="navbar-section-title">Dashboard Overview</h1>
+                        <p id="navbar-greeting">Welcome back, User!</p>
+                    </div>
+                </div>
                 </div>
                 <div class="user-profile-nav">
                     <div class="storage-bar-container">
