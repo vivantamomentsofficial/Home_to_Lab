@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CloudVault</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 440px;
+            margin: auto;
+        }
+        .auth-card {
+            padding: 40px;
+            animation: scaleUp var(--transition-normal) forwards;
+        }
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .auth-logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        .auth-logo i {
+            color: var(--primary);
+        }
+        .auth-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .auth-footer {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        .auth-link {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .auth-link:hover {
+            color: var(--accent-hover);
+            text-decoration: underline;
+        }
+        .flex-row-between {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .forgot-link {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .forgot-link:hover {
+            color: var(--text-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Return to Home Link -->
+        <a href="index.html" style="display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); margin-bottom: 15px; font-weight: 500; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-muted)'">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Return to Home Page</span>
+        </a>
+        <div class="glass-card auth-card">
+            <div class="auth-header">
+                <a href="index.html" class="auth-logo">
+                    <i data-lucide="shield-check" style="width: 32px; height: 32px;"></i>
+                    <span>CloudVault</span>
+                </a>
+                <div class="auth-subtitle">Sign in to access your lab files and clipboard</div>
+            </div>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="email" class="form-label">College / Personal Email</label>
+                    <div class="input-container">
+                        <span class="input-icon">
+                            <i data-lucide="mail" style="width: 18px; height: 18px;"></i>
+                        </span>
+                        <input type="email" id="email" class="form-input" placeholder="you@university.edu" required autocomplete="email">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Password</label>
+                    <div class="input-container">
+                        <span class="input-icon">
+                            <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
+                        </span>
+                        <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password">
+                    </div>
+                </div>
+
+                <div class="flex-row-between">
+                    <label class="form-checkbox">
+                        <input type="checkbox" id="remember-me" checked>
+                        <span>Remember Me</span>
+                    </label>
+                    <a href="#" id="forgot-password-link" class="forgot-link">Forgot Password?</a>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <span>Login</span>
+                    <i data-lucide="log-in" style="width: 18px; height: 18px;"></i>
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                Don't have an account? <a href="register.html" class="auth-link">Register here</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Supabase Client SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- App Configurations -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Initialize Lucide Icons after loading
+        lucide.createIcons();
+    </script>
+</body>
+</html>

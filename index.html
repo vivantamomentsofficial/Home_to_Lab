@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudVault - Student Personal Cloud & Clipboard</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Landing Page Specific Styles */
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: var(--bg-secondary);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            transition: background var(--transition-normal);
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 700;
+        }
+        
+        .logo-container i {
+            color: var(--primary);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+        
+        .nav-link {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .nav-link:hover {
+            color: var(--text-primary);
+        }
+        
+        .hero-section {
+            padding: 160px 8% 100px 8%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            background: radial-gradient(circle at top, rgba(79, 70, 229, 0.12) 0%, transparent 60%);
+        }
+        
+        .hero-badge {
+            background: rgba(79, 70, 229, 0.15);
+            border: 1px solid rgba(79, 70, 229, 0.3);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .hero-title {
+            font-size: 3.5rem;
+            max-width: 800px;
+            line-height: 1.15;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, var(--text-primary) 30%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+        
+        .hero-buttons {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+        
+        /* Trial Grid Layout */
+        .trial-grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            width: 100%;
+            max-width: 960px;
+            margin-top: 40px;
+            animation: fadeInUp 0.8s ease;
+        }
+        
+        .trial-card {
+            width: 100%;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 240px;
+        }
+        
+        .trial-upload-zone {
+            border: 2px dashed var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            background: var(--hover-bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex: 1;
+            justify-content: center;
+        }
+        
+        .trial-upload-zone:hover {
+            border-color: var(--primary);
+            background: rgba(14, 165, 233, 0.05);
+        }
+        
+        .trial-upload-zone i {
+            color: var(--text-muted);
+            transition: color var(--transition-fast);
+        }
+        
+        .trial-upload-zone:hover i {
+            color: var(--primary);
+        }
+        
+        @media (max-width: 768px) {
+            .trial-grid-container {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+        
+        .code-input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        
+        .code-input {
+            flex: 1;
+            height: 52px;
+            padding: 0 18px;
+            font-size: 20px;
+            letter-spacing: 4px;
+            text-align: center;
+            font-weight: 700;
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            border: 1px solid var(--card-border);
+            color: var(--text-primary);
+            text-transform: uppercase;
+        }
+        
+        .code-input::placeholder {
+            letter-spacing: 0;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        
+        /* Features Section */
+        .section-container {
+            padding: 80px 8%;
+            text-align: center;
+        }
+        
+        .section-tag {
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 12px;
+            display: block;
+        }
+        
+        .section-title {
+            font-size: 2.25rem;
+            margin-bottom: 16px;
+        }
+        
+        .section-subtitle {
+            color: var(--text-secondary);
+            font-size: 16px;
+            max-width: 550px;
+            margin: 0 auto 50px auto;
+            line-height: 1.5;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-card {
+            padding: 40px 30px;
+            text-align: left;
+        }
+        
+        .feature-icon-wrapper {
+            background: rgba(79, 70, 229, 0.1);
+            border: 1px solid rgba(79, 70, 229, 0.2);
+            color: var(--accent);
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+        }
+        
+        .feature-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        
+        .feature-description {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+
+        
+        /* How It Works List */
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 700px;
+            margin: 0 auto;
+            gap: 30px;
+            text-align: left;
+        }
+        
+        .step-item {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        
+        .step-number {
+            background: var(--primary);
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+        
+        .step-details h3 {
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+        
+        .step-details p {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+
+        
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--card-border);
+            padding: 40px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .footer-logo i { color: var(--primary); }
+        
+        /* Public Retrieval Modal Specifics */
+        .retrieved-file-details {
+            background: var(--bg-primary);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        
+        .detail-label {
+            color: var(--text-secondary);
+        }
+        
+        .detail-value {
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Header -->
+    <header>
+        <div class="logo-container">
+            <i data-lucide="shield-check" style="width: 26px; height: 26px;"></i>
+            <span>CloudVault</span>
+        </div>
+        <nav class="nav-links">
+            <a href="#features" class="nav-link">Features</a>
+            <a href="#how-it-works" class="nav-link">How It Works</a>
+            <a href="login.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Sign In</a>
+            <a href="register.html" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Sign Up</a>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="hero-badge">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+            Built for College Students & Lab Users
+        </div>
+        <h1 class="hero-title">From Home to Computer Lab, Instantly.</h1>
+        <p class="hero-subtitle">
+            Upload files or paste notes from home. Access them on any library or college computer without plugging in USBs or risking your logins on unsecure PCs.
+        </p>
+        <div class="hero-buttons">
+            <a href="register.html" class="btn btn-primary">
+                <span>Get Started Free</span>
+                <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+            </a>
+            <a href="#features" class="btn btn-secondary">
+                <span>Explore Features</span>
+            </a>
+        </div>
+
+        <!-- Trial Grid Layout: Left is Trial Upload, Right is Share Code Retrieval -->
+        <div class="trial-grid-container">
+            <!-- Left Card: Guest Upload Trial -->
+            <div class="glass-card trial-card">
+                <h3 style="font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="file-up" style="width: 18px; height: 18px; color: var(--primary);"></i>
+                    Upload File (Instant Guest Trial)
+                </h3>
+                <p style="font-size: 13px; color: var(--text-secondary); text-align: left; margin-top: 4px;">
+                    Try CloudVault without signing in. Upload one file up to 10MB.
+                </p>
+                <div id="trial-upload-zone" class="trial-upload-zone">
+                    <i data-lucide="upload-cloud" style="width: 32px; height: 32px;"></i>
+                    <span style="font-size: 12px; font-weight: 500;">Drag & Drop or Click to Upload</span>
+                    <input type="file" id="trial-file-input" style="display: none;">
+                </div>
+                <div id="trial-upload-progress" class="hidden" style="margin-top: 15px; width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 4px;">
+                        <span id="trial-progress-filename" style="font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">file.zip</span>
+                        <span id="trial-progress-percent">0%</span>
+                    </div>
+                    <div style="height: 6px; background: var(--bg-primary); border-radius: 4px; overflow:hidden;">
+                        <div id="trial-progress-bar" style="height:100%; width:0%; background:var(--primary); transition: width 0.1s linear;"></div>
+                    </div>
+                </div>
+                <div id="trial-code-display-card" class="hidden" style="margin-top: 15px; background: var(--bg-primary); border: 1px solid var(--card-border); border-radius: var(--radius-md); padding: 16px; text-align: center; width: 100%;">
+                    <div style="font-size: 11px; color: var(--text-muted); font-weight: 600;">TRIAL SHARE CODE:</div>
+                    <div id="trial-share-code" style="font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: 4px; margin: 6px 0;">000000</div>
+                    <button id="trial-copy-code-btn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 6px;">
+                        <i data-lucide="copy" style="width: 14px; height: 14px;"></i> <span>Copy Share Code</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Card: 6-digit Code Retrieval Card -->
+            <div class="glass-card trial-card">
+                <h3 style="font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="key-round" style="width: 18px; height: 18px; color: var(--accent);"></i>
+                    Access Shared File via Temporary Code
+                </h3>
+                <p style="font-size: 13px; color: var(--text-secondary); text-align: left; margin-top: 4px;">
+                    Enter a 6-digit code shared from another machine to download immediately.
+                </p>
+                <div class="code-input-container">
+                    <input type="text" id="share-code-input" class="code-input" placeholder="CODE" maxlength="6" autocomplete="off">
+                    <button id="retrieve-btn" class="btn btn-primary" style="padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="download" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- Features Section -->
+    <section id="features" class="section-container">
+        <span class="section-tag">Core Features</span>
+        <h2 class="section-title">Designed for Quick Access</h2>
+        <p class="section-subtitle">No logins left behind, no USB drives lost. Just secure temporary storage for college workloads.</p>
+        
+        <div class="features-grid">
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper">
+                    <i data-lucide="file-up" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h3 class="feature-name">Drag & Drop Upload</h3>
+                <p class="feature-description">Upload images, PDFs, Word docs, code files, and zip files up to 100MB instantly.</p>
+            </div>
+            
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper">
+                    <i data-lucide="clipboard" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h3 class="feature-name">Instant Clipboard Sync</h3>
+                <p class="feature-description">Paste code, links, notes, or credentials to access them on secondary machines.</p>
+            </div>
+            
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper">
+                    <i data-lucide="shield-alert" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h3 class="feature-name">Security Built-In</h3>
+                <p class="feature-description">Private vault stored behind Supabase Row Level Security. Only you can access your own files.</p>
+            </div>
+            
+            <div class="glass-card feature-card">
+                <div class="feature-icon-wrapper">
+                    <i data-lucide="send" style="width: 24px; height: 24px;"></i>
+                </div>
+                <h3 class="feature-name">30-Min Temporary Sharing</h3>
+                <p class="feature-description">Generate a 6-digit sharing code. Anyone can access that file for exactly 30 minutes before it auto-expires.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="section-container" style="background: var(--bg-secondary);">
+        <span class="section-tag">Easy Workflow</span>
+        <h2 class="section-title">How Students Use CloudVault</h2>
+        <p class="section-subtitle">A seamless bridge between your personal computer and the campus labs.</p>
+        
+        <div class="steps-container">
+            <div class="step-item">
+                <div class="step-number">1</div>
+                <div class="step-details">
+                    <h3>Upload from Home</h3>
+                    <p>Log in to your account from your home laptop, upload assignment files or copy code snippets, and save them in your vault.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">2</div>
+                <div class="step-details">
+                    <h3>Generate a Code (Optional)</h3>
+                    <p>Generate a 6-digit temporary share code for specific documents, or simply walk to the lab and log in directly.</p>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-number">3</div>
+                <div class="step-details">
+                    <h3>Retrieve in Campus Lab</h3>
+                    <p>Open CloudVault on the lab computer, enter the 6-digit code or sign in, download the assets, and start working.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+    <!-- Shared File Modal -->
+    <div id="file-retrieve-modal" class="modal-overlay">
+        <div class="glass-card modal-content">
+            <button class="modal-close-btn" id="modal-close">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+            <h3 style="font-size: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="file-check" style="width: 22px; height: 22px; color: var(--success);"></i>
+                Shared File Found!
+            </h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                This temporary code matches the following active file. It is set to expire shortly.
+            </p>
+            <div class="retrieved-file-details">
+                <div class="detail-row">
+                    <span class="detail-label">File Name:</span>
+                    <span id="retrieved-name" class="detail-value">project.zip</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Size:</span>
+                    <span id="retrieved-size" class="detail-value">4.2 MB</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Type:</span>
+                    <span id="retrieved-type" class="detail-value">ZIP Archive</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Expires In:</span>
+                    <span id="retrieved-expiry" class="detail-value" style="color: var(--warning);">18 minutes</span>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button id="modal-cancel-btn" class="btn btn-secondary">Close</button>
+                <a id="modal-download-btn" href="#" target="_blank" class="btn btn-primary">
+                    <i data-lucide="download" style="width: 18px; height: 18px;"></i>
+                    <span>Download Now</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container"></div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-logo">
+            <i data-lucide="shield-check" style="width: 20px; height: 20px;"></i>
+            <span>CloudVault</span>
+        </div>
+        <div>
+            &copy; 2026 CloudVault. Built for academic productivity.
+        </div>
+    </footer>
+
+    <!-- Supabase Client SDK CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Render Lucide Icons immediately on load
+            if (window.lucide) window.lucide.createIcons();
+
+            const checkDb = setInterval(() => {
+                if (window.supabaseClient) {
+                    clearInterval(checkDb);
+                    setupRetriever();
+                    setupTrialUploader();
+                }
+            }, 100);
+            setTimeout(() => clearInterval(checkDb), 10000);
+        });
+
+        function setupRetriever() {
+            const retrieveBtn = document.getElementById('retrieve-btn');
+            const shareCodeInput = document.getElementById('share-code-input');
+            const modal = document.getElementById('file-retrieve-modal');
+            const modalClose = document.getElementById('modal-close');
+            const modalCancel = document.getElementById('modal-cancel-btn');
+
+            const retrievedName = document.getElementById('retrieved-name');
+            const retrievedSize = document.getElementById('retrieved-size');
+            const retrievedType = document.getElementById('retrieved-type');
+            const retrievedExpiry = document.getElementById('retrieved-expiry');
+            const downloadBtn = document.getElementById('modal-download-btn');
+
+            retrieveBtn.addEventListener('click', performRetrieval);
+            shareCodeInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') performRetrieval();
+            });
+
+            async function performRetrieval() {
+                const code = shareCodeInput.value.trim().toUpperCase();
+                if (code.length !== 6) {
+                    window.showToast('Please enter a valid 6-digit sharing code.', 'warning');
+                    return;
+                }
+
+                retrieveBtn.disabled = true;
+                retrieveBtn.innerHTML = `<div class="skeleton" style="width: 18px; height: 18px; border-radius: 50%;"></div>`;
+
+                try {
+                    // Query share_codes joining files
+                    // Since share_codes read RLS enables public SELECT on active share codes, this will work!
+                    const { data, error } = await window.supabaseClient
+                        .from('share_codes')
+                        .select('*, files(*)')
+                        .eq('code', code)
+                        .gt('expires_at', new Date().toISOString())
+                        .single();
+
+                    if (error || !data) {
+                        window.showToast('Invalid or expired sharing code. Share codes are valid for 30 minutes.', 'danger');
+                        console.error(error);
+                    } else {
+                        // Display retrieved file in modal
+                        const file = data.files;
+                        retrievedName.textContent = file.filename;
+                        retrievedSize.textContent = formatBytes(file.size);
+                        retrievedType.textContent = file.file_type.toUpperCase();
+                        
+                        // Calculate expiry minutes left
+                        const minutesLeft = Math.max(1, Math.round((new Date(data.expires_at) - new Date()) / 1000 / 60));
+                        retrievedExpiry.textContent = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                        
+                        // Set download button URL
+            downloadBtn.href = data.signed_url;
+                        downloadBtn.setAttribute('download', file.filename);
+                        downloadBtn.setAttribute('data-file-id', file.id);
+
+                        // Open modal
+                        modal.classList.add('active');
+                    }
+                } catch (e) {
+                    console.error("Retrieval failed:", e);
+                    window.showToast('Error searching for sharing code.', 'danger');
+                } finally {
+                    retrieveBtn.disabled = false;
+                    retrieveBtn.innerHTML = `<i data-lucide="download" style="width: 20px; height: 20px;"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            }
+
+            // Close Modal Events
+            modalClose.addEventListener('click', () => modal.classList.remove('active'));
+            modalCancel.addEventListener('click', () => modal.classList.remove('active'));
+            downloadBtn.addEventListener('click', async () => {
+                modal.classList.remove('active');
+                window.showToast('Download started! This one-time link has now expired.', 'success');
+                
+                try {
+                    const fileId = downloadBtn.getAttribute('data-file-id');
+                    if (fileId) {
+                        await window.supabaseClient.from('files').delete().eq('id', fileId);
+                    }
+                } catch (e) {
+                    console.error("Failed to delete file after download:", e);
+                }
+            });
+
+            // Helper to format bytes
+            function formatBytes(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+        }
+
+        async function setupTrialUploader() {
+            const uploadZone = document.getElementById('trial-upload-zone');
+            const fileInput = document.getElementById('trial-file-input');
+            const progressContainer = document.getElementById('trial-upload-progress');
+            const progressFilename = document.getElementById('trial-progress-filename');
+            const progressPercent = document.getElementById('trial-progress-percent');
+            const progressBar = document.getElementById('trial-progress-bar');
+            const codeDisplayCard = document.getElementById('trial-code-display-card');
+            const shareCodeText = document.getElementById('trial-share-code');
+            const copyCodeBtn = document.getElementById('trial-copy-code-btn');
+
+            if (!uploadZone || !fileInput) return;
+
+            // Trigger file selection
+            uploadZone.addEventListener('click', () => {
+                // Check if trial has already been used
+                if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
+                    window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
+                    setTimeout(() => {
+                        window.location.href = 'register.html';
+                    }, 2000);
+                    return;
+                }
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleTrialUpload(e.target.files[0]);
+                }
+            });
+
+            // Drag and drop handlers
+            uploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadZone.classList.add('dragover');
+            });
+
+            uploadZone.addEventListener('dragleave', () => {
+                uploadZone.classList.remove('dragover');
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadZone.classList.remove('dragover');
+                if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
+                    window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
+                    setTimeout(() => {
+                        window.location.href = 'register.html';
+                    }, 2000);
+                    return;
+                }
+                if (e.dataTransfer.files.length > 0) {
+                    handleTrialUpload(e.dataTransfer.files[0]);
+                }
+            });
+
+            async function handleTrialUpload(file) {
+                // 10MB limit check
+                if (file.size > 10 * 1024 * 1024) {
+                    window.showToast('Guest trial upload limit is 10MB. Please login to upload files up to 100MB.', 'warning');
+                    return;
+                }
+
+                // Show progress
+                uploadZone.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+                progressFilename.textContent = file.name;
+                progressPercent.textContent = '0%';
+                progressBar.style.width = '0%';
+
+                try {
+                    // Sign in anonymously if not already signed in
+                    const { data: { session } } = await window.supabaseClient.auth.getSession();
+                    let user = null;
+                    if (!session) {
+                        const { data, error } = await window.supabaseClient.auth.signInAnonymously();
+                        if (error) throw error;
+                        user = data.user;
+                    } else {
+                        user = session.user;
+                    }
+
+                    // Upload file to bucket uploads/{user_id}/filename
+                    const storagePath = `uploads/${user.id}/${Date.now()}_${file.name}`;
+                    
+                    // Simple upload progress simulation
+                    let simulatedProgress = 0;
+                    const progressInterval = setInterval(() => {
+                        simulatedProgress = Math.min(90, simulatedProgress + 10);
+                        progressPercent.textContent = `${simulatedProgress}%`;
+                        progressBar.style.width = `${simulatedProgress}%`;
+                    }, 100);
+
+                    const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
+                        .from('vault')
+                        .upload(storagePath, file);
+
+                    clearInterval(progressInterval);
+
+                    if (uploadError) throw uploadError;
+
+                    // Complete progress bar
+                    progressPercent.textContent = '100%';
+                    progressBar.style.width = '100%';
+
+                    // Insert file record into database
+                    const { data: fileData, error: dbError } = await window.supabaseClient
+                        .from('files')
+                        .insert({
+                            user_id: user.id,
+                            filename: file.name,
+                            storage_path: storagePath,
+                            file_type: file.type || 'application/octet-stream',
+                            size: file.size
+                        })
+                        .select()
+                        .single();
+
+                    if (dbError) throw dbError;
+
+                    // Generate a 6-digit share code
+                    const shareCode = Math.floor(100000 + Math.random() * 900000).toString();
+                    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+                    // Create signed URL
+                    const { data: signedData, error: urlError } = await window.supabaseClient.storage
+                        .from('vault')
+                        .createSignedUrl(storagePath, 30 * 60);
+
+                    if (urlError) throw urlError;
+
+                    // Insert share code record
+                    const { error: shareError } = await window.supabaseClient
+                        .from('share_codes')
+                        .insert({
+                            code: shareCode,
+                            file_id: fileData.id,
+                            signed_url: signedData.signedUrl,
+                            expires_at: expiresAt
+                        });
+
+                    if (shareError) throw shareError;
+
+                    // Mark trial as used
+                    localStorage.setItem('CLOUDVAULT_TRIAL_USED', 'true');
+
+                    // Display share code
+                    setTimeout(() => {
+                        progressContainer.classList.add('hidden');
+                        codeDisplayCard.classList.remove('hidden');
+                        shareCodeText.textContent = shareCode;
+                        if (window.lucide) window.lucide.createIcons();
+                        window.showToast('Trial upload complete! Copy the code to share.', 'success');
+                    }, 500);
+
+                } catch (err) {
+                    console.error("Trial upload error:", err);
+                    if (err.message && (err.message.includes('Anonymous sign-ins are disabled') || err.message.includes('anonymous'))) {
+                        window.showToast('Anonymous sign-ins are disabled. Please enable them in Supabase Dashboard (Authentication -> Providers -> Anonymous).', 'danger');
+                    } else {
+                        window.showToast('Upload failed: ' + err.message, 'danger');
+                    }
+                    progressContainer.classList.add('hidden');
+                    uploadZone.classList.remove('hidden');
+                }
+            }
+
+            // Copy code listener
+            copyCodeBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(shareCodeText.textContent);
+                window.showToast('Share code copied to clipboard!', 'success');
+            });
+        }
+    </script>
+</body>
+</html>

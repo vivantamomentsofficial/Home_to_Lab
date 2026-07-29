@@ -1,0 +1,205 @@
+/* CloudVault Responsive Layouts */
+
+/* Overrides for dashboard grid structures to prevent breaking */
+@media (max-width: 1024px) {
+    /* Dashboard Sidebar Adjustments */
+    .dashboard-container {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100% !important;
+        height: auto !important;
+        position: relative !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--card-border);
+    }
+    
+    .sidebar-menu {
+        flex-direction: row !important;
+        overflow-x: auto;
+        padding: 10px;
+        gap: 8px;
+    }
+    
+    .sidebar-item {
+        padding: 10px 16px !important;
+        white-space: nowrap;
+    }
+    
+    .sidebar-logo {
+        padding: 15px 20px 5px 20px !important;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .sidebar-footer {
+        display: none !important;
+    }
+    
+    .main-content {
+        padding: 20px !important;
+        min-height: calc(100vh - 150px) !important;
+    }
+
+    .dashboard-overview-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 16px !important;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Hero section adjustments */
+    .hero-section {
+        padding: 120px 20px 60px 20px !important;
+        text-align: center;
+    }
+    
+    .hero-title {
+        font-size: 2.2rem !important;
+    }
+    
+    .hero-subtitle {
+        font-size: 1rem !important;
+        margin: 0 auto 30px auto;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        gap: 12px;
+    }
+    
+    .hero-buttons .btn {
+        width: 100%;
+    }
+    
+    /* Features section grid */
+    .features-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    /* Receive Page Filters */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    
+    .filter-tags {
+        overflow-x: auto;
+        padding-bottom: 4px;
+        white-space: nowrap;
+        width: 100%;
+    }
+    
+    .filter-controls {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    /* Files Grid */
+    .files-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+        gap: 16px !important;
+    }
+    
+    /* Notes Grid */
+    .notes-grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    /* Auth layouts */
+    .auth-container {
+        padding: 10px !important;
+    }
+    
+    .auth-card {
+        padding: 24px !important;
+        width: 100% !important;
+    }
+    
+    /* Top Navbar */
+    .top-navbar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch !important;
+        padding-bottom: 15px !important;
+    }
+    
+    .user-profile-nav {
+        justify-content: space-between;
+        margin-top: 10px;
+    }
+    
+    .storage-bar-container {
+        width: 100% !important;
+        max-width: none !important;
+        flex: 1;
+    }
+
+    /* Modals */
+    .modal-content {
+        padding: 20px !important;
+        width: 95% !important;
+    }
+    
+    /* Code Viewer Modal pre size */
+    .preview-modal-body pre {
+        max-height: 300px !important;
+    }
+
+    /* Details layouts */
+    .dashboard-details-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .profile-grid {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .notes-layout {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+}
+
+@media (max-width: 580px) {
+    .dashboard-overview-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .sidebar-logo span {
+        display: none;
+    }
+    
+    .sidebar-item span {
+        display: none;
+    }
+    
+    .sidebar-menu {
+        justify-content: space-around;
+    }
+    
+    .sidebar-item {
+        padding: 12px !important;
+        border-radius: 50%;
+    }
+    
+    .sidebar-item i {
+        margin-right: 0 !important;
+        font-size: 20px;
+    }
+    
+    .top-navbar-title h1 {
+        font-size: 1.5rem !important;
+    }
+}

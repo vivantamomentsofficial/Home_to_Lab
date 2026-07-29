@@ -1,0 +1,15 @@
+# Local configurations
+js/config.js
+.env
+.env.local
+.env.*.local
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Live Server / Node folders
+node_modules/
+.vercel/
