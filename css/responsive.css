@@ -1,63 +1,151 @@
-/* CloudVault Responsive Layouts */
+/* CloudVault Consolidated Responsive Stylesheet */
 
-/* Hide mobile controls by default on desktop */
+/* Hide mobile controls by default on desktop viewports */
 .mobile-menu-btn, .dashboard-menu-btn {
     display: none;
 }
 
-/* Overrides for dashboard grid structures to prevent breaking */
+/* ========================================== */
+/* 1. TABLET LAYOUT OVERRIDES (< 1024px) */
+/* ========================================== */
 @media (max-width: 1024px) {
-    /* Dashboard Sidebar Adjustments */
+    /* Keep row layout so main content stays on right, but restrict overflow */
     .dashboard-container {
-        flex-direction: column;
+        flex-direction: row !important;
+        min-height: 100vh !important;
+        position: relative;
+        overflow-x: hidden;
     }
     
+    /* Convert Sidebar into a sliding drawer menu */
     .sidebar {
-        width: 100% !important;
-        height: auto !important;
-        position: relative !important;
-        border-right: none !important;
-        border-bottom: 1px solid var(--card-border);
+        position: fixed !important;
+        top: 0 !important;
+        left: -280px !important; /* Start offscreen to the left */
+        width: 280px !important;
+        height: 100vh !important;
+        z-index: 10000 !important;
+        background: var(--bg-secondary) !important;
+        border-right: 1px solid var(--card-border) !important;
+        border-bottom: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+        transition: transform var(--transition-normal) !important;
+        transform: translateX(0) !important;
+        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .sidebar.active {
+        transform: translateX(280px) !important; /* Slide drawer in */
     }
     
     .sidebar-menu {
-        flex-direction: row !important;
-        overflow-x: auto;
-        padding: 10px;
-        gap: 8px;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        padding: 24px 16px !important;
+        flex: 1 !important;
+        overflow-y: auto !important;
     }
     
     .sidebar-item {
-        padding: 10px 16px !important;
-        white-space: nowrap;
+        display: flex !important;
+        align-items: center !important;
+        padding: 12px 18px !important;
+        width: 100% !important;
+        border-radius: var(--radius-md) !important;
+    }
+    
+    .sidebar-item span {
+        display: inline !important; /* Ensure labels are visible in drawer */
     }
     
     .sidebar-logo {
-        padding: 15px 20px 5px 20px !important;
-        text-align: center;
-        justify-content: center;
+        padding: 25px 20px !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+    }
+    
+    .sidebar-logo span {
+        display: inline !important;
     }
     
     .sidebar-footer {
-        display: none !important;
-    }
-    
-    .main-content {
+        display: flex !important;
         padding: 20px !important;
-        min-height: calc(100vh - 150px) !important;
+        margin-top: auto !important;
     }
 
+    /* Expand workspace main content to take full screen width */
+    .main-content {
+        padding: 20px !important;
+        min-height: 100vh !important;
+        margin-left: 0 !important;
+        width: 100% !important;
+        flex: 1 !important;
+    }
+
+    /* Dashboard stat cards columns */
     .dashboard-overview-grid {
         grid-template-columns: repeat(2, 1fr) !important;
         gap: 16px !important;
     }
+
+    /* Show burger menu button on top navbar */
+    .dashboard-menu-btn {
+        display: block !important;
+    }
+    
+    /* Sidebar Drawer Backdrop Overlay */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 9999;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity var(--transition-normal);
+    }
+    
+    .sidebar-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
 }
 
+/* ========================================== */
+/* 2. MOBILE LAYOUT OVERRIDES (< 768px) */
+/* ========================================== */
 @media (max-width: 768px) {
-    /* Hero section adjustments */
+    /* Fixed Landing Page Header Header */
+    header {
+        padding: 15px 20px !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        position: fixed !important;
+        background: var(--bg-secondary) !important;
+        height: 70px;
+    }
+    
+    .nav-links {
+        display: none !important; /* Hide desktop menu */
+    }
+    
+    .mobile-menu-btn {
+        display: block !important; /* Show mobile menu trigger */
+    }
+    
+    /* Hero section */
     .hero-section {
         padding: 120px 20px 60px 20px !important;
-        text-align: center;
+        text-align: center !important;
     }
     
     .hero-title {
@@ -77,15 +165,40 @@
     
     .hero-buttons .btn {
         width: 100%;
+        justify-content: center;
     }
     
-    /* Features section grid */
+    /* Grid details */
     .features-grid {
         grid-template-columns: 1fr !important;
         gap: 20px !important;
     }
     
-    /* Receive Page Filters */
+    .dashboard-details-grid, .profile-grid, .notes-layout {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+    
+    /* Top Navbar header wrapping on mobile dashboard */
+    .top-navbar {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 15px !important;
+        padding-bottom: 15px !important;
+    }
+    
+    .user-profile-nav {
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+    
+    .storage-bar-container {
+        width: 100% !important;
+        max-width: none !important;
+        flex: 1;
+    }
+
+    /* Vault filters */
     .filter-bar {
         flex-direction: column;
         align-items: stretch !important;
@@ -106,20 +219,18 @@
         gap: 10px;
     }
     
-    /* Files Grid */
     .files-grid {
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
         gap: 16px !important;
     }
     
-    /* Notes Grid */
     .notes-grid {
         grid-template-columns: 1fr !important;
     }
     
-    /* Auth layouts */
+    /* Auth Form Cards */
     .auth-container {
-        padding: 10px !important;
+        padding: 15px !important;
     }
     
     .auth-card {
@@ -127,53 +238,25 @@
         width: 100% !important;
     }
     
-    /* Top Navbar */
-    .top-navbar {
+    /* Mobile Guest Switcher */
+    .trial-switcher-mobile {
+        display: flex;
+    }
+    
+    .trial-card {
+        display: none !important;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .trial-card.active-mobile {
+        display: flex !important;
         flex-direction: column;
-        gap: 12px;
-        align-items: stretch !important;
-        padding-bottom: 15px !important;
-    }
-    
-    .user-profile-nav {
-        justify-content: space-between;
-        margin-top: 10px;
-    }
-    
-    .storage-bar-container {
-        width: 100% !important;
-        max-width: none !important;
-        flex: 1;
-    }
-
-    /* Modals */
-    .modal-content {
-        padding: 20px !important;
-        width: 95% !important;
-    }
-    
-    /* Code Viewer Modal pre size */
-    .preview-modal-body pre {
-        max-height: 300px !important;
-    }
-
-    /* Details layouts */
-    .dashboard-details-grid {
-        grid-template-columns: 1fr !important;
-        gap: 20px !important;
-    }
-
-    .profile-grid {
-        grid-template-columns: 1fr !important;
-        gap: 20px !important;
-    }
-
-    .notes-layout {
-        grid-template-columns: 1fr !important;
-        gap: 20px !important;
     }
 }
 
+/* ========================================== */
+/* 3. SMALL PHONE OVERRIDES (< 580px) */
+/* ========================================== */
 @media (max-width: 580px) {
     .dashboard-overview-grid {
         grid-template-columns: 1fr !important;
@@ -181,71 +264,48 @@
     }
 }
 
+/* ========================================== */
+/* 4. TINY VIEWPORTS & iOS PRECAUTIONS (< 480px) */
+/* ========================================== */
 @media (max-width: 480px) {
-    .sidebar-logo span {
-        display: none;
-    }
-    
-    .sidebar-item span {
-        display: none;
-    }
-    
-    .sidebar-menu {
-        justify-content: space-around;
-        overflow-x: hidden !important; /* Lock scrollbar on ultra narrow */
-    }
-    
-    .sidebar-item {
-        padding: 12px !important;
-        border-radius: 50%;
-    }
-    
-    .sidebar-item i {
-        margin-right: 0 !important;
-        font-size: 20px;
-    }
-    
     .top-navbar-title h1 {
         font-size: 1.5rem !important;
     }
-}
-
-/* Landing Page Header Responsiveness */
-@media (max-width: 768px) {
-    header {
-        padding: 15px 20px !important;
-        flex-direction: row !important;
-        justify-content: space-between !important;
-        position: fixed !important; /* Restore fixed position for clean mobile feel */
-        background: var(--bg-secondary) !important;
-        height: 70px;
+    
+    .modal-content {
+        margin: 20px auto;
+        max-height: 90vh;
+        width: 95% !important;
+        overflow-y: auto;
+        padding: 20px !important;
     }
     
-    .nav-links {
-        display: none !important; /* Hide desktop links on mobile */
+    .retrieved-file-details {
+        padding: 10px !important;
     }
     
-    .mobile-menu-btn {
-        display: block !important;
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: var(--text-primary);
-        padding: 8px;
-        border-radius: var(--radius-sm);
-        transition: background var(--transition-fast);
-    }
-    
-    .hero-section {
-        padding: 120px 20px 60px 20px !important; /* Provide padding for fixed header */
+    .preview-modal-body pre {
+        max-height: 250px !important;
     }
 }
 
-/* Landing Page Mobile Navigation Drawer */
+/* ========================================== */
+/* 5. MOTION & SCROLL UTILITIES */
+/* ========================================== */
+.sidebar-menu, .filter-tags {
+    -webkit-overflow-scrolling: touch; /* Kinetic scrolling for touch screens */
+    scrollbar-width: none;
+}
+
+.sidebar-menu::-webkit-scrollbar, .filter-tags::-webkit-scrollbar {
+    display: none;
+}
+
+/* Landing Page Mobile Navigation Drawer Container */
 .mobile-drawer {
     position: fixed;
     top: 0;
-    right: -300px; /* Hide to the right */
+    right: -300px;
     width: 300px;
     height: 100vh;
     background: var(--bg-secondary);
@@ -259,7 +319,7 @@
 }
 
 .mobile-drawer.active {
-    transform: translateX(-300px); /* Slide in */
+    transform: translateX(-300px);
 }
 
 .drawer-overlay {
@@ -320,164 +380,4 @@
 
 .drawer-link:hover {
     color: var(--primary);
-}
-
-/* Dashboard Sidebar Drawer on Mobile (<1024px) */
-@media (max-width: 1024px) {
-    .sidebar {
-        position: fixed !important;
-        top: 0 !important;
-        left: -280px !important; /* Hide to the left */
-        width: 280px !important;
-        height: 100vh !important;
-        z-index: 10000 !important;
-        transition: transform var(--transition-normal) !important;
-        transform: translateX(0);
-        display: flex !important;
-        flex-direction: column !important;
-        background: var(--bg-secondary) !important;
-        border-right: 1px solid var(--card-border) !important;
-        border-bottom: none !important;
-        box-shadow: 10px 0 30px rgba(0, 0, 0, 0.15) !important;
-    }
-    
-    .sidebar.active {
-        transform: translateX(280px) !important; /* Slide in */
-    }
-    
-    .sidebar-menu {
-        flex-direction: column !important;
-        overflow-x: visible !important;
-        padding: 20px !important;
-        gap: 8px !important;
-    }
-    
-    .sidebar-item {
-        padding: 12px 18px !important;
-        border-radius: var(--radius-md) !important;
-        width: 100% !important;
-    }
-    
-    .sidebar-item span {
-        display: inline !important; /* Force text visible in drawer */
-    }
-    
-    .sidebar-logo {
-        padding: 25px 20px !important;
-        text-align: left !important;
-        justify-content: flex-start !important;
-    }
-    
-    .sidebar-logo span {
-        display: inline !important;
-    }
-    
-    .sidebar-footer {
-        display: flex !important;
-        padding: 20px !important;
-        margin-top: auto;
-    }
-
-    .main-content {
-        padding: 20px !important;
-        min-height: 100vh !important;
-        margin-left: 0 !important;
-        width: 100% !important;
-    }
-
-    /* Top Navbar menu button */
-    .dashboard-menu-btn {
-        display: block !important;
-    }
-    
-    /* Sidebar Backdrop Overlay */
-    .sidebar-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(15, 23, 42, 0.4);
-        backdrop-filter: blur(4px);
-        z-index: 9999;
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity var(--transition-normal);
-    }
-    
-    .sidebar-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
-    }
-}
-
-/* iOS/Android Touch Momentum & Scrollbar Hiding */
-.sidebar-menu, .filter-tags {
-    -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
-    scrollbar-width: none; /* Hide scrollbars in Firefox */
-}
-
-.sidebar-menu::-webkit-scrollbar, .filter-tags::-webkit-scrollbar {
-    display: none; /* Hide scrollbars in Chrome/Safari/Edge */
-}
-
-/* Mobile Modal Scrolling Adjustments */
-@media (max-width: 480px) {
-    .modal-content {
-        margin: 20px auto;
-        max-height: 90vh;
-        overflow-y: auto;
-    }
-    
-    .retrieved-file-details {
-        padding: 10px !important;
-    }
-}
-
-/* Mobile Guest Trial Segmented Switcher */
-.trial-switcher-mobile {
-    display: none;
-    background: rgba(14, 165, 233, 0.06);
-    border: 1px solid var(--card-border);
-    padding: 4px;
-    border-radius: 30px;
-    gap: 4px;
-    max-width: 320px;
-    width: 100%;
-    margin: 0 auto 20px auto;
-}
-
-.switcher-btn {
-    flex: 1;
-    background: none;
-    border: none;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    border-radius: 25px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all var(--transition-normal);
-}
-
-.switcher-btn.active {
-    background: var(--bg-secondary);
-    color: var(--primary);
-    box-shadow: 0 4px 12px rgba(148, 163, 184, 0.1);
-}
-
-@media (max-width: 768px) {
-    .trial-switcher-mobile {
-        display: flex;
-    }
-    
-    .trial-card {
-        display: none !important; /* Hide by default on mobile */
-        animation: fadeIn 0.3s ease;
-    }
-    
-    .trial-card.active-mobile {
-        display: flex !important; /* Show active card on mobile */
-        flex-direction: column;
-    }
 }
