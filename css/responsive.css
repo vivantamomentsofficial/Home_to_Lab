@@ -1,5 +1,10 @@
 /* CloudVault Responsive Layouts */
 
+/* Hide mobile controls by default on desktop */
+.mobile-menu-btn, .dashboard-menu-btn {
+    display: none;
+}
+
 /* Overrides for dashboard grid structures to prevent breaking */
 @media (max-width: 1024px) {
     /* Dashboard Sidebar Adjustments */
