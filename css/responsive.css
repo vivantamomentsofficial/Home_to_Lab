@@ -211,23 +211,29 @@
         gap: 20px !important;
     }
     
-    /* Top Navbar header wrapping on mobile dashboard */
+    /* Top Navbar: Keep as a compact sticky header on mobile */
     .top-navbar {
-        flex-direction: column !important;
-        align-items: stretch !important;
-        gap: 15px !important;
-        padding-bottom: 15px !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 999 !important;
+        background: var(--bg-primary) !important;
+        padding: 15px 0 !important;
+        border-bottom: 1px solid var(--card-border) !important;
+        margin-top: -20px; /* Offset parent workspace top padding */
     }
     
     .user-profile-nav {
-        justify-content: space-between !important;
-        width: 100% !important;
+        justify-content: flex-end !important;
+        width: auto !important;
+        margin-top: 0 !important;
+        gap: 12px !important;
     }
     
     .storage-bar-container {
-        width: 100% !important;
-        max-width: none !important;
-        flex: 1;
+        display: none !important; /* Hide bulky storage tracker from header on mobile */
     }
 
     /* Vault filters */
