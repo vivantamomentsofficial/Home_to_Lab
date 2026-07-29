@@ -65,6 +65,15 @@ CREATE POLICY "Allow public delete on shared files" ON public.files
         )
     );
 
+CREATE POLICY "Allow public read on shared files" ON public.files
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM public.share_codes
+            WHERE file_id = id AND expires_at > now()
+        )
+    );
+
+
 
 -- RLS Policies for notes table
 CREATE POLICY "Users can insert their own notes" ON public.notes
@@ -81,9 +90,25 @@ CREATE POLICY "Users can delete their own notes" ON public.notes
 
 
 -- RLS Policies for share_codes table
--- Owner can manage their share codes
-CREATE POLICY "Users can manage their own share codes" ON public.share_codes
-    FOR ALL USING (
+-- Owner can manage their share codes (split to prevent infinite recursion during SELECT)
+CREATE POLICY "Users can insert their own share codes" ON public.share_codes
+    FOR INSERT WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.files f 
+            WHERE f.id = file_id AND f.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can update their own share codes" ON public.share_codes
+    FOR UPDATE USING (
+        EXISTS (
+            SELECT 1 FROM public.files f 
+            WHERE f.id = file_id AND f.user_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Users can delete their own share codes" ON public.share_codes
+    FOR DELETE USING (
         EXISTS (
             SELECT 1 FROM public.files f 
             WHERE f.id = file_id AND f.user_id = auth.uid()

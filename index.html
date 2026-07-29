@@ -649,7 +649,6 @@
 
     <!-- Supabase Client SDK CDN -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/config.js"></script>
     <script src="js/supabase.js"></script>
     <script src="js/settings.js"></script>
     <script src="js/auth.js"></script>
@@ -758,10 +757,14 @@
                     if (error || !data) {
                         window.showToast('Invalid or expired sharing code. Share codes are valid for 30 minutes.', 'danger');
                         console.error(error);
+                    } else if (!data.files) {
+                        window.showToast('File details could not be retrieved. Please check Row Level Security (RLS) policies.', 'danger');
+                        console.error("Shared file record not found. Check if the 'Allow public read on shared files' RLS policy exists on public.files table.");
                     } else {
                         // Display retrieved file in modal
                         const file = data.files;
                         retrievedName.textContent = file.filename;
+
                         retrievedSize.textContent = formatBytes(file.size);
                         retrievedType.textContent = file.file_type.toUpperCase();
                         

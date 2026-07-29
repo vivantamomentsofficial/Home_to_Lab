@@ -13,6 +13,22 @@ async function initSupabase() {
     let url = localStorage.getItem('CLOUDVAULT_SUPABASE_URL');
     let key = localStorage.getItem('CLOUDVAULT_SUPABASE_ANON_KEY');
 
+    // Load local config dynamically if running on localhost / local network and not already loaded
+    const isLocal = ['localhost', '127.0.0.1', ''].includes(window.location.hostname) || window.location.hostname.startsWith('192.168.');
+    if (isLocal && !url && !window.env) {
+        try {
+            await new Promise((resolve) => {
+                const script = document.createElement('script');
+                script.src = 'js/config.js';
+                script.onload = () => resolve();
+                script.onerror = () => resolve();
+                document.head.appendChild(script);
+            });
+        } catch (e) {
+            console.warn("Failed to load local config.js:", e);
+        }
+    }
+
     // 2. Check window.env (local js/config.js file)
     if (!url && window.env) {
         url = window.env.SUPABASE_URL;
