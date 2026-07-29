@@ -4,6 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Apply theme immediately on load
     applySavedTheme();
 
+    // Initialize server load warning modal on page load
+    initServerLoadWarning();
+
     const checkDb = setInterval(() => {
         if (window.supabaseClient) {
             clearInterval(checkDb);
@@ -163,3 +166,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 800);
     }
 });
+
+// Initialize and display server load warning notice
+function initServerLoadWarning() {
+    // Check if warning has been dismissed in this session
+    const isDismissed = sessionStorage.getItem('CLOUDVAULT_LOAD_WARNING_DISMISSED');
+    if (isDismissed === 'true') return;
+
+    // Create warning modal container
+    const overlay = document.createElement('div');
+    overlay.className = 'server-load-overlay';
+    overlay.id = 'server-load-modal';
+
+    overlay.innerHTML = `
+        <div class="server-load-card">
+            <div class="server-load-icon-wrapper">
+                <i data-lucide="alert-triangle" style="width: 32px; height: 32px;"></i>
+            </div>
+            <h3 class="server-load-title">Cloud Server Alert</h3>
+            <div class="server-load-message">
+                <p>Our cloud servers are currently experiencing high traffic due to a large number of concurrent users. Please wait a few moments for the page to respond. We appreciate your patience.</p>
+            </div>
+            <div class="server-load-buttons">
+                <button id="server-load-continue" class="server-load-btn server-load-btn-primary" style="width: 100%;">
+                    <span>Continue to Site</span>
+                    <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Initialize Lucide Icons in the modal
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    // Trigger open transition
+    setTimeout(() => {
+        overlay.classList.add('active');
+    }, 50);
+
+    // Event listeners
+    const continueBtn = overlay.querySelector('#server-load-continue');
+
+    // Auto-dismiss after 10 seconds (10000ms)
+    const autoDismissTimeout = setTimeout(() => {
+        dismissModal();
+    }, 10000);
+
+    function dismissModal() {
+        clearTimeout(autoDismissTimeout);
+        sessionStorage.setItem('CLOUDVAULT_LOAD_WARNING_DISMISSED', 'true');
+        overlay.classList.remove('active');
+        setTimeout(() => {
+            overlay.remove();
+        }, 300);
+    }
+
+    continueBtn.addEventListener('click', dismissModal);
+}
