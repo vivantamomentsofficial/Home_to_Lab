@@ -1,0 +1,10 @@
+# Robots.txt for CloudVault (Home to Lab)
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /login.html
+Allow: /register.html
+Disallow: /dashboard.html
+Disallow: /api/
+
+Sitemap: https://hometolab.vercel.app/sitemap.xml
