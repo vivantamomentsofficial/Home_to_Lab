@@ -457,9 +457,16 @@
         </div>
 
         <!-- Trial Grid Layout: Left is Trial Upload, Right is Share Code Retrieval -->
+        
+        <!-- Segmented Control for Mobile Switcher -->
+        <div class="trial-switcher-mobile">
+            <button id="btn-show-upload" class="switcher-btn active">Send File</button>
+            <button id="btn-show-retrieve" class="switcher-btn">Receive File</button>
+        </div>
+
         <div class="trial-grid-container">
             <!-- Left Card: Guest Upload Trial -->
-            <div class="glass-card trial-card">
+            <div id="trial-upload-card" class="glass-card trial-card active-mobile">
                 <h3 style="font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="file-up" style="width: 18px; height: 18px; color: var(--primary);"></i>
                     Upload File (Instant Guest Trial)
@@ -469,7 +476,7 @@
                 </p>
                 <div id="trial-upload-zone" class="trial-upload-zone">
                     <i data-lucide="upload-cloud" style="width: 32px; height: 32px;"></i>
-                    <span style="font-size: 12px; font-weight: 500;">Drag & Drop or Click to Upload</span>
+                    <span style="font-size: 12px; font-weight: 500;">Click or Tap to Upload File</span>
                     <input type="file" id="trial-file-input" style="display: none;">
                 </div>
                 <div id="trial-upload-progress" class="hidden" style="margin-top: 15px; width: 100%;">
@@ -491,7 +498,7 @@
             </div>
 
             <!-- Right Card: 6-digit Code Retrieval Card -->
-            <div class="glass-card trial-card">
+            <div id="trial-retrieve-card" class="glass-card trial-card">
                 <h3 style="font-size: 16px; font-weight: 600; text-align: left; display: flex; align-items: center; gap: 8px;">
                     <i data-lucide="key-round" style="width: 18px; height: 18px; color: var(--accent);"></i>
                     Access Shared File via Temporary Code
@@ -685,6 +692,27 @@
 
                 drawerLinks.forEach(link => {
                     link.addEventListener('click', closeDrawer);
+                });
+            }
+
+            // Mobile Switcher Tab controls for Guest Trial (Send / Receive)
+            const showUploadBtn = document.getElementById('btn-show-upload');
+            const showRetrieveBtn = document.getElementById('btn-show-retrieve');
+            const uploadCard = document.getElementById('trial-upload-card');
+            const retrieveCard = document.getElementById('trial-retrieve-card');
+
+            if (showUploadBtn && showRetrieveBtn && uploadCard && retrieveCard) {
+                showUploadBtn.addEventListener('click', () => {
+                    showUploadBtn.classList.add('active');
+                    showRetrieveBtn.classList.remove('active');
+                    uploadCard.classList.add('active-mobile');
+                    retrieveCard.classList.remove('active-mobile');
+                });
+                showRetrieveBtn.addEventListener('click', () => {
+                    showRetrieveBtn.classList.add('active');
+                    showUploadBtn.classList.remove('active');
+                    retrieveCard.classList.add('active-mobile');
+                    uploadCard.classList.remove('active-mobile');
                 });
             }
         });

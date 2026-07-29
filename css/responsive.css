@@ -433,3 +433,51 @@
         padding: 10px !important;
     }
 }
+
+/* Mobile Guest Trial Segmented Switcher */
+.trial-switcher-mobile {
+    display: none;
+    background: rgba(14, 165, 233, 0.06);
+    border: 1px solid var(--card-border);
+    padding: 4px;
+    border-radius: 30px;
+    gap: 4px;
+    max-width: 320px;
+    width: 100%;
+    margin: 0 auto 20px auto;
+}
+
+.switcher-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 25px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-normal);
+}
+
+.switcher-btn.active {
+    background: var(--bg-secondary);
+    color: var(--primary);
+    box-shadow: 0 4px 12px rgba(148, 163, 184, 0.1);
+}
+
+@media (max-width: 768px) {
+    .trial-switcher-mobile {
+        display: flex;
+    }
+    
+    .trial-card {
+        display: none !important; /* Hide by default on mobile */
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .trial-card.active-mobile {
+        display: flex !important; /* Show active card on mobile */
+        flex-direction: column;
+    }
+}
