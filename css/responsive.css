@@ -187,6 +187,7 @@
     
     .sidebar-menu {
         justify-content: space-around;
+        overflow-x: hidden !important; /* Lock scrollbar on ultra narrow */
     }
     
     .sidebar-item {
@@ -201,5 +202,53 @@
     
     .top-navbar-title h1 {
         font-size: 1.5rem !important;
+    }
+}
+
+/* Landing Page Header Responsiveness */
+@media (max-width: 768px) {
+    header {
+        padding: 15px 20px !important;
+        flex-direction: column !important;
+        gap: 12px;
+        position: relative !important; /* Scrollable header to save screen space on mobile */
+    }
+    
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+        gap: 15px !important;
+        flex-wrap: wrap;
+    }
+    
+    .nav-link {
+        font-size: 13px !important;
+    }
+    
+    .hero-section {
+        padding: 60px 20px 60px 20px !important; /* Reduce padding since header is no longer fixed */
+    }
+}
+
+/* iOS/Android Touch Momentum & Scrollbar Hiding */
+.sidebar-menu, .filter-tags {
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+    scrollbar-width: none; /* Hide scrollbars in Firefox */
+}
+
+.sidebar-menu::-webkit-scrollbar, .filter-tags::-webkit-scrollbar {
+    display: none; /* Hide scrollbars in Chrome/Safari/Edge */
+}
+
+/* Mobile Modal Scrolling Adjustments */
+@media (max-width: 480px) {
+    .modal-content {
+        margin: 20px auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .retrieved-file-details {
+        padding: 10px !important;
     }
 }
