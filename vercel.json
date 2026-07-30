@@ -1,7 +1,16 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/home", "destination": "/index.html" }
+    { "source": "/home", "destination": "/index.html" },
+    { "source": "/favicon.ico", "destination": "/assets/favicon.ico" },
+    { "source": "/favicon.svg", "destination": "/assets/favicon.svg" },
+    { "source": "/favicon-16x16.png", "destination": "/assets/favicon-16x16.png" },
+    { "source": "/favicon-32x32.png", "destination": "/assets/favicon-32x32.png" },
+    { "source": "/favicon-48x48.png", "destination": "/assets/favicon-48x48.png" },
+    { "source": "/apple-touch-icon.png", "destination": "/assets/apple-touch-icon.png" },
+    { "source": "/android-chrome-192x192.png", "destination": "/assets/android-chrome-192x192.png" },
+    { "source": "/android-chrome-512x512.png", "destination": "/assets/android-chrome-512x512.png" },
+    { "source": "/preview.png", "destination": "/assets/preview.png" }
   ],
   "redirects": [
     { "source": "/index.html", "destination": "/home", "permanent": true },
