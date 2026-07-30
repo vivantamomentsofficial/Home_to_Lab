@@ -45,6 +45,10 @@ window.switchSection = switchSection;
 function closePreviewModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) modal.classList.remove('active');
+    if (modalId === 'share-code-modal' && window.dashboardShareInterval) {
+        clearInterval(window.dashboardShareInterval);
+        window.dashboardShareInterval = null;
+    }
 }
 window.closePreviewModal = closePreviewModal;
 

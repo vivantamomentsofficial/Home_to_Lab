@@ -502,6 +502,17 @@
                     <button id="trial-copy-code-btn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 12px; width: 100%; justify-content: center; display: inline-flex; align-items: center; gap: 6px;">
                         <i data-lucide="copy" style="width: 14px; height: 14px;"></i> <span>Copy Share Code</span>
                     </button>
+                    <!-- Expiry Timer Display -->
+                    <div id="trial-timer-container" style="font-size: 12px; margin-top: 12px; color: var(--text-secondary); display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i data-lucide="clock" style="width: 14px; height: 14px; color: var(--warning);"></i>
+                        <span>Expires in:</span>
+                        <span id="trial-expiry-timer" style="font-weight: 700; color: var(--warning);">30m 00s</span>
+                    </div>
+                </div>
+                <!-- Upload Error UI Banner -->
+                <div id="trial-upload-error" class="hidden" style="margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-md); color: var(--danger); font-size: 12px; text-align: left; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;">
+                    <i data-lucide="alert-circle" style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--danger);"></i>
+                    <span id="trial-upload-error-text" style="word-break: break-word;"></span>
                 </div>
             </div>
 
@@ -519,6 +530,11 @@
                     <button id="retrieve-btn" class="btn btn-primary" style="padding: 0 20px; height: 52px; display: flex; align-items: center; justify-content: center;">
                         <i data-lucide="download" style="width: 20px; height: 20px;"></i>
                     </button>
+                </div>
+                <!-- Retrieve Error UI Banner -->
+                <div id="trial-retrieve-error" class="hidden" style="margin-top: 15px; padding: 12px; background: rgba(239, 68, 68, 0.1); border: 1px solid var(--danger); border-radius: var(--radius-md); color: var(--danger); font-size: 12px; text-align: left; display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;">
+                    <i data-lucide="alert-circle" style="width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--danger);"></i>
+                    <span id="trial-retrieve-error-text" style="word-break: break-word;"></span>
                 </div>
             </div>
         </div>
@@ -736,16 +752,75 @@
             const retrievedType = document.getElementById('retrieved-type');
             const retrievedExpiry = document.getElementById('retrieved-expiry');
             const downloadBtn = document.getElementById('modal-download-btn');
+            const retrieveErrorEl = document.getElementById('trial-retrieve-error');
+            const retrieveErrorTextEl = document.getElementById('trial-retrieve-error-text');
 
             retrieveBtn.addEventListener('click', performRetrieval);
             shareCodeInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') performRetrieval();
             });
 
+            let retrieveInterval;
+
+            function startRetrieveCountdown(expiresAt) {
+                if (retrieveInterval) clearInterval(retrieveInterval);
+                const expiryTime = new Date(expiresAt);
+
+                function updateTimer() {
+                    const msLeft = expiryTime - new Date();
+                    if (msLeft <= 0) {
+                        clearInterval(retrieveInterval);
+                        retrievedExpiry.textContent = "Expired";
+                        retrievedExpiry.style.color = "var(--danger)";
+                        downloadBtn.style.pointerEvents = "none";
+                        downloadBtn.style.opacity = "0.5";
+                        window.showToast('This sharing link has expired.', 'warning');
+                    } else {
+                        const totalSecs = Math.floor(msLeft / 1000);
+                        const mins = Math.floor(totalSecs / 60);
+                        const secs = totalSecs % 60;
+                        retrievedExpiry.textContent = `${mins}m ${secs}s`;
+                        retrievedExpiry.style.color = "var(--warning)";
+                        downloadBtn.style.pointerEvents = "auto";
+                        downloadBtn.style.opacity = "1";
+                    }
+                }
+                updateTimer();
+                retrieveInterval = setInterval(updateTimer, 1000);
+            }
+
+            function clearRetrieveCountdown() {
+                if (retrieveInterval) {
+                    clearInterval(retrieveInterval);
+                    retrieveInterval = null;
+                }
+            }
+
             async function performRetrieval() {
+                // Clear previous errors
+                if (retrieveErrorEl) retrieveErrorEl.classList.add('hidden');
+
                 const code = shareCodeInput.value.trim().toUpperCase();
                 if (code.length !== 6) {
-                    window.showToast('Please enter a valid 6-digit sharing code.', 'warning');
+                    const msg = 'Please enter a valid 6-digit sharing code.';
+                    if (retrieveErrorEl && retrieveErrorTextEl) {
+                        retrieveErrorTextEl.textContent = msg;
+                        retrieveErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(msg, 'warning');
+                    }
+                    return;
+                }
+
+                // Check network status
+                if (!navigator.onLine) {
+                    const msg = 'Network error: You are currently offline. Please check your connection and try again.';
+                    if (retrieveErrorEl && retrieveErrorTextEl) {
+                        retrieveErrorTextEl.textContent = msg;
+                        retrieveErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(msg, 'danger');
+                    }
                     return;
                 }
 
@@ -754,7 +829,6 @@
 
                 try {
                     // Query share_codes joining files
-                    // Since share_codes read RLS enables public SELECT on active share codes, this will work!
                     const { data, error } = await window.supabaseClient
                         .from('share_codes')
                         .select('*, files(*)')
@@ -763,11 +837,23 @@
                         .single();
 
                     if (error || !data) {
-                        window.showToast('Invalid or expired sharing code. Share codes are valid for 30 minutes.', 'danger');
+                        const msg = 'Invalid or expired sharing code. Share codes are valid for 30 minutes.';
+                        if (retrieveErrorEl && retrieveErrorTextEl) {
+                            retrieveErrorTextEl.textContent = msg;
+                            retrieveErrorEl.classList.remove('hidden');
+                        } else {
+                            window.showToast(msg, 'danger');
+                        }
                         console.error(error);
                     } else if (!data.files) {
-                        window.showToast('File details could not be retrieved. Please check Row Level Security (RLS) policies.', 'danger');
-                        console.error("Shared file record not found. Check if the 'Allow public read on shared files' RLS policy exists on public.files table.");
+                        const msg = 'Shared file details could not be found. Check if the file has already been downloaded and deleted.';
+                        if (retrieveErrorEl && retrieveErrorTextEl) {
+                            retrieveErrorTextEl.textContent = msg;
+                            retrieveErrorEl.classList.remove('hidden');
+                        } else {
+                            window.showToast(msg, 'danger');
+                        }
+                        console.error("Shared file record not found.");
                     } else {
                         // Display retrieved file in modal
                         const file = data.files;
@@ -776,12 +862,11 @@
                         retrievedSize.textContent = formatBytes(file.size);
                         retrievedType.textContent = file.file_type.toUpperCase();
                         
-                        // Calculate expiry minutes left
-                        const minutesLeft = Math.max(1, Math.round((new Date(data.expires_at) - new Date()) / 1000 / 60));
-                        retrievedExpiry.textContent = `${minutesLeft} minute${minutesLeft > 1 ? 's' : ''}`;
+                        // Start the real-time countdown timer
+                        startRetrieveCountdown(data.expires_at);
                         
                         // Set download button URL
-            downloadBtn.href = data.signed_url;
+                        downloadBtn.href = data.signed_url;
                         downloadBtn.setAttribute('download', file.filename);
                         downloadBtn.setAttribute('data-file-id', file.id);
 
@@ -790,7 +875,13 @@
                     }
                 } catch (e) {
                     console.error("Retrieval failed:", e);
-                    window.showToast('Error searching for sharing code.', 'danger');
+                    const msg = 'Error searching for sharing code. Please verify your network connection and try again.';
+                    if (retrieveErrorEl && retrieveErrorTextEl) {
+                        retrieveErrorTextEl.textContent = msg;
+                        retrieveErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(msg, 'danger');
+                    }
                 } finally {
                     retrieveBtn.disabled = false;
                     retrieveBtn.innerHTML = `<i data-lucide="download" style="width: 20px; height: 20px;"></i>`;
@@ -799,10 +890,17 @@
             }
 
             // Close Modal Events
-            modalClose.addEventListener('click', () => modal.classList.remove('active'));
-            modalCancel.addEventListener('click', () => modal.classList.remove('active'));
+            modalClose.addEventListener('click', () => {
+                modal.classList.remove('active');
+                clearRetrieveCountdown();
+            });
+            modalCancel.addEventListener('click', () => {
+                modal.classList.remove('active');
+                clearRetrieveCountdown();
+            });
             downloadBtn.addEventListener('click', async () => {
                 modal.classList.remove('active');
+                clearRetrieveCountdown();
                 window.showToast('Download started! This one-time link has now expired.', 'success');
                 
                 try {
@@ -836,18 +934,81 @@
             const codeDisplayCard = document.getElementById('trial-code-display-card');
             const shareCodeText = document.getElementById('trial-share-code');
             const copyCodeBtn = document.getElementById('trial-copy-code-btn');
+            
+            const uploadErrorEl = document.getElementById('trial-upload-error');
+            const uploadErrorTextEl = document.getElementById('trial-upload-error-text');
 
             if (!uploadZone || !fileInput) return;
 
+            let trialInterval;
+            function startTrialCountdown(expiresAtStr) {
+                if (trialInterval) clearInterval(trialInterval);
+                const expiryTime = new Date(expiresAtStr);
+                const timerEl = document.getElementById('trial-expiry-timer');
+                
+                function updateTimer() {
+                    const msLeft = expiryTime - new Date();
+                    if (msLeft <= 0) {
+                        clearInterval(trialInterval);
+                        if (timerEl) {
+                            timerEl.textContent = "Expired";
+                            timerEl.style.color = "var(--danger)";
+                        }
+                        window.showToast('Your trial share code has expired.', 'warning');
+                    } else {
+                        const totalSecs = Math.floor(msLeft / 1000);
+                        const mins = Math.floor(totalSecs / 60);
+                        const secs = totalSecs % 60;
+                        if (timerEl) {
+                            timerEl.textContent = `${mins}m ${secs}s`;
+                            timerEl.style.color = "var(--warning)";
+                        }
+                    }
+                }
+                
+                updateTimer();
+                trialInterval = setInterval(updateTimer, 1000);
+            }
+
+            // Restore active state if page was refreshed
+            const savedCode = localStorage.getItem('CLOUDVAULT_TRIAL_CODE');
+            const savedExpiresAt = localStorage.getItem('CLOUDVAULT_TRIAL_EXPIRES_AT');
+            if (savedCode && savedExpiresAt) {
+                const msLeft = new Date(savedExpiresAt) - new Date();
+                if (msLeft > 0) {
+                    uploadZone.classList.add('hidden');
+                    progressContainer.classList.add('hidden');
+                    codeDisplayCard.classList.remove('hidden');
+                    shareCodeText.textContent = savedCode;
+                    startTrialCountdown(savedExpiresAt);
+                } else {
+                    localStorage.removeItem('CLOUDVAULT_TRIAL_CODE');
+                    localStorage.removeItem('CLOUDVAULT_TRIAL_EXPIRES_AT');
+                    localStorage.removeItem('CLOUDVAULT_TRIAL_FILENAME');
+                }
+            }
+
             // Trigger file selection
             uploadZone.addEventListener('click', () => {
-                // Check if trial has already been used
+                // Clear errors on new click
+                if (uploadErrorEl) uploadErrorEl.classList.add('hidden');
+
+                // Check if trial has already been used (and no active timer is running)
                 if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
-                    window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
-                    setTimeout(() => {
-                        window.location.href = 'register';
-                    }, 2000);
-                    return;
+                    const activeExpires = localStorage.getItem('CLOUDVAULT_TRIAL_EXPIRES_AT');
+                    if (!activeExpires || new Date(activeExpires) <= new Date()) {
+                        const msg = 'Trial limit reached! Please register or login to upload more files.';
+                        if (uploadErrorEl && uploadErrorTextEl) {
+                            uploadErrorTextEl.textContent = msg;
+                            uploadErrorEl.classList.remove('hidden');
+                        } else {
+                            window.showToast(msg, 'danger');
+                        }
+                        setTimeout(() => {
+                            window.location.href = 'register';
+                        }, 2500);
+                        return;
+                    }
                 }
                 fileInput.click();
             });
@@ -871,12 +1032,23 @@
             uploadZone.addEventListener('drop', (e) => {
                 e.preventDefault();
                 uploadZone.classList.remove('dragover');
+                if (uploadErrorEl) uploadErrorEl.classList.add('hidden');
+
                 if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
-                    window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
-                    setTimeout(() => {
-                        window.location.href = 'register';
-                    }, 2000);
-                    return;
+                    const activeExpires = localStorage.getItem('CLOUDVAULT_TRIAL_EXPIRES_AT');
+                    if (!activeExpires || new Date(activeExpires) <= new Date()) {
+                        const msg = 'Trial limit reached! Please register or login to upload more files.';
+                        if (uploadErrorEl && uploadErrorTextEl) {
+                            uploadErrorTextEl.textContent = msg;
+                            uploadErrorEl.classList.remove('hidden');
+                        } else {
+                            window.showToast(msg, 'danger');
+                        }
+                        setTimeout(() => {
+                            window.location.href = 'register';
+                        }, 2500);
+                        return;
+                    }
                 }
                 if (e.dataTransfer.files.length > 0) {
                     handleTrialUpload(e.dataTransfer.files[0]);
@@ -884,9 +1056,29 @@
             });
 
             async function handleTrialUpload(file) {
+                if (uploadErrorEl) uploadErrorEl.classList.add('hidden');
+
                 // 10MB limit check
                 if (file.size > 10 * 1024 * 1024) {
-                    window.showToast('Guest trial upload limit is 10MB. Please login to upload files up to 100MB.', 'warning');
+                    const msg = 'Guest trial upload limit is 10MB. Please login or register to upload files up to 100MB.';
+                    if (uploadErrorEl && uploadErrorTextEl) {
+                        uploadErrorTextEl.textContent = msg;
+                        uploadErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(msg, 'warning');
+                    }
+                    return;
+                }
+
+                // Check network status
+                if (!navigator.onLine) {
+                    const msg = 'Network error: You are currently offline. Please check your connection and try again.';
+                    if (uploadErrorEl && uploadErrorTextEl) {
+                        uploadErrorTextEl.textContent = msg;
+                        uploadErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(msg, 'danger');
+                    }
                     return;
                 }
 
@@ -912,19 +1104,17 @@
                     // Upload file to bucket uploads/{user_id}/filename
                     const storagePath = `uploads/${user.id}/${Date.now()}_${file.name}`;
                     
-                    // Simple upload progress simulation
-                    let simulatedProgress = 0;
-                    const progressInterval = setInterval(() => {
-                        simulatedProgress = Math.min(90, simulatedProgress + 10);
-                        progressPercent.textContent = `${simulatedProgress}%`;
-                        progressBar.style.width = `${simulatedProgress}%`;
-                    }, 100);
-
                     const { data: uploadData, error: uploadError } = await window.supabaseClient.storage
                         .from('vault')
-                        .upload(storagePath, file);
-
-                    clearInterval(progressInterval);
+                        .upload(storagePath, file, {
+                            cacheControl: '3600',
+                            upsert: false,
+                            onUploadProgress: (progress) => {
+                                const percent = Math.round((progress.loaded / progress.total) * 100);
+                                progressPercent.textContent = `${percent}%`;
+                                progressBar.style.width = `${percent}%`;
+                            }
+                        });
 
                     if (uploadError) throw uploadError;
 
@@ -970,24 +1160,38 @@
 
                     if (shareError) throw shareError;
 
-                    // Mark trial as used
+                    // Mark trial as used & save the active sharing code details
                     localStorage.setItem('CLOUDVAULT_TRIAL_USED', 'true');
+                    localStorage.setItem('CLOUDVAULT_TRIAL_CODE', shareCode);
+                    localStorage.setItem('CLOUDVAULT_TRIAL_EXPIRES_AT', expiresAt);
+                    localStorage.setItem('CLOUDVAULT_TRIAL_FILENAME', file.name);
 
-                    // Display share code
+                    // Display share code and start countdown
                     setTimeout(() => {
                         progressContainer.classList.add('hidden');
                         codeDisplayCard.classList.remove('hidden');
                         shareCodeText.textContent = shareCode;
                         if (window.lucide) window.lucide.createIcons();
+                        startTrialCountdown(expiresAt);
                         window.showToast('Trial upload complete! Copy the code to share.', 'success');
                     }, 500);
 
                 } catch (err) {
                     console.error("Trial upload error:", err);
-                    if (err.message && (err.message.includes('Anonymous sign-ins are disabled') || err.message.includes('anonymous'))) {
-                        window.showToast('Anonymous sign-ins are disabled. Please enable them in Supabase Dashboard (Authentication -> Providers -> Anonymous).', 'danger');
+                    let errMsg = err.message || 'Upload failed.';
+                    if (errMsg.includes('Anonymous sign-ins are disabled') || errMsg.includes('anonymous')) {
+                        errMsg = 'Anonymous sign-ins are disabled. Please enable them in Supabase Dashboard (Authentication -> Providers -> Anonymous).';
+                    } else if (!navigator.onLine) {
+                        errMsg = 'Network error: Connection to the server was lost. Please check your internet connection.';
                     } else {
-                        window.showToast('Upload failed: ' + err.message, 'danger');
+                        errMsg = 'Upload failed: ' + errMsg;
+                    }
+
+                    if (uploadErrorEl && uploadErrorTextEl) {
+                        uploadErrorTextEl.textContent = errMsg;
+                        uploadErrorEl.classList.remove('hidden');
+                    } else {
+                        window.showToast(errMsg, 'danger');
                     }
                     progressContainer.classList.add('hidden');
                     uploadZone.classList.remove('hidden');

@@ -442,6 +442,29 @@ async function generateShareCode(id) {
         document.getElementById('share-code-display').textContent = shareCode;
         document.getElementById('share-code-modal').classList.add('active');
 
+        // Real-time expiry countdown
+        const expiryEl = document.getElementById('share-code-expiry');
+        if (expiryEl) {
+            if (window.dashboardShareInterval) clearInterval(window.dashboardShareInterval);
+            
+            function updateDashboardTimer() {
+                const msLeft = expiryTime - new Date();
+                if (msLeft <= 0) {
+                    clearInterval(window.dashboardShareInterval);
+                    expiryEl.textContent = "EXPIRES IN: EXPIRED";
+                    expiryEl.style.color = "var(--danger)";
+                } else {
+                    const totalSecs = Math.floor(msLeft / 1000);
+                    const mins = Math.floor(totalSecs / 60);
+                    const secs = totalSecs % 60;
+                    expiryEl.textContent = `EXPIRES IN: ${mins}m ${secs}s`;
+                    expiryEl.style.color = "var(--warning)";
+                }
+            }
+            updateDashboardTimer();
+            window.dashboardShareInterval = setInterval(updateDashboardTimer, 1000);
+        }
+
         window.updateOverviewStats();
 
     } catch (err) {
