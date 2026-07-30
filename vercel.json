@@ -1,7 +1,6 @@
 {
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/home", "destination": "/index.html" },
     { "source": "/favicon.ico", "destination": "/assets/favicon.ico" },
     { "source": "/favicon.svg", "destination": "/assets/favicon.svg" },
     { "source": "/favicon-16x16.png", "destination": "/assets/favicon-16x16.png" },
