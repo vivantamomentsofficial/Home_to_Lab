@@ -9,7 +9,7 @@
     <meta name="description" content="CloudVault (Home to Lab) is a free student personal cloud storage and online clipboard. Transfer files and copy notes from home to college computer labs instantly using temporary 6-digit sharing codes.">
     <meta name="keywords" content="home to lab, home lab, cloudvault, hometolab, student cloud storage, temporary file sharing, computer lab file transfer, online clipboard, cloud vault, college file transfer">
     <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://hometolab.vercel.app/">
+    <link rel="canonical" href="https://hometolab.vercel.app/home">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -17,18 +17,26 @@
     <meta property="og:title" content="Home to Lab (CloudVault) - Student Cloud & Clipboard">
     <meta property="og:description" content="Securely transfer your assignment files and clipboard text snippets from home to college computer labs instantly using temporary 6-digit share codes.">
     <meta property="og:image" content="https://hometolab.vercel.app/preview.png">
+    <meta property="og:site_name" content="CloudVault">
+    <meta property="og:locale" content="en_US">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://hometolab.vercel.app/">
     <meta property="twitter:title" content="Home to Lab (CloudVault) - Student Cloud & Clipboard">
     <meta property="twitter:description" content="Securely transfer your assignment files and clipboard text snippets from home to college computer labs instantly using temporary 6-digit share codes.">
+    <meta property="twitter:image" content="https://hometolab.vercel.app/preview.png">
     
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="googlebb2f2bac71c63b54" />
 
-    <!-- Favicon (Premium Designed SVG Icon) -->
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230284C7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3Cpath d='M12 8v8M9 11l3-3 3 3'/%3E%3C/svg%3E">
+    <!-- Favicon Links for Premium Browsers and Google Search Engine -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="alternate icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+    <link rel="alternate icon" type="image/png" sizes="48x48" href="favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
 
     <!-- JSON-LD Structured Schema Data -->
     <script type="application/ld+json">
@@ -405,8 +413,8 @@
         <nav class="nav-links">
             <a href="#features" class="nav-link">Features</a>
             <a href="#how-it-works" class="nav-link">How It Works</a>
-            <a href="login.html" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Sign In</a>
-            <a href="register.html" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Sign Up</a>
+            <a href="login" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Sign In</a>
+            <a href="register" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Sign Up</a>
         </nav>
         <!-- Mobile Menu Trigger -->
         <button id="mobile-menu-btn" class="mobile-menu-btn" style="display: none; background: none; border: none; cursor: pointer; color: var(--text-primary); padding: 8px; border-radius: var(--radius-sm);" aria-label="Toggle Menu">
@@ -429,8 +437,8 @@
             <a href="#features" class="drawer-link">Features</a>
             <a href="#how-it-works" class="drawer-link">How It Works</a>
             <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; width: 100%;">
-                <a href="login.html" class="btn btn-secondary" style="justify-content: center; width: 100%;">Sign In</a>
-                <a href="register.html" class="btn btn-primary" style="justify-content: center; width: 100%;">Sign Up</a>
+                <a href="login" class="btn btn-secondary" style="justify-content: center; width: 100%;">Sign In</a>
+                <a href="register" class="btn btn-primary" style="justify-content: center; width: 100%;">Sign Up</a>
             </div>
         </div>
     </div>
@@ -447,7 +455,7 @@
             Upload files or paste notes from home. Access them on any library or college computer without plugging in USBs or risking your logins on unsecure PCs.
         </p>
         <div class="hero-buttons">
-            <a href="register.html" class="btn btn-primary">
+            <a href="register" class="btn btn-primary">
                 <span>Get Started Free</span>
                 <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
             </a>
@@ -837,7 +845,7 @@
                 if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
                     window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
                     setTimeout(() => {
-                        window.location.href = 'register.html';
+                        window.location.href = 'register';
                     }, 2000);
                     return;
                 }
@@ -866,7 +874,7 @@
                 if (localStorage.getItem('CLOUDVAULT_TRIAL_USED') === 'true') {
                     window.showToast('Trial limit reached! Please register or login to upload more files.', 'danger');
                     setTimeout(() => {
-                        window.location.href = 'register.html';
+                        window.location.href = 'register';
                     }, 2000);
                     return;
                 }

@@ -151,7 +151,7 @@ async function triggerAutoLogout() {
             setTimeout(async () => {
                 await window.supabaseClient.auth.signOut();
                 // Redirect with query param to explain what happened
-                window.location.href = 'index.html?reason=timeout';
+                window.location.href = 'home?reason=timeout';
             }, 1000);
         }
     }

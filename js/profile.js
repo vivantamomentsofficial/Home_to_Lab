@@ -236,7 +236,7 @@ function handleAccountDecline() {
                 // D. Sign out and redirect
                 setTimeout(async () => {
                     await window.supabaseClient.auth.signOut();
-                    window.location.href = 'register.html';
+                    window.location.href = 'register';
                 }, 1500);
 
             } catch (err) {

@@ -91,7 +91,7 @@ async function initializeDashboard() {
     // 1. Verify Session
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) {
-        window.location.href = 'login.html';
+        window.location.href = 'login';
         return;
     }
 
@@ -141,7 +141,7 @@ async function initializeDashboard() {
             'Are you sure you want to end your session? This is recommended if you are on a shared computer lab PC.',
             async () => {
                 await window.supabaseClient.auth.signOut();
-                window.location.href = 'index.html';
+                window.location.href = 'home';
             }
         );
     });
