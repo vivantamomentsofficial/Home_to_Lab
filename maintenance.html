@@ -177,24 +177,100 @@
             letter-spacing: -0.01em;
         }
 
-        /* Meme Styles */
-        .meme-container {
+        /* Meme Modal Styles */
+        .meme-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(8, 10, 16, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .meme-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .meme-modal-content {
+            width: 90%;
+            max-width: 420px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            transform: scale(0.9) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .meme-modal.active .meme-modal-content {
+            transform: scale(1) translateY(0);
+        }
+
+        .meme-modal-header h2 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 26px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .meme-modal-header p {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .meme-modal-body {
             width: 100%;
             border-radius: 16px;
             overflow: hidden;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-            transition: transform 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
         }
 
-        .meme-container:hover {
-            transform: scale(1.02);
-        }
-
-        .meme-img {
+        .meme-modal-img {
             width: 100%;
             height: auto;
             display: block;
+        }
+
+        .btn-close-modal {
+            width: 100%;
+            padding: 14px 28px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+        }
+
+        .btn-close-modal:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(2, 132, 199, 0.4);
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        }
+
+        .btn-close-modal:active {
+            transform: translateY(0);
         }
 
         /* Premium Button */
@@ -254,13 +330,10 @@
 
         <!-- Subtitle message -->
         <p>
-            CloudVault is temporarily offline while I (aayush) carry out database migrations and performance upgrades to provide you with a faster, safer, and more reliable experience.
+            CloudVault is temporarily offline. Lots of love from aayush.
         </p>
 
-        <!-- Meme -->
-        <div class="meme-container">
-            <img class="meme-img" src="assets/jethalal.png" alt="Baad mein aana, abhi time nahi hai">
-        </div>
+
 
         <!-- Reopen Information -->
         <div class="reopen-box">
@@ -277,6 +350,22 @@
         <!-- Back Button Warning -->
         <div class="footer-note">
             Pressing the browser Back button will automatically close this tab.
+        </div>
+    </div>
+
+    <!-- Meme Overlay Modal -->
+    <div id="meme-modal" class="meme-modal">
+        <div class="meme-modal-content">
+            <div class="meme-modal-header">
+                <h2>Baad Mein Aana!</h2>
+                <p>Abhi site under maintenance hai.</p>
+            </div>
+            <div class="meme-modal-body">
+                <img class="meme-modal-img" src="assets/jethalal.png" alt="Baad mein aana, abhi time nahi hai">
+            </div>
+            <button class="btn-close-modal" onclick="hideMemeModal()">
+                <span>Sorry, Bapuji!</span>
+            </button>
         </div>
     </div>
 
@@ -297,8 +386,26 @@
             history.pushState(null, null, location.href);
         });
 
+        // Functions to control Meme Modal
+        function showMemeModal() {
+            const modal = document.getElementById('meme-modal');
+            if (modal) {
+                modal.classList.add('active');
+            }
+        }
+
+        function hideMemeModal() {
+            const modal = document.getElementById('meme-modal');
+            if (modal) {
+                modal.classList.remove('active');
+            }
+        }
+
         // Function to attempt closing the tab/window
         function closeBrowserTab() {
+            // Show the Jethalal meme modal first
+            showMemeModal();
+
             // Standard close
             window.close();
 
@@ -311,15 +418,6 @@
             } catch (e) {
                 console.error("Self close window call failed:", e);
             }
-
-            // Fallback: if browser prevents closing, replace current history/page with empty blank
-            setTimeout(function() {
-                try {
-                    window.location.replace("about:blank");
-                } catch (e) {
-                    console.error("Redirect to about:blank failed:", e);
-                }
-            }, 100);
         }
     </script>
 </body>
