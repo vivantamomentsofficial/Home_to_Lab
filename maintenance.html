@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Site Under Maintenance - CloudVault</title>
+    
+    <!-- SEO Optimization -->
+    <meta name="description" content="CloudVault is currently undergoing scheduled maintenance. We will reopen on Monday, 09/08/2026.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="alternate icon" type="image/png" sizes="16x16" href="assets/favicon-16x16.png">
+    <link rel="alternate icon" type="image/png" sizes="32x32" href="assets/favicon-32x32.png">
+    <link rel="alternate icon" type="image/png" sizes="48x48" href="assets/favicon-48x48.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
+    <link rel="shortcut icon" href="assets/favicon.ico" type="image/x-icon">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #0b0f19;
+            color: #f1f5f9;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Blurred Website Background Iframe */
+        .bg-iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: 1;
+            filter: blur(14px) brightness(0.35) saturate(1.1);
+            pointer-events: none;
+        }
+
+        /* Glassmorphic Container */
+        .glass-card {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 480px;
+            padding: 45px 35px;
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.6), 
+                        0 0 40px 0 rgba(2, 132, 199, 0.05);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 26px;
+            animation: scaleUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes scaleUp {
+            from {
+                opacity: 0;
+                transform: scale(0.92) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Icon Wrapper & Pulsing Effect */
+        .icon-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 84px;
+            height: 84px;
+            border-radius: 50%;
+            background: rgba(2, 132, 199, 0.08);
+            border: 1px solid rgba(2, 132, 199, 0.25);
+            color: #38bdf8;
+            box-shadow: 0 0 35px rgba(2, 132, 199, 0.15);
+            animation: pulseGlow 3.5s infinite ease-in-out;
+        }
+
+        @keyframes pulseGlow {
+            0%, 100% {
+                box-shadow: 0 0 35px rgba(2, 132, 199, 0.15);
+                transform: scale(1);
+            }
+            50% {
+                box-shadow: 0 0 55px rgba(2, 132, 199, 0.35);
+                transform: scale(1.04);
+            }
+        }
+
+        /* Text and Typography */
+        h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 30px;
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.03em;
+            line-height: 1.2;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            background: rgba(245, 158, 11, 0.12);
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            color: #fbbf24;
+        }
+
+        p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #94a3b8;
+            margin: 0;
+        }
+
+        /* Highlight Reopen box */
+        .reopen-box {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.015);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.02);
+        }
+
+        .reopen-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .reopen-date {
+            font-family: 'Outfit', sans-serif;
+            font-size: 19px;
+            font-weight: 700;
+            color: #38bdf8;
+            letter-spacing: -0.01em;
+        }
+
+        /* Premium Button */
+        .btn-close-tab {
+            width: 100%;
+            padding: 15px 28px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+            border: none;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-close-tab:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(2, 132, 199, 0.4);
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        }
+
+        .btn-close-tab:active {
+            transform: translateY(0);
+        }
+
+        .footer-note {
+            font-size: 11px;
+            color: #475569;
+            margin-top: 4px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Blurred Background Website Iframe -->
+    <iframe class="bg-iframe" src="/home?bypass_maintenance=true"></iframe>
+
+    <!-- Glassmorphic Card Container -->
+    <div class="glass-card">
+        <!-- Status Badge -->
+        <div class="badge">Scheduled Maintenance</div>
+
+        <!-- Maintenance Icon -->
+        <div class="icon-container">
+            <i data-lucide="wrench" style="width: 38px; height: 38px;"></i>
+        </div>
+
+        <!-- Title -->
+        <h1>Website Under Maintenance</h1>
+
+        <!-- Subtitle message -->
+        <p>
+            CloudVault is temporarily offline while we carry out database migrations and performance upgrades to provide you with a faster, safer, and more reliable experience.
+        </p>
+
+        <!-- Reopen Information -->
+        <div class="reopen-box">
+            <div class="reopen-title">Estimated Reopening</div>
+            <div class="reopen-date">Monday, 09/08/2026</div>
+        </div>
+
+        <!-- Close / Exit Button -->
+        <button class="btn-close-tab" onclick="closeBrowserTab()">
+            <i data-lucide="power" style="width: 18px; height: 18px;"></i>
+            <span>Close Web App</span>
+        </button>
+
+        <!-- Back Button Warning -->
+        <div class="footer-note">
+            Pressing the browser Back button will automatically close this tab.
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Browser Back Interception Logic
+        // We push a dummy state to history so when they press back, it triggers popstate
+        history.pushState(null, null, location.href);
+
+        window.addEventListener('popstate', function (event) {
+            // User pressed Back! Attempt to close the browser tab.
+            closeBrowserTab();
+
+            // Re-push state to lock history state in case closing was blocked,
+            // so next back click will retry closing the tab.
+            history.pushState(null, null, location.href);
+        });
+
+        // Function to attempt closing the tab/window
+        function closeBrowserTab() {
+            // Standard close
+            window.close();
+
+            // Self-close workaround (for modern browsers requiring scripts to only close windows they opened)
+            try {
+                var win = window.open("about:blank", "_self");
+                if (win) {
+                    win.close();
+                }
+            } catch (e) {
+                console.error("Self close window call failed:", e);
+            }
+
+            // Fallback: if browser prevents closing, replace current history/page with empty blank
+            setTimeout(function() {
+                try {
+                    window.location.replace("about:blank");
+                } catch (e) {
+                    console.error("Redirect to about:blank failed:", e);
+                }
+            }, 100);
+        }
+    </script>
+</body>
+</html>

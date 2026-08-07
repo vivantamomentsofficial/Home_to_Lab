@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script>
+        // Force maintenance mode redirect unless bypassed (e.g. inside background iframe)
+        if (!window.location.search.includes('bypass_maintenance=true')) {
+            window.location.replace('/maintenance');
+        }
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Home to Lab (CloudVault)</title>
