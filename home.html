@@ -660,6 +660,24 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Developer section layout */
+        .developer-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 40px;
+            max-width: 960px;
+            margin: 0 auto;
+            text-align: left;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .developer-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -928,29 +946,60 @@
         </div>
     </section>
 
-    <!-- Feedback & Feature Requests Section -->
-    <section id="feedback" class="section-container" style="background: var(--bg-secondary); border-top: 1px solid var(--card-border);">
-        <span class="section-tag">Suggestions?</span>
-        <h2 class="section-title">Feedback & Feature Requests</h2>
-        <p class="section-subtitle">Want to request a new feature? Found a bug or issue? Let us know directly below!</p>
+    <!-- Developer & Feedback Section -->
+    <section id="developer-feedback" class="section-container" style="background: var(--bg-secondary); border-top: 1px solid var(--card-border); padding: 80px 8%;">
+        <span class="section-tag">About Project</span>
+        <h2 class="section-title">Developer & Contact</h2>
+        <p class="section-subtitle">Get in touch to suggest new features, report bugs, or collaborate on CloudVault.</p>
 
-        <div style="max-width: 600px; margin: 0 auto; text-align: left;">
-            <div class="glass-card" style="padding: 30px; border-radius: var(--radius-lg);">
-                <form action="https://formspree.io/f/mnpajoyg" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+        <div class="developer-grid">
+            <!-- Left Column: About Developer -->
+            <div class="glass-card" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+                <div style="display: flex; align-items: center; gap: 16px;">
+                    <div class="user-avatar" style="width: 64px; height: 64px; font-size: 24px; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: 700;">AP</div>
+                    <div>
+                        <h3 style="font-size: 18px; color: var(--text-primary); font-family: 'Outfit', sans-serif;">Aayush Parekh</h3>
+                        <p style="font-size: 13px; color: var(--text-muted);">Lead Developer & Creator</p>
+                    </div>
+                </div>
+                
+                <p style="font-size: 14px; color: var(--text-secondary); line-height: 1.6; margin: 0;">
+                    Hi! I'm Aayush, a developer focused on building utilities that make academic life productive. I created CloudVault to bridge the gap between personal laptops and computer lab PCs without relying on unsecure USB drives or browser logins.
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--card-border); padding-top: 16px; margin-top: 10px;">
+                    <a href="https://aayushparekhportfolio.vercel.app/" target="_blank" rel="noopener noreferrer" style="font-size: 13px; color: var(--primary); display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: underline;">
+                        <i data-lucide="globe" style="width: 16px; height: 16px;"></i>
+                        <span>Visit My Portfolio</span>
+                    </a>
+                    <a href="https://github.com/aayushparekh27" target="_blank" rel="noopener noreferrer" style="font-size: 13px; color: var(--primary); display: flex; align-items: center; gap: 8px; font-weight: 600; text-decoration: underline;">
+                        <i data-lucide="github" style="width: 16px; height: 16px;"></i>
+                        <span>Follow Me on GitHub</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Right Column: Feedback Form -->
+            <div class="glass-card" style="padding: 30px;">
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="message-square" style="color: var(--primary); width: 18px; height: 18px;"></i>
+                    Send Feedback / Bug Report
+                </h3>
+                <form action="https://formspree.io/f/mnpajoyg" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" style="font-weight: 600;">Your Name</label>
-                            <input type="text" name="name" class="form-input" style="padding: 10px 14px;" placeholder="Full Name" required>
+                            <label class="form-label" style="font-weight: 600; font-size: 12px;">Your Name</label>
+                            <input type="text" name="name" class="form-input" style="padding: 8px 12px; font-size: 13px;" placeholder="Full Name" required>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" style="font-weight: 600;">Email Address</label>
-                            <input type="email" name="email" class="form-input" style="padding: 10px 14px;" placeholder="college@example.com" required>
+                            <label class="form-label" style="font-weight: 600; font-size: 12px;">Email Address</label>
+                            <input type="email" name="email" class="form-input" style="padding: 8px 12px; font-size: 13px;" placeholder="college@example.com" required>
                         </div>
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600;">Topic</label>
-                        <select name="topic" class="form-input" style="padding: 10px 14px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                        <label class="form-label" style="font-weight: 600; font-size: 12px;">What is this about?</label>
+                        <select name="topic" class="form-input" style="padding: 8px 12px; font-size: 13px; background: var(--bg-secondary); color: var(--text-primary);" required>
                             <option value="Feature Request">Request a Feature</option>
                             <option value="Bug Report">Report a Bug / Issue</option>
                             <option value="General Feedback">General Feedback</option>
@@ -958,13 +1007,13 @@
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600;">Message</label>
-                        <textarea name="message" class="form-input" style="padding: 10px 14px; height: 120px; resize: none;" placeholder="Describe the feature you want, or details about the issue you faced..." required></textarea>
+                        <label class="form-label" style="font-weight: 600; font-size: 12px;">Details</label>
+                        <textarea name="message" class="form-input" style="padding: 8px 12px; height: 100px; resize: none; font-size: 13px;" placeholder="Describe features you want, or details of the issue..." required></textarea>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" style="padding: 12px; font-weight: 700; width: 100%; justify-content: center;">
-                        <i data-lucide="send" style="width: 18px; height: 18px;"></i>
-                        <span>Submit Feedback</span>
+                    <button type="submit" class="btn btn-primary" style="padding: 10px; font-weight: 700; width: 100%; justify-content: center; font-size: 13px;">
+                        <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                        <span>Submit Message</span>
                     </button>
                 </form>
             </div>
