@@ -879,6 +879,55 @@
         </div>
     </section>
 
+    <!-- FAQ Section -->
+    <section id="faq" class="section-container" style="background: var(--bg-primary); border-top: 1px solid var(--card-border);">
+        <span class="section-tag">Got Questions?</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Got questions about security, limits, or clipboard sync? We have answers.</p>
+
+        <div class="faq-container" style="max-width: 800px; margin: 0 auto; text-align: left; display: flex; flex-direction: column; gap: 16px;">
+            <div class="glass-card faq-item" style="padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleFaq(this)">
+                <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                    <span>How secure is CloudVault?</span>
+                    <i data-lucide="chevron-down" style="width: 18px; height: 18px; transition: transform 0.3s ease;"></i>
+                </div>
+                <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.3s ease; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 0;">
+                    <p style="margin-top: 10px;">All your files and snippets are protected by Supabase Row-Level Security (RLS) policies. Only your authenticated user account can access, download, or edit your private vault items. Lab computer logins are completely isolated.</p>
+                </div>
+            </div>
+
+            <div class="glass-card faq-item" style="padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleFaq(this)">
+                <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                    <span>Does it save sessions on shared lab PCs?</span>
+                    <i data-lucide="chevron-down" style="width: 18px; height: 18px; transition: transform 0.3s ease;"></i>
+                </div>
+                <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.3s ease; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 0;">
+                    <p style="margin-top: 10px;">By default, if you don't check "Remember Me" during login, CloudVault terminates your session and wipes active cookies immediately upon tab or browser closure, ensuring nobody else can hijack your account after you leave the computer.</p>
+                </div>
+            </div>
+
+            <div class="glass-card faq-item" style="padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleFaq(this)">
+                <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                    <span>What is the storage file size limit?</span>
+                    <i data-lucide="chevron-down" style="width: 18px; height: 18px; transition: transform 0.3s ease;"></i>
+                </div>
+                <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.3s ease; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 0;">
+                    <p style="margin-top: 10px;">CloudVault offers a generous storage size of up to 100MB per file upload on the standard student plan, which is perfect for programming scripts, assignments, ZIP archives, lab reports, and study guides.</p>
+                </div>
+            </div>
+
+            <div class="glass-card faq-item" style="padding: 20px; cursor: pointer; transition: all 0.3s ease;" onclick="toggleFaq(this)">
+                <div class="faq-question" style="display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 15px; color: var(--text-primary);">
+                    <span>Can I share files with my friends?</span>
+                    <i data-lucide="chevron-down" style="width: 18px; height: 18px; transition: transform 0.3s ease;"></i>
+                </div>
+                <div class="faq-answer" style="max-height: 0; overflow: hidden; transition: all 0.3s ease; font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 0;">
+                    <p style="margin-top: 10px;">Yes! From your private dashboard, you can generate temporary share links for specific files. Anyone with the URL can access and download that file before it automatically expires and self-destructs from the database.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
@@ -931,6 +980,24 @@
                 });
             }
         });
+
+        // FAQ Toggle Logic
+        function toggleFaq(card) {
+            const answer = card.querySelector('.faq-answer');
+            const icon = card.querySelector('.faq-question i');
+            
+            const isOpen = answer.style.maxHeight && answer.style.maxHeight !== '0px';
+            
+            if (isOpen) {
+                answer.style.maxHeight = '0px';
+                icon.style.transform = 'rotate(0deg)';
+                card.style.borderColor = 'var(--card-border)';
+            } else {
+                answer.style.maxHeight = '200px';
+                icon.style.transform = 'rotate(180deg)';
+                card.style.borderColor = 'var(--primary)';
+            }
+        }
     </script>
 </body>
 </html>

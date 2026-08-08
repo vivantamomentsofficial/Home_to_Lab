@@ -323,21 +323,25 @@ function setupKeyboardShortcuts() {
             }
         }
 
-        // 3. CTRL + SHIFT + V (or CTRL+Alt+V since shift-v is sometimes system reserved) -> Quick Paste Note
+        // 3. CTRL + SHIFT + V -> Quick Paste Note into Quick Text Form
         if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'v') {
             e.preventDefault();
-            const modal = document.getElementById('quick-paste-modal');
-            const textarea = document.getElementById('quick-paste-textarea');
-            if (modal && textarea) {
-                modal.classList.add('active');
-                textarea.value = '';
+            switchSection('notes-tab');
+            const textarea = document.getElementById('note-content-input');
+            const titleInput = document.getElementById('note-title-input');
+            if (textarea) {
                 textarea.focus();
+                textarea.value = '';
+                if (titleInput) {
+                    titleInput.value = 'Quick Sync Clip';
+                }
                 // Attempt to read clipboard if permitted
                 navigator.clipboard.readText().then(text => {
                     if (text) textarea.value = text;
                 }).catch(() => {
                     // Fail silently, user can paste manually
                 });
+                window.showToast('Switched to Quick Text and focused input (CTRL+SHIFT+V)', 'info');
             }
         }
     });
