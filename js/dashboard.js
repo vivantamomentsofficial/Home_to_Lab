@@ -36,6 +36,10 @@ function switchSection(targetId) {
     }
     if (targetId === 'profile-tab') titleText = "User Profile";
     if (targetId === 'settings-tab') titleText = "Settings";
+    if (targetId === 'admin-tab') {
+        titleText = "Admin Control Centre";
+        if (window.initializeAdminPanel) window.initializeAdminPanel(); // Load admin panel on switch
+    }
     
     titleEl.textContent = titleText;
 }
@@ -102,6 +106,12 @@ async function initializeDashboard() {
     // 2. Setup Navbar & User Info
     updateUserProfileNav(session.user);
     updateStorageStats();
+
+    // Check if Super Admin
+    if (session.user && session.user.email === 'homtolab@gmail.com') {
+        const adminItem = document.getElementById('admin-sidebar-item');
+        if (adminItem) adminItem.style.display = 'flex';
+    }
 
     // 3. Load Overview Page Stats & Recent Activities
     updateOverviewStats();

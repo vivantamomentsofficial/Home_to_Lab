@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>
-        // Force maintenance mode redirect unless bypassed (e.g. inside background iframe)
-        if (!window.location.search.includes('bypass_maintenance=true')) {
-            window.location.replace('/maintenance');
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Home to Lab (CloudVault)</title>
@@ -61,6 +55,10 @@
                 <div class="sidebar-item" data-target="profile-tab">
                     <i data-lucide="user"></i>
                     <span>Profile</span>
+                </div>
+                <div class="sidebar-item" data-target="admin-tab" id="admin-sidebar-item" style="display: none;">
+                    <i data-lucide="shield-alert"></i>
+                    <span>Admin Panel</span>
                 </div>
                 <div class="sidebar-item" data-target="settings-tab">
                     <i data-lucide="settings"></i>
@@ -483,7 +481,187 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ========================================== -->
+            <!-- 7. ADMIN PANEL SECTION -->
+            <!-- ========================================== -->
+            <section id="admin-tab" class="dashboard-section">
+                <div class="glass-card" style="padding: 24px; margin-bottom: 24px;">
+                    <h2 style="font-size: 20px; font-family: 'Outfit', sans-serif; display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <i data-lucide="shield" style="color: var(--primary);"></i>
+                        Super Admin Control Centre
+                    </h2>
+                    <p style="font-size: 13px; color: var(--text-secondary);">Manage system statistics, review user log activity, and control files or clipboard notes across all accounts.</p>
+                </div>
+
+                <!-- Admin Stats Grid -->
+                <div class="dashboard-overview-grid" style="margin-bottom: 24px;">
+                    <div class="glass-card overview-stat-card">
+                        <div class="stat-details">
+                            <h3>TOTAL USERS</h3>
+                            <div id="admin-stat-users">0</div>
+                        </div>
+                        <div class="stat-icon" style="background: rgba(79, 70, 229, 0.15); color: var(--primary);">
+                            <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card overview-stat-card">
+                        <div class="stat-details">
+                            <h3>TOTAL FILES</h3>
+                            <div id="admin-stat-files">0</div>
+                        </div>
+                        <div class="stat-icon" style="background: rgba(56, 189, 248, 0.15); color: var(--accent);">
+                            <i data-lucide="files" style="width: 24px; height: 24px;"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card overview-stat-card">
+                        <div class="stat-details">
+                            <h3>TOTAL SNIPPETS</h3>
+                            <div id="admin-stat-notes">0</div>
+                        </div>
+                        <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--success);">
+                            <i data-lucide="clipboard-list" style="width: 24px; height: 24px;"></i>
+                        </div>
+                    </div>
+                    <div class="glass-card overview-stat-card">
+                        <div class="stat-details">
+                            <h3>LOGINS TODAY</h3>
+                            <div id="admin-stat-logins">0</div>
+                        </div>
+                        <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
+                            <i data-lucide="activity" style="width: 24px; height: 24px;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Content Row -->
+                <div class="dashboard-details-grid" style="grid-template-columns: 1.6fr 1fr; gap: 24px; align-items: start; margin-bottom: 24px;">
+                    
+                    <!-- Users List Panel -->
+                    <div class="glass-card" style="padding: 24px; overflow: hidden;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap;">
+                            <h3 style="font-size: 16px; font-weight: 700;">System Users</h3>
+                            <div class="input-container" style="max-width: 240px; margin: 0;">
+                                <span class="input-icon"><i data-lucide="search" style="width: 16px; height: 16px;"></i></span>
+                                <input type="text" id="admin-user-search" class="form-input" style="padding: 8px 12px 8px 36px; font-size: 13px;" placeholder="Search users by name/email...">
+                            </div>
+                        </div>
+                        
+                        <div style="overflow-x: auto; width: 100%;">
+                            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 13px; min-width: 500px;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--card-border); color: var(--text-muted); font-weight: 600;">
+                                        <th style="padding: 12px 8px;">User</th>
+                                        <th style="padding: 12px 8px;">Email</th>
+                                        <th style="padding: 12px 8px;">Joined</th>
+                                        <th style="padding: 12px 8px; text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-table-body">
+                                    <!-- User rows generated by js/admin.js -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Login Session Logs -->
+                    <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; gap: 15px;">
+                        <h3 style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="history" style="color: var(--warning); width: 18px; height: 18px;"></i>
+                            Recent Login Sessions
+                        </h3>
+                        <div id="admin-login-logs-container" style="display: flex; flex-direction: column; gap: 10px; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+                            <!-- Login logs generated by js/admin.js -->
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
+
+    <!-- Admin User Data Manager Modal -->
+    <div id="admin-user-data-modal" class="modal-overlay">
+        <div class="glass-card modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
+            <button class="modal-close-btn" onclick="closePreviewModal('admin-user-data-modal')">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+            <h3 style="font-size: 18px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; font-family: 'Outfit', sans-serif;">
+                <i data-lucide="folder-lock" style="color: var(--primary);"></i>
+                Manage User Data
+            </h3>
+            <p id="admin-user-detail-subtitle" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">User details and file inventory.</p>
+            
+            <!-- Quick Actions tab panel inside modal -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- Edit user info -->
+                <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight: 600; font-size: 13px;">Update Profile Details</div>
+                    <div class="form-group" style="margin: 0;">
+                        <input type="text" id="admin-edit-name-input" class="form-input" style="padding: 8px 12px; font-size: 13px;" placeholder="Full Name">
+                    </div>
+                    <button id="admin-update-name-btn" class="btn btn-secondary" style="font-size: 12px; padding: 8px; width: 100%;">Save Name Changes</button>
+                </div>
+                <!-- Upload/Add data on behalf -->
+                <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight: 600; font-size: 13px;">Add New Snippet</div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <input type="text" id="admin-add-note-title" class="form-input" style="padding: 8px; font-size: 12px;" placeholder="Title">
+                        <input type="text" id="admin-add-note-content" class="form-input" style="padding: 8px; font-size: 12px;" placeholder="Content">
+                    </div>
+                    <button id="admin-add-note-btn" class="btn btn-primary" style="font-size: 12px; padding: 8px; width: 100%;">Create Note</button>
+                </div>
+            </div>
+
+            <!-- Upload File on behalf -->
+            <div class="glass-card" style="padding: 16px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                <div style="font-weight: 600; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="upload-cloud" style="width: 16px; height: 16px; color: var(--accent);"></i>
+                    Upload File on Behalf of User
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="file" id="admin-upload-file-input" class="hidden">
+                    <button onclick="document.getElementById('admin-upload-file-input').click()" class="btn btn-secondary" style="font-size: 12px; padding: 8px 16px;">
+                        Select File
+                    </button>
+                    <span id="admin-upload-filename-display" style="font-size: 12px; color: var(--text-muted); word-break: break-all;">No file chosen</span>
+                    <button id="admin-upload-submit-btn" class="btn btn-primary" style="font-size: 12px; padding: 8px 16px; display: none;">
+                        Upload Now
+                    </button>
+                </div>
+                <!-- Progress container -->
+                <div id="admin-upload-progress-container" style="display: none; margin-top: 10px;">
+                    <div class="storage-bar-bg" style="height: 6px;"><div id="admin-upload-progress-fill" class="storage-bar-fill" style="width: 0%;"></div></div>
+                    <span id="admin-upload-progress-percent" style="font-size: 10px; color: var(--text-muted); display: block; margin-top: 4px; text-align: right;">0%</span>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; flex: 1; min-height: 250px;">
+                <!-- User Files -->
+                <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; min-width: 0;">
+                    <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i data-lucide="files" style="width: 16px; height: 16px; color: var(--accent);"></i>
+                        User Files (<span id="admin-user-files-count">0</span>)
+                    </h4>
+                    <div id="admin-user-files-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 250px;">
+                        <!-- Files listed dynamically -->
+                    </div>
+                </div>
+                <!-- User Notes -->
+                <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; min-width: 0;">
+                    <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; white-space: nowrap;">
+                        <i data-lucide="clipboard-copy" style="width: 16px; height: 16px; color: var(--success);"></i>
+                        User Notes (<span id="admin-user-notes-count">0</span>)
+                    </h4>
+                    <div id="admin-user-notes-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; max-height: 250px;">
+                        <!-- Notes listed dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 15px;">
+                <button id="admin-wipe-user-btn" class="btn btn-danger" style="padding: 8px 16px; font-size: 12px;">Delete User Account</button>
+                <button class="btn btn-secondary" onclick="closePreviewModal('admin-user-data-modal')" style="padding: 8px 16px; font-size: 12px;">Close</button>
+            </div>
+        </div>
+    </div>
     </div>
 
     <!-- ================================================================= -->
@@ -597,5 +775,6 @@
     <script src="js/clipboard.js"></script>
     <script src="js/files.js"></script>
     <script src="js/profile.js"></script>
+    <script src="js/admin.js"></script>
 </body>
 </html>

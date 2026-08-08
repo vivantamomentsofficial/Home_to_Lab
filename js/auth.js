@@ -121,6 +121,7 @@ function setupFormListeners() {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const name = document.getElementById('login-name').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('remember-me').checked;
@@ -149,7 +150,28 @@ function setupFormListeners() {
                 submitBtn.innerHTML = origContent;
                 if (window.lucide) window.lucide.createIcons();
             } else {
+                // Update display name metadata in Auth upon successful login
+                try {
+                    await window.supabaseClient.auth.updateUser({
+                        data: { full_name: name }
+                    });
+                } catch (updateErr) {
+                    console.error("Failed to update name during login:", updateErr);
+                }
+
                 showToast('Welcome back to CloudVault!', 'success');
+                try {
+                    const { data: { user } } = await window.supabaseClient.auth.getUser();
+                    if (user) {
+                        await window.supabaseClient.from('login_logs').insert({
+                            user_id: user.id,
+                            email: user.email,
+                            login_time: new Date().toISOString()
+                        });
+                    }
+                } catch (logErr) {
+                    console.error("Failed to log login:", logErr);
+                }
                 setTimeout(() => {
                     window.location.href = 'dashboard';
                 }, 1000);

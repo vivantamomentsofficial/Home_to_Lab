@@ -110,9 +110,13 @@ async function loadVaultFiles() {
     emptyState.classList.add('hidden');
 
     try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) throw new Error("No user session found");
+
         const { data, error } = await window.supabaseClient
             .from('files')
             .select('*')
+            .eq('user_id', user.id)
             .order('created_at', { ascending: false });
 
         if (error) throw error;

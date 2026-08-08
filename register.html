@@ -1,12 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script>
-        // Force maintenance mode redirect unless bypassed (e.g. inside background iframe)
-        if (!window.location.search.includes('bypass_maintenance=true')) {
-            window.location.replace('/maintenance');
-        }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register - Home to Lab (CloudVault)</title>
@@ -150,6 +144,11 @@
             <div class="auth-footer">
                 Already have an account? <a href="login" class="auth-link">Login here</a>
             </div>
+        </div>
+        
+        <!-- Developer Attribution Footer -->
+        <div style="text-align: center; margin-top: 25px; font-size: 13px; color: var(--text-muted); animation: fadeInUp 0.8s ease;">
+            Developed by <a href="https://aayushparekhportfolio.vercel.app/" target="_blank" rel="noopener noreferrer" style="color: var(--primary); font-weight: 500; text-decoration: underline;">Aayush Parekh</a>
         </div>
     </div>
 
