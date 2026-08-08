@@ -150,15 +150,31 @@
                 </div>
 
                 <div class="dashboard-details-grid">
-                    <!-- Recent Activities Card -->
+                    <!-- Secure Usage Guidelines Card -->
                     <div class="glass-card" style="padding: 24px; display: flex; flex-direction: column; gap: 15px;">
-                        <h3 style="font-size: 18px;">Recent Vault Activity</h3>
-                        <div id="dashboard-recent-activity" style="display: flex; flex-direction: column; gap: 12px; margin-top: 10px;">
-                            <!-- Dynamically loaded recent actions -->
-                            <div style="text-align: center; color: var(--text-muted); font-size: 13px; padding: 20px 0;">
-                                No recent uploads. Use the "Send to Server" tab to start!
+                        <h3 style="font-size: 18px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                            <i data-lucide="shield-check" style="color: var(--primary); width: 22px; height: 22px;"></i>
+                            Safe Usage Guidelines
+                        </h3>
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 5px;">
+                            To ensure your files and notes remain private on shared computer lab PCs, please follow these safety practices:
+                        </p>
+                        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 5px;">
+                            <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+                                <i data-lucide="shield-alert" style="color: var(--warning); width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                                <span><strong>Tab Self-Destruct:</strong> Always close your browser tab when you leave the lab PC. This automatically wipes your active session and cookies.</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+                                <i data-lucide="trash-2" style="color: var(--danger); width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                                <span><strong>Wipe Temporary Data:</strong> Delete your files manually after downloading them in the lab to keep your storage quota clean.</span>
+                            </div>
+                            <div style="display: flex; gap: 10px; align-items: flex-start; font-size: 13px;">
+                                <i data-lucide="clock" style="color: var(--primary); width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"></i>
+                                <span><strong>Zero Footprint:</strong> Files are stored behind secure Row-Level Security (RLS) policies. Nobody else in the lab can view your files.</span>
                             </div>
                         </div>
+                        <!-- Hidden container for JS update scripts compatibility -->
+                        <div id="dashboard-recent-activity" style="display: none;"></div>
                     </div>
 
                     <!-- Keyboard Shortcuts Panel -->

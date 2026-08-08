@@ -446,13 +446,13 @@
         }
 
         .app-mockup-window {
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 100px rgba(79, 70, 229, 0.15);
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 30px 60px rgba(15, 23, 42, 0.15), 0 0 100px rgba(14, 165, 233, 0.05);
             border-radius: var(--radius-lg);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            background: rgba(15, 23, 42, 0.65);
+            background: #ffffff;
             backdrop-filter: blur(20px);
             transform: rotateX(8deg) translateZ(0);
             transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
@@ -463,11 +463,11 @@
         }
 
         .mockup-header {
-            background: rgba(15, 23, 42, 0.9);
+            background: #ffffff;
             padding: 14px 20px;
             display: flex;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid #e2e8f0;
             position: relative;
         }
 
@@ -490,12 +490,12 @@
         .dot-green { background: #22c55e; }
 
         .mockup-address-bar {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
             border-radius: var(--radius-sm);
             padding: 5px 16px;
             font-size: 11px;
-            color: var(--text-secondary);
+            color: #475569;
             margin: 0 auto;
             display: flex;
             align-items: center;
@@ -514,8 +514,8 @@
         }
 
         .mockup-sidebar {
-            background: rgba(15, 23, 42, 0.3);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border-right: 1px solid #e2e8f0;
             padding: 20px;
             display: flex;
             flex-direction: column;
@@ -526,7 +526,7 @@
             padding: 10px 14px;
             border-radius: var(--radius-md);
             font-size: 13px;
-            color: var(--text-secondary);
+            color: #475569;
             display: flex;
             align-items: center;
             gap: 12px;
@@ -536,14 +536,14 @@
         }
 
         .mockup-nav-item.active {
-            background: rgba(14, 165, 233, 0.08);
-            color: var(--primary);
+            background: #0ea5e9;
+            color: #ffffff;
             font-weight: 600;
         }
 
         .mockup-nav-item:hover:not(.active) {
-            background: rgba(255, 255, 255, 0.02);
-            color: var(--text-primary);
+            background: #f1f5f9;
+            color: #0f172a;
         }
 
         .mockup-nav-item i {
@@ -556,6 +556,7 @@
             display: flex;
             flex-direction: column;
             gap: 24px;
+            background: #f8fafc;
         }
 
         .mockup-dashboard-header {
@@ -565,7 +566,7 @@
         }
 
         .mockup-btn {
-            background: var(--primary);
+            background: #0ea5e9;
             color: white;
             padding: 8px 14px;
             border-radius: var(--radius-sm);
@@ -583,19 +584,20 @@
         }
 
         .mockup-file-card {
-            background: rgba(255, 255, 255, 0.01);
-            border: 1px solid rgba(255, 255, 255, 0.04);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
             padding: 18px;
             display: flex;
             flex-direction: column;
             gap: 8px;
             transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
         
         .mockup-file-card:hover {
-            background: rgba(255, 255, 255, 0.03);
-            border-color: rgba(14, 165, 233, 0.2);
+            background: #f8fafc;
+            border-color: rgba(14, 165, 233, 0.4);
             transform: translateY(-2px);
         }
 
@@ -608,7 +610,7 @@
         .mockup-file-card .name {
             font-size: 12px;
             font-weight: 600;
-            color: var(--text-primary);
+            color: #0f172a;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -616,7 +618,7 @@
 
         .mockup-file-card .size {
             font-size: 10px;
-            color: var(--text-muted);
+            color: #64748b;
         }
 
         .mockup-clipboard {
@@ -624,26 +626,27 @@
         }
 
         .clipboard-box {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: var(--radius-md);
             padding: 14px 18px;
             font-family: monospace;
             font-size: 12px;
-            color: var(--text-primary);
+            color: #0f172a;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
         }
 
         .clipboard-box i {
-            color: var(--text-muted);
+            color: #94a3b8;
             cursor: pointer;
             transition: color 0.2s ease;
         }
 
         .clipboard-box i:hover {
-            color: var(--text-primary);
+            color: #0f172a;
         }
         
         @media (max-width: 768px) {
