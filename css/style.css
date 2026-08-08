@@ -1322,3 +1322,107 @@ button, input, select, textarea {
     color: var(--text-primary);
 }
 
+/* =========================================================================
+   SUPER ADMIN PANEL STYLES
+   ========================================================================= */
+
+.admin-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.admin-users-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 24px;
+    overflow: hidden;
+}
+
+.admin-logs-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.admin-search-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.admin-table-wrapper {
+    overflow-x: auto;
+    width: 100%;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+    min-width: 600px;
+}
+
+.admin-table th {
+    padding: 12px 10px;
+    border-bottom: 2px solid var(--card-border);
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.admin-table td {
+    padding: 14px 10px;
+    border-bottom: 1px solid var(--card-border);
+    color: var(--text-secondary);
+    vertical-align: middle;
+}
+
+.admin-table tr:hover td {
+    background: var(--hover-bg);
+    transition: background var(--transition-fast);
+}
+
+.admin-table .user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-table .user-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.admin-table .action-cell {
+    text-align: right;
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.admin-modal-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+    .admin-modal-layout {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+

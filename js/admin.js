@@ -120,9 +120,12 @@ function renderUsersTable(users) {
             </td>
             <td style="padding: 12px 8px; color: var(--text-secondary);">${user.email}</td>
             <td style="padding: 12px 8px; color: var(--text-muted);">${joinedDate}</td>
-            <td style="padding: 12px 8px; text-align: right;">
+            <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
                 <button class="btn btn-secondary" onclick="openAdminUserModal('${user.id}', '${user.email}', '${name}')" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
                     <i data-lucide="eye" style="width: 12px; height: 12px;"></i> View Data
+                </button>
+                <button class="btn btn-danger" onclick="deleteUserDirect('${user.id}', '${user.email}')" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                    <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete
                 </button>
             </td>
         `;
@@ -602,3 +605,60 @@ async function handleAdminWipeUser() {
         }
     );
 }
+
+// Direct delete user helper from table list
+async function deleteUserDirect(userId, email) {
+    window.showConfirmModal(
+        "Delete User Account",
+        `Are you sure you want to delete user ${email} and wipe all their files and clipboard notes? This action cannot be undone.`,
+        async () => {
+            try {
+                window.showToast(`Deleting user ${email}...`, "info");
+
+                // 1. Retrieve all files to delete from storage
+                const { data: files } = await window.supabaseClient
+                    .from('files')
+                    .select('storage_path')
+                    .eq('user_id', userId);
+
+                if (files && files.length > 0) {
+                    const paths = files.map(f => f.storage_path);
+                    await window.supabaseClient.storage
+                        .from('vault')
+                        .remove(paths);
+                }
+
+                // 2. Delete files from DB (cascade deletes share codes)
+                await window.supabaseClient
+                    .from('files')
+                    .delete()
+                    .eq('user_id', userId);
+
+                // 3. Delete notes from DB
+                await window.supabaseClient
+                    .from('notes')
+                    .delete()
+                    .eq('user_id', userId);
+
+                // 4. Delete profile database row
+                const { error } = await window.supabaseClient
+                    .from('profiles')
+                    .delete()
+                    .eq('id', userId);
+
+                if (error) throw error;
+
+                window.showToast("User account wiped and deleted successfully!", "success");
+                
+                // Refresh main views
+                await loadAdminUsers();
+                await loadAdminStats();
+
+            } catch (err) {
+                console.error("Admin direct user delete error:", err);
+                window.showToast("Failed to delete user account.", "danger");
+            }
+        }
+    );
+}
+window.deleteUserDirect = deleteUserDirect;
