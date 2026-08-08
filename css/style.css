@@ -608,13 +608,21 @@ button, input, select, textarea {
 .file-icon-wrapper {
     height: 100px;
     border-radius: var(--radius-md);
-    background: var(--bg-primary);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s ease;
 }
+
+/* Dynamic file type icon styling */
+.file-icon-wrapper.file-type-image, .file-list-icon.file-type-image { background: rgba(14, 165, 233, 0.08); color: #0ea5e9; }
+.file-icon-wrapper.file-type-document, .file-list-icon.file-type-document { background: rgba(239, 68, 68, 0.08); color: #ef4444; }
+.file-icon-wrapper.file-type-code, .file-list-icon.file-type-code { background: rgba(16, 185, 129, 0.08); color: #10b981; }
+.file-icon-wrapper.file-type-text, .file-list-icon.file-type-text { background: rgba(245, 158, 11, 0.08); color: #f59e0b; }
+.file-icon-wrapper.file-type-zip, .file-list-icon.file-type-zip { background: rgba(139, 92, 246, 0.08); color: #8b5cf6; }
+.file-icon-wrapper.file-type-default, .file-list-icon.file-type-default { background: rgba(100, 116, 139, 0.08); color: #64748b; }
 
 .file-thumbnail {
     width: 100%;

@@ -208,6 +208,7 @@ function renderGridCard(container, file) {
     // Get matching Lucide icon based on type
     const iconName = getFileIcon(file.file_type);
     const dateStr = new Date(file.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const typeClass = `file-type-${file.file_type || 'default'}`;
 
     card.innerHTML = `
         <button class="file-options-trigger" onclick="toggleFileMenu(event, '${file.id}')">
@@ -220,8 +221,8 @@ function renderGridCard(container, file) {
             <button class="menu-item" onclick="renameFile('${file.id}')"><i data-lucide="edit-2" style="width: 14px; height: 14px;"></i> Rename</button>
             <button class="menu-item danger" onclick="deleteFile('${file.id}')"><i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Delete</button>
         </div>
-        <div class="file-icon-wrapper" onclick="previewFile('${file.id}')" style="cursor: pointer;">
-            <i data-lucide="${iconName}" style="width: 42px; height: 42px; color: var(--accent);"></i>
+        <div class="file-icon-wrapper ${typeClass}" onclick="previewFile('${file.id}')" style="cursor: pointer;">
+            <i data-lucide="${iconName}" style="width: 40px; height: 40px; color: inherit;"></i>
         </div>
         <div class="file-details">
             <div class="file-name" onclick="previewFile('${file.id}')" title="${file.filename}">${file.filename}</div>
@@ -243,10 +244,13 @@ function renderListItem(container, file) {
 
     const iconName = getFileIcon(file.file_type);
     const dateStr = new Date(file.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    const typeClass = `file-type-${file.file_type || 'default'}`;
 
     item.innerHTML = `
         <div class="file-list-left">
-            <i data-lucide="${iconName}" style="width: 20px; height: 20px; color: var(--accent); flex-shrink: 0;"></i>
+            <div class="file-list-icon ${typeClass}" style="width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: inherit; flex-shrink: 0;">
+                <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: inherit;"></i>
+            </div>
             <div class="file-list-name" onclick="previewFile('${file.id}')" title="${file.filename}">${file.filename}</div>
         </div>
         <div style="display: flex; align-items: center; gap: 30px;">
