@@ -202,6 +202,8 @@ function updateUserProfileNav(user) {
     if (pNameText) pNameText.textContent = displayName;
     if (pNameInput) pNameInput.value = displayName;
     if (pEmailText) pEmailText.textContent = user.email;
+    const feedbackEmail = document.getElementById('feedback-user-email');
+    if (feedbackEmail) feedbackEmail.value = user.email;
     if (pJoinedText) {
         const joinedDate = new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
         pJoinedText.textContent = `Joined: ${joinedDate}`;

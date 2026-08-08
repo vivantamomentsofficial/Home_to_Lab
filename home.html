@@ -928,6 +928,49 @@
         </div>
     </section>
 
+    <!-- Feedback & Feature Requests Section -->
+    <section id="feedback" class="section-container" style="background: var(--bg-secondary); border-top: 1px solid var(--card-border);">
+        <span class="section-tag">Suggestions?</span>
+        <h2 class="section-title">Feedback & Feature Requests</h2>
+        <p class="section-subtitle">Want to request a new feature? Found a bug or issue? Let us know directly below!</p>
+
+        <div style="max-width: 600px; margin: 0 auto; text-align: left;">
+            <div class="glass-card" style="padding: 30px; border-radius: var(--radius-lg);">
+                <form action="https://formspree.io/f/mnpajoyg" method="POST" style="display: flex; flex-direction: column; gap: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="font-weight: 600;">Your Name</label>
+                            <input type="text" name="name" class="form-input" style="padding: 10px 14px;" placeholder="Full Name" required>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" style="font-weight: 600;">Email Address</label>
+                            <input type="email" name="email" class="form-input" style="padding: 10px 14px;" placeholder="college@example.com" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-weight: 600;">Topic</label>
+                        <select name="topic" class="form-input" style="padding: 10px 14px; background: var(--bg-secondary); color: var(--text-primary);" required>
+                            <option value="Feature Request">Request a Feature</option>
+                            <option value="Bug Report">Report a Bug / Issue</option>
+                            <option value="General Feedback">General Feedback</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" style="font-weight: 600;">Message</label>
+                        <textarea name="message" class="form-input" style="padding: 10px 14px; height: 120px; resize: none;" placeholder="Describe the feature you want, or details about the issue you faced..." required></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="padding: 12px; font-weight: 700; width: 100%; justify-content: center;">
+                        <i data-lucide="send" style="width: 18px; height: 18px;"></i>
+                        <span>Submit Feedback</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
