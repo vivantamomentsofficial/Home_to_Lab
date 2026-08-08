@@ -400,6 +400,263 @@
         .detail-value {
             font-weight: 600;
         }
+
+        /* Mockup Styles */
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 24px 24px;
+            pointer-events: none;
+            opacity: 0.8;
+            z-index: 1;
+        }
+        
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(120px);
+            opacity: 0.12;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .glow-orb-1 {
+            width: 400px;
+            height: 400px;
+            background: var(--primary);
+            top: 10%;
+            left: 15%;
+        }
+        .glow-orb-2 {
+            width: 350px;
+            height: 350px;
+            background: var(--accent);
+            bottom: 20%;
+            right: 15%;
+        }
+
+        .app-mockup-wrapper {
+            margin-top: 50px;
+            width: 100%;
+            max-width: 900px;
+            perspective: 1000px;
+            z-index: 5;
+            animation: fadeInUp 1s ease 0.2s both;
+        }
+
+        .app-mockup-window {
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 100px rgba(79, 70, 229, 0.15);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(20px);
+            transform: rotateX(8deg) translateZ(0);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        .app-mockup-window:hover {
+            transform: rotateX(0deg) translateZ(15px);
+        }
+
+        .mockup-header {
+            background: rgba(15, 23, 42, 0.9);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 6px;
+            position: absolute;
+            left: 20px;
+        }
+
+        .mockup-dots .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .dot-red { background: #ef4444; }
+        .dot-yellow { background: #eab308; }
+        .dot-green { background: #22c55e; }
+
+        .mockup-address-bar {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-sm);
+            padding: 5px 16px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-family: monospace;
+            max-width: 320px;
+            width: 100%;
+        }
+
+        .mockup-body {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            min-height: 380px;
+            text-align: left;
+        }
+
+        .mockup-sidebar {
+            background: rgba(15, 23, 42, 0.3);
+            border-right: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .mockup-nav-item {
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .mockup-nav-item.active {
+            background: rgba(14, 165, 233, 0.08);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .mockup-nav-item:hover:not(.active) {
+            background: rgba(255, 255, 255, 0.02);
+            color: var(--text-primary);
+        }
+
+        .mockup-nav-item i {
+            width: 16px;
+            height: 16px;
+        }
+
+        .mockup-content {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .mockup-dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .mockup-btn {
+            background: var(--primary);
+            color: white;
+            padding: 8px 14px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mockup-files-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+
+        .mockup-file-card {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: var(--radius-md);
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .mockup-file-card:hover {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(14, 165, 233, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .mockup-file-card i {
+            width: 28px;
+            height: 28px;
+            margin-bottom: 4px;
+        }
+
+        .mockup-file-card .name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .mockup-file-card .size {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .mockup-clipboard {
+            margin-top: 10px;
+        }
+
+        .clipboard-box {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--radius-md);
+            padding: 14px 18px;
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--text-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .clipboard-box i {
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+
+        .clipboard-box i:hover {
+            color: var(--text-primary);
+        }
+        
+        @media (max-width: 768px) {
+            .mockup-body {
+                grid-template-columns: 1fr;
+            }
+            .mockup-sidebar {
+                display: none;
+            }
+            .mockup-files-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -446,15 +703,18 @@
 
     <!-- Hero Section -->
     <section class="hero-section">
-        <div class="hero-badge">
+        <div class="glow-orb glow-orb-1"></div>
+        <div class="glow-orb glow-orb-2"></div>
+
+        <div class="hero-badge" style="z-index: 2;">
             <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
             Built for College Students & Lab Users
         </div>
-        <h1 class="hero-title">From Home to Computer Lab, Instantly.</h1>
-        <p class="hero-subtitle">
+        <h1 class="hero-title" style="z-index: 2;">From Home to Computer Lab, Instantly.</h1>
+        <p class="hero-subtitle" style="z-index: 2;">
             Upload files or paste notes from home. Access them on any library or college computer without plugging in USBs or risking your logins on unsecure PCs.
         </p>
-        <div class="hero-buttons">
+        <div class="hero-buttons" style="z-index: 2;">
             <a href="register" class="btn btn-primary">
                 <span>Get Started Free</span>
                 <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
@@ -464,7 +724,82 @@
             </a>
         </div>
 
+        <!-- App Mockup Window -->
+        <div class="app-mockup-wrapper">
+            <div class="app-mockup-window">
+                <div class="mockup-header">
+                    <div class="mockup-dots">
+                        <span class="dot dot-red"></span>
+                        <span class="dot dot-yellow"></span>
+                        <span class="dot dot-green"></span>
+                    </div>
+                    <div class="mockup-address-bar">
+                        <i data-lucide="lock" style="width: 12px; height: 12px; color: var(--success);"></i>
+                        <span>hometolab.vercel.app/dashboard</span>
+                    </div>
+                </div>
+                <div class="mockup-body">
+                    <div class="mockup-sidebar">
+                        <div class="mockup-nav-item active">
+                            <i data-lucide="folder"></i>
+                            <span>Files Vault</span>
+                        </div>
+                        <div class="mockup-nav-item">
+                            <i data-lucide="clipboard-list"></i>
+                            <span>Quick Notes</span>
+                        </div>
+                        <div class="mockup-nav-item">
+                            <i data-lucide="shield"></i>
+                            <span>Security</span>
+                        </div>
+                        <div class="mockup-nav-item" style="margin-top: auto; opacity: 0.5;">
+                            <i data-lucide="log-out"></i>
+                            <span>Logout</span>
+                        </div>
+                    </div>
+                    <div class="mockup-content">
+                        <div class="mockup-dashboard-header">
+                            <span style="font-weight: 700; font-size: 15px; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                                <i data-lucide="folder" style="color: var(--primary); width: 18px; height: 18px;"></i>
+                                My Lab Vault
+                            </span>
+                            <span class="mockup-btn">
+                                <i data-lucide="plus" style="width:12px; height:12px;"></i> Upload Assignment
+                            </span>
+                        </div>
+                        
+                        <div class="mockup-files-grid">
+                            <div class="mockup-file-card">
+                                <i data-lucide="file-code" style="color: #38bdf8;"></i>
+                                <span class="name">Lab_4_Script.py</span>
+                                <span class="size">4.2 KB</span>
+                            </div>
+                            <div class="mockup-file-card">
+                                <i data-lucide="archive" style="color: #818cf8;"></i>
+                                <span class="name">Project_Final.zip</span>
+                                <span class="size">12.8 MB</span>
+                            </div>
+                            <div class="mockup-file-card">
+                                <i data-lucide="file-text" style="color: #34d399;"></i>
+                                <span class="name">Lab_Manual.pdf</span>
+                                <span class="size">2.1 MB</span>
+                            </div>
+                        </div>
 
+                        <div class="mockup-clipboard">
+                            <span style="font-size:11px; color: var(--text-muted); font-weight:700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+                                <i data-lucide="clipboard" style="width: 12px; height: 12px; vertical-align: middle; margin-right: 4px;"></i>
+                                Cloud Clipboard Sync
+                            </span>
+                            <div class="clipboard-box">
+                                <span>git clone https://github.com/parul-university/lab-manual.git</span>
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
 
 
