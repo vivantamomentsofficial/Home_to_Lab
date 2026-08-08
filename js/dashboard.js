@@ -111,6 +111,18 @@ async function initializeDashboard() {
     if (session.user && session.user.email === 'homtolab@gmail.com') {
         const adminItem = document.getElementById('admin-sidebar-item');
         if (adminItem) adminItem.style.display = 'flex';
+
+        // Hide regular user sharing tabs for the admin
+        const uploadItem = document.getElementById('upload-sidebar-item');
+        const vaultItem = document.getElementById('vault-sidebar-item');
+        const quicktextItem = document.getElementById('quicktext-sidebar-item');
+
+        if (uploadItem) uploadItem.style.display = 'none';
+        if (vaultItem) vaultItem.style.display = 'none';
+        if (quicktextItem) quicktextItem.style.display = 'none';
+
+        // Default the admin to the Admin Control Centre on login
+        switchSection('admin-tab');
     }
 
     // 3. Load Overview Page Stats & Recent Activities
