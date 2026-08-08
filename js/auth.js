@@ -185,6 +185,7 @@ function setupFormListeners() {
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const fullname = document.getElementById('fullname').value.trim();
+            const college = document.getElementById('college').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
@@ -204,7 +205,8 @@ function setupFormListeners() {
                 password,
                 options: {
                     data: {
-                        full_name: fullname
+                        full_name: fullname,
+                        college: college
                     }
                 }
             });

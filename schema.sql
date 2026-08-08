@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     email TEXT UNIQUE, -- Nullable to support anonymous guest sign-ins
     full_name TEXT,
+    college TEXT,      -- College Name added for tracking
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     last_sign_in_at TIMESTAMP WITH TIME ZONE
@@ -271,11 +272,12 @@ CREATE OR REPLACE FUNCTION public.handle_auth_user_change()
 RETURNS TRIGGER AS $$
 BEGIN
     IF (TG_OP = 'INSERT') THEN
-        INSERT INTO public.profiles (id, email, full_name, avatar_url, created_at, last_sign_in_at)
+        INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at)
         VALUES (
             NEW.id,
             NEW.email,
             COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email, 'Guest User'),
+            NEW.raw_user_meta_data->>'college',
             NEW.raw_user_meta_data->>'avatar_url',
             NEW.created_at,
             NEW.last_sign_in_at
@@ -286,6 +288,7 @@ BEGIN
         SET 
             email = NEW.email,
             full_name = COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.email, 'Guest User'),
+            college = NEW.raw_user_meta_data->>'college',
             avatar_url = NEW.raw_user_meta_data->>'avatar_url',
             last_sign_in_at = NEW.last_sign_in_at
         WHERE id = NEW.id;
@@ -358,11 +361,12 @@ VALUES (
 );
 
 -- Run initial sync of all existing users into the profiles table
-INSERT INTO public.profiles (id, email, full_name, avatar_url, created_at, last_sign_in_at)
+INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at)
 SELECT 
     id, 
     email, 
     COALESCE(raw_user_meta_data->>'full_name', email, 'Guest User'), 
+    raw_user_meta_data->>'college',
     raw_user_meta_data->>'avatar_url', 
     created_at, 
     last_sign_in_at
@@ -370,5 +374,6 @@ FROM auth.users
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     full_name = EXCLUDED.full_name,
+    college = EXCLUDED.college,
     avatar_url = EXCLUDED.avatar_url,
     last_sign_in_at = EXCLUDED.last_sign_in_at;
