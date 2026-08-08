@@ -121,7 +121,6 @@ function setupFormListeners() {
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const name = document.getElementById('login-name').value.trim();
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const rememberMe = document.getElementById('remember-me').checked;
@@ -150,16 +149,56 @@ function setupFormListeners() {
                 submitBtn.innerHTML = origContent;
                 if (window.lucide) window.lucide.createIcons();
             } else {
-                // Update display name metadata in Auth upon successful login
-                try {
-                    await window.supabaseClient.auth.updateUser({
-                        data: { full_name: name }
-                    });
-                } catch (updateErr) {
-                    console.error("Failed to update name during login:", updateErr);
-                }
-
                 showToast('Welcome back to CloudVault!', 'success');
+                try {
+                    const { data: { user } } = await window.supabaseClient.auth.getUser();
+                    if (user) {
+                        await window.supabaseClient.from('login_logs').insert({
+                            user_id: user.id,
+                            email: user.email,
+                            login_time: new Date().toISOString()
+                        });
+                    }
+                } catch (logErr) {
+                    console.error("Failed to log login:", logErr);
+                }
+                setTimeout(() => {
+                    window.location.href = 'dashboard';
+                }, 1000);
+            }
+        });
+    }
+
+    // 1b. Admin Login Form
+    const adminLoginForm = document.getElementById('admin-login-form');
+    if (adminLoginForm) {
+        adminLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+
+            if (email !== 'homtolab@gmail.com') {
+                showToast('Access Denied: Invalid Admin Email Address.', 'danger');
+                return;
+            }
+
+            const submitBtn = adminLoginForm.querySelector('button[type="submit"]');
+            const origContent = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span>Authorizing...</span><div class="skeleton" style="width: 18px; height: 18px; border-radius: 50%;"></div>`;
+
+            const { error } = await window.supabaseClient.auth.signInWithPassword({
+                email,
+                password
+            });
+
+            if (error) {
+                showToast(error.message, 'danger');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origContent;
+                if (window.lucide) window.lucide.createIcons();
+            } else {
+                showToast('Authorization successful! Access Granted.', 'success');
                 try {
                     const { data: { user } } = await window.supabaseClient.auth.getUser();
                     if (user) {
