@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     college TEXT,      -- College Name added for tracking
     avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    last_sign_in_at TIMESTAMP WITH TIME ZONE
+    last_sign_in_at TIMESTAMP WITH TIME ZONE,
+    is_admin BOOLEAN DEFAULT false NOT NULL
 );
 
 -- Login logs table (to track user logins for the Admin)
@@ -100,11 +101,24 @@ CREATE POLICY "Allow public read on shared files" ON public.files
         )
     );
 
+-- =========================================================================
+-- 5.5. HELPER FUNCTION TO CHECK ADMIN STATUS
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN COALESCE(
+        (SELECT is_admin FROM public.profiles WHERE id = auth.uid()),
+        false
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- ADMIN ACCESS: Allow Admin full bypass on files
 DROP POLICY IF EXISTS "Admin can do everything on files" ON public.files;
 CREATE POLICY "Admin can do everything on files" ON public.files
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com')
-    WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 
 -- ---------------------------------------------------------
@@ -129,8 +143,8 @@ CREATE POLICY "Users can delete their own notes" ON public.notes
 -- ADMIN ACCESS: Allow Admin full bypass on notes
 DROP POLICY IF EXISTS "Admin can do everything on notes" ON public.notes;
 CREATE POLICY "Admin can do everything on notes" ON public.notes
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com')
-    WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 
 -- ---------------------------------------------------------
@@ -170,8 +184,8 @@ CREATE POLICY "Allow public read of active share codes" ON public.share_codes
 -- ADMIN ACCESS: Allow Admin full bypass on share codes
 DROP POLICY IF EXISTS "Admin can do everything on share codes" ON public.share_codes;
 CREATE POLICY "Admin can do everything on share codes" ON public.share_codes
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com')
-    WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 
 -- ---------------------------------------------------------
@@ -183,8 +197,8 @@ CREATE POLICY "Allow users to view their own profile" ON public.profiles
 
 DROP POLICY IF EXISTS "Allow admin to do everything on profiles" ON public.profiles;
 CREATE POLICY "Allow admin to do everything on profiles" ON public.profiles
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com')
-    WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 
 -- ---------------------------------------------------------
@@ -199,7 +213,7 @@ CREATE POLICY "Allow users to insert their own login logs" ON public.login_logs
 
 DROP POLICY IF EXISTS "Allow admin to view all login logs" ON public.login_logs;
 CREATE POLICY "Allow admin to view all login logs" ON public.login_logs
-    FOR SELECT TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR SELECT TO authenticated USING (public.is_admin());
 
 
 -- =========================================================================
@@ -217,7 +231,17 @@ CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
     FOR INSERT TO authenticated WITH CHECK (
         bucket_id = 'vault' AND
         (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        (storage.foldername(name))[2] = auth.uid()::text AND
+        -- Enforce storage limit checks dynamically
+        (
+            SELECT COALESCE(SUM(size), 0)
+            FROM public.files
+            WHERE user_id = auth.uid()
+        ) + COALESCE((metadata->>'size')::bigint, 0) <= (
+            SELECT COALESCE(storage_limit, 104857600)
+            FROM public.profiles
+            WHERE id = auth.uid()
+        )
     );
 
 -- Allow users to view/select their own uploaded files
@@ -252,11 +276,11 @@ DROP POLICY IF EXISTS "Admin can manage all storage files" ON storage.objects;
 CREATE POLICY "Admin can manage all storage files" ON storage.objects
     FOR ALL TO authenticated USING (
         bucket_id = 'vault' AND
-        auth.jwt() ->> 'email' = 'homtolab@gmail.com'
+        public.is_admin()
     )
     WITH CHECK (
         bucket_id = 'vault' AND
-        auth.jwt() ->> 'email' = 'homtolab@gmail.com'
+        public.is_admin()
     );
 
 
@@ -269,7 +293,7 @@ CREATE OR REPLACE FUNCTION public.handle_auth_user_change()
 RETURNS TRIGGER AS $$
 BEGIN
     IF (TG_OP = 'INSERT') THEN
-        INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at)
+        INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
         VALUES (
             NEW.id,
             NEW.email,
@@ -277,7 +301,8 @@ BEGIN
             NEW.raw_user_meta_data->>'college',
             NEW.raw_user_meta_data->>'avatar_url',
             NEW.created_at,
-            NEW.last_sign_in_at
+            NEW.last_sign_in_at,
+            COALESCE((NEW.email = 'homtolab@gmail.com'), false)
         );
         RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
@@ -311,56 +336,11 @@ CREATE TRIGGER on_auth_user_updated
 
 
 -- =========================================================================
--- 5. SEED SUPER ADMIN
+-- 5. SEED INITIAL USERS
 -- =========================================================================
 
--- Delete existing super admin if exists to prevent duplicates (bypassing ON CONFLICT constraint error)
-DELETE FROM auth.users WHERE email = 'homtolab@gmail.com';
-
--- Insert Super Admin into auth.users
-INSERT INTO auth.users (
-    instance_id,
-    id,
-    aud,
-    role,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    confirmed_at,
-    recovery_sent_at,
-    last_sign_in_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    created_at,
-    updated_at,
-    confirmation_token,
-    email_change,
-    email_change_token_new,
-    recovery_token
-)
-VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    '77777777-7777-7777-7777-777777777777', -- Static admin UUID
-    'authenticated',
-    'authenticated',
-    'homtolab@gmail.com',
-    crypt('26072008', gen_salt('bf')),
-    now(),
-    now(),
-    NULL,
-    now(),
-    '{"provider": "email", "providers": ["email"]}',
-    '{"full_name": "Super Admin"}',
-    now(),
-    now(),
-    '',
-    '',
-    '',
-    ''
-);
-
 -- Run initial sync of all existing users into the profiles table
-INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at)
+INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
 SELECT 
     id, 
     email, 
@@ -368,7 +348,8 @@ SELECT
     raw_user_meta_data->>'college',
     raw_user_meta_data->>'avatar_url', 
     created_at, 
-    last_sign_in_at
+    last_sign_in_at,
+    COALESCE((email = 'homtolab@gmail.com'), false)
 FROM auth.users
 ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
@@ -397,7 +378,7 @@ CREATE OR REPLACE FUNCTION public.admin_delete_user(
 ) RETURNS VOID AS $$
 BEGIN
     -- Verify if caller is the admin
-    IF auth.jwt() ->> 'email' <> 'homtolab@gmail.com' THEN
+    IF NOT public.is_admin() THEN
         RAISE EXCEPTION 'Unauthorized: Only super admin can delete user accounts.';
     END IF;
 
@@ -413,7 +394,7 @@ CREATE OR REPLACE FUNCTION public.admin_update_user_profile(
 ) RETURNS VOID AS $$
 BEGIN
     -- Verify if caller is the admin
-    IF auth.jwt() ->> 'email' <> 'homtolab@gmail.com' THEN
+    IF NOT public.is_admin() THEN
         RAISE EXCEPTION 'Unauthorized: Only super admin can update user profiles.';
     END IF;
 
@@ -465,7 +446,7 @@ CREATE POLICY "Users can manage their own folders" ON public.folders
 
 DROP POLICY IF EXISTS "Admin can manage all folders" ON public.folders;
 CREATE POLICY "Admin can manage all folders" ON public.folders
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com') WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- RLS Policies for storage_requests
 DROP POLICY IF EXISTS "Users can view and insert their own requests" ON public.storage_requests;
@@ -481,10 +462,44 @@ CREATE POLICY "Users can insert their own requests" ON public.storage_requests
         status = 'pending'
     );
 
-
 DROP POLICY IF EXISTS "Admin can view and update all requests" ON public.storage_requests;
 CREATE POLICY "Admin can view and update all requests" ON public.storage_requests
-    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com') WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- Trigger function to check user storage limit before inserting a file record
+CREATE OR REPLACE FUNCTION public.check_user_storage_limit()
+RETURNS TRIGGER AS $$
+DECLARE
+    total_used BIGINT;
+    user_limit BIGINT;
+BEGIN
+    -- Calculate total size used by the user currently
+    SELECT COALESCE(SUM(size), 0) INTO total_used
+    FROM public.files
+    WHERE user_id = NEW.user_id;
+
+    -- Get the user's limit from profiles
+    SELECT COALESCE(storage_limit, 104857600) INTO user_limit
+    FROM public.profiles
+    WHERE id = NEW.user_id;
+
+    -- Check if limit is exceeded by the new upload
+    IF (total_used + NEW.size) > user_limit THEN
+        RAISE EXCEPTION 'Storage quota exceeded. Limit is % MB, but you are trying to use % MB.', 
+            user_limit / (1024 * 1024), 
+            (total_used + NEW.size) / (1024 * 1024);
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create trigger on public.files
+DROP TRIGGER IF EXISTS check_storage_before_file_insert ON public.files;
+CREATE TRIGGER check_storage_before_file_insert
+    BEFORE INSERT ON public.files
+    FOR EACH ROW
+    EXECUTE FUNCTION public.check_user_storage_limit();
 
 -- Trigger to automatically apply storage upgrade to profile on admin approval
 CREATE OR REPLACE FUNCTION public.handle_storage_request_approval()

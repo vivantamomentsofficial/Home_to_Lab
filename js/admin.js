@@ -117,18 +117,26 @@ function renderUsersTable(users) {
         
         const joinedDate = new Date(user.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
         const name = user.full_name || 'Anonymous User';
+        const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U';
+        
+        const jsEscapedName = name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const jsEscapedEmail = (user.email || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        
+        const escapedName = window.escapeHtml(name);
+        const escapedEmail = window.escapeHtml(user.email);
+        const escapedInitials = window.escapeHtml(initials);
         
         tr.innerHTML = `
             <td style="padding: 12px 8px; display: flex; align-items: center; gap: 8px;">
                 <div class="user-avatar" style="width: 28px; height: 28px; font-size: 11px;">
-                    ${name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'U'}
+                    ${escapedInitials}
                 </div>
-                <span style="font-weight: 600;">${name}</span>
+                <span style="font-weight: 600;">${escapedName}</span>
             </td>
-            <td style="padding: 12px 8px; color: var(--text-secondary);">${user.email}</td>
+            <td style="padding: 12px 8px; color: var(--text-secondary);">${escapedEmail}</td>
             <td style="padding: 12px 8px; color: var(--text-muted);">${joinedDate}</td>
             <td style="padding: 12px 8px; text-align: right; display: flex; gap: 6px; justify-content: flex-end;">
-                <button class="btn btn-secondary" onclick="openAdminUserModal('${user.id}', '${user.email}', '${name}')" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                <button class="btn btn-secondary" onclick="openAdminUserModal('${user.id}', '${jsEscapedEmail}', '${jsEscapedName}')" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
                     <i data-lucide="eye" style="width: 12px; height: 12px;"></i> View Data
                 </button>
                 <button class="btn btn-danger" onclick="deleteUserDirect('${user.id}', '${user.email}')" style="padding: 6px 12px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
@@ -170,11 +178,12 @@ async function loadAdminLoginLogs() {
 
             const logItem = document.createElement('div');
             logItem.className = 'glass-card';
+            const escapedLogEmail = window.escapeHtml(log.email);
             logItem.style.cssText = 'padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;';
             logItem.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
                     <i data-lucide="key" style="width: 14px; height: 14px; color: var(--warning); flex-shrink: 0;"></i>
-                    <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${log.email}</span>
+                    <span style="font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapedLogEmail}</span>
                 </div>
                 <div style="font-size: 10px; color: var(--text-muted);">${dateStr}, ${timeStr}</div>
             `;
@@ -777,9 +786,10 @@ function renderStorageRequestsTable(requests) {
         const limitMb = Math.round(parseInt(req.requested_limit) / (1024 * 1024));
         const dateStr = new Date(req.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+        const escapedReqEmail = window.escapeHtml(req.email);
         row.innerHTML = `
             <td>
-                <div style="font-weight: 600; color: var(--text-primary);">${req.email}</div>
+                <div style="font-weight: 600; color: var(--text-primary);">${escapedReqEmail}</div>
             </td>
             <td>
                 <span class="status-badge" style="background: rgba(14, 165, 233, 0.1); color: var(--primary); font-weight: 600; font-size: 12px; padding: 4px 8px; border-radius: 4px;">
@@ -953,14 +963,16 @@ function renderOverallSnippetsTable(snippets) {
         tr.style.borderBottom = '1px solid var(--card-border)';
         
         // Escape HTML to prevent XSS
-        const safeTitle = snippet.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-        const safeContent = snippet.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const safeName = window.escapeHtml(snippet.userName);
+        const safeEmail = window.escapeHtml(snippet.userEmail);
+        const safeTitle = window.escapeHtml(snippet.title);
+        const safeContent = window.escapeHtml(snippet.content);
         const previewContent = safeContent.length > 80 ? safeContent.substring(0, 80) + '...' : safeContent;
 
         tr.innerHTML = `
             <td style="padding: 12px 10px; padding-left: 15px; vertical-align: middle;">
-                <div style="font-weight: 600; color: var(--text-primary);">${snippet.userName}</div>
-                <div style="font-size: 11px; color: var(--text-muted);">${snippet.userEmail}</div>
+                <div style="font-weight: 600; color: var(--text-primary);">${safeName}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${safeEmail}</div>
             </td>
             <td style="padding: 12px 10px; font-weight: 500; color: var(--text-secondary); vertical-align: middle;">
                 ${safeTitle}

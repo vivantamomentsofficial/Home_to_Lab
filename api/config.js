@@ -1,8 +1,6 @@
 // Vercel Serverless Function to securely expose Supabase Credentials from Environment Variables
 export default function handler(request, response) {
-    // Set headers to allow client-side AJAX requests
-    response.setHeader('Access-Control-Allow-Origin', '*');
-    response.setHeader('Access-Control-Allow-Methods', 'GET');
+    // Set headers to allow client-side AJAX requests on same origin
     response.setHeader('Content-Type', 'application/json');
 
     response.status(200).json({
