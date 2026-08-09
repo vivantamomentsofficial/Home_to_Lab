@@ -379,3 +379,52 @@ ON CONFLICT (id) DO UPDATE SET
     college = EXCLUDED.college,
     avatar_url = EXCLUDED.avatar_url,
     last_sign_in_at = EXCLUDED.last_sign_in_at;
+
+
+-- =========================================================================
+-- 6. SECURE RPC UTILITIES FOR ACCOUNT DELETION & UPDATES
+-- =========================================================================
+
+-- Function to allow users to delete their own account from auth.users (cascades to profiles, files, notes)
+CREATE OR REPLACE FUNCTION public.delete_own_account()
+RETURNS VOID AS $$
+BEGIN
+    -- Delete the current authenticated user
+    DELETE FROM auth.users WHERE id = auth.uid();
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to allow Super Admin to delete any user from auth.users (cascades to profiles, files, notes)
+CREATE OR REPLACE FUNCTION public.admin_delete_user(
+    target_user_id UUID
+) RETURNS VOID AS $$
+BEGIN
+    -- Verify if caller is the admin
+    IF auth.jwt() ->> 'email' <> 'homtolab@gmail.com' THEN
+        RAISE EXCEPTION 'Unauthorized: Only super admin can delete user accounts.';
+    END IF;
+
+    -- Delete target user
+    DELETE FROM auth.users WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Function to allow Super Admin to update user profile full name inside auth.users metadata
+CREATE OR REPLACE FUNCTION public.admin_update_user_profile(
+    target_user_id UUID,
+    new_full_name TEXT
+) RETURNS VOID AS $$
+BEGIN
+    -- Verify if caller is the admin
+    IF auth.jwt() ->> 'email' <> 'homtolab@gmail.com' THEN
+        RAISE EXCEPTION 'Unauthorized: Only super admin can update user profiles.';
+    END IF;
+
+    -- Update auth.users metadata
+    UPDATE auth.users
+    SET raw_user_meta_data = 
+        COALESCE(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('full_name', new_full_name)
+    WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+

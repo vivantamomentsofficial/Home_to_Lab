@@ -179,3 +179,21 @@ function resetSupabaseConfig() {
     localStorage.removeItem('CLOUDVAULT_SUPABASE_ANON_KEY');
     window.location.reload();
 }
+
+// Helper to resolve redirect URLs correctly for both clean-url servers (like Vercel) and local file systems / simple servers
+function resolveRedirect(pageName) {
+    const isLocalFile = window.location.protocol === 'file:';
+    const hasHtmlExtension = window.location.pathname.endsWith('.html');
+    
+    // Split base page name and any query params (e.g., 'home?reason=timeout')
+    const parts = pageName.split('?');
+    const basePage = parts[0];
+    const query = parts[1] ? '?' + parts[1] : '';
+    
+    if (isLocalFile || hasHtmlExtension) {
+        return basePage + '.html' + query;
+    }
+    return pageName;
+}
+window.resolveRedirect = resolveRedirect;
+

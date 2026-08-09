@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cache variables
 let cachedFiles = [];
-let activeLayout = 'grid'; // 'grid' or 'list'
+window.activeLayout = 'grid'; // 'grid' or 'list'
 let activeFilter = 'all';
 
 function setupFilesManager() {
@@ -22,7 +22,7 @@ function setupFilesManager() {
     const filterTags = document.querySelectorAll('.filter-tag');
 
     // Load initial layout preference
-    activeLayout = localStorage.getItem('CLOUDVAULT_DEFAULT_LAYOUT') || 'grid';
+    window.activeLayout = localStorage.getItem('CLOUDVAULT_DEFAULT_LAYOUT') || 'grid';
     updateLayoutToggleIcon();
 
     // Event Listeners
@@ -40,7 +40,7 @@ function setupFilesManager() {
 
     if (layoutToggle) {
         layoutToggle.addEventListener('click', () => {
-            activeLayout = activeLayout === 'grid' ? 'list' : 'grid';
+            window.activeLayout = window.activeLayout === 'grid' ? 'list' : 'grid';
             updateLayoutToggleIcon();
             filterAndRenderFiles();
         });
@@ -88,7 +88,7 @@ function setupFilesManager() {
 function updateLayoutToggleIcon() {
     const icon = document.getElementById('layout-toggle-icon');
     if (icon) {
-        if (activeLayout === 'grid') {
+        if (window.activeLayout === 'grid') {
             icon.setAttribute('data-lucide', 'list');
         } else {
             icon.setAttribute('data-lucide', 'grid');
@@ -181,7 +181,7 @@ function filterAndRenderFiles() {
     container.classList.remove('hidden');
 
     // Toggle container classes based on layout
-    if (activeLayout === 'grid') {
+    if (window.activeLayout === 'grid') {
         container.className = 'files-grid';
     } else {
         container.className = 'files-list';
@@ -189,7 +189,7 @@ function filterAndRenderFiles() {
 
     // 4. Render Items
     filtered.forEach(file => {
-        if (activeLayout === 'grid') {
+        if (window.activeLayout === 'grid') {
             renderGridCard(container, file);
         } else {
             renderListItem(container, file);

@@ -345,10 +345,10 @@ async function handleAdminUpdateName() {
     }
 
     try {
-        const { error } = await window.supabaseClient
-            .from('profiles')
-            .update({ full_name: name })
-            .eq('id', adminTargetUserId);
+        const { error } = await window.supabaseClient.rpc('admin_update_user_profile', {
+            target_user_id: adminTargetUserId,
+            new_full_name: name
+        });
 
         if (error) throw error;
 
@@ -492,16 +492,18 @@ async function deleteAdminFile(id, storagePath) {
         "Are you sure you want to delete this file from storage and database? This action cannot be undone.",
         async () => {
             try {
-                // Delete from storage
-                await window.supabaseClient.storage
-                    .from('vault')
-                    .remove([storagePath]);
+                   // Delete from storage
+                   const { error: storageError } = await window.supabaseClient.storage
+                       .from('vault')
+                       .remove([storagePath]);
 
-                // Delete from DB
-                const { error } = await window.supabaseClient
-                    .from('files')
-                    .delete()
-                    .eq('id', id);
+                   if (storageError) throw storageError;
+
+                   // Delete from DB
+                   const { error } = await window.supabaseClient
+                       .from('files')
+                       .delete()
+                       .eq('id', id);
 
                 if (error) throw error;
 
@@ -556,7 +558,20 @@ async function handleAdminWipeUser() {
             try {
                 window.showToast("Wiping user inventory and deleting account profile...", "info");
 
-                // 1. Retrieve all files to delete from storage
+                // 1. Fetch user avatar if any
+                const { data: profileData } = await window.supabaseClient
+                    .from('profiles')
+                    .select('avatar_url')
+                    .eq('id', adminTargetUserId)
+                    .single();
+
+                if (profileData && profileData.avatar_url) {
+                    await window.supabaseClient.storage
+                        .from('vault')
+                        .remove([profileData.avatar_url]);
+                }
+
+                // 2. Retrieve all files to delete from storage
                 const { data: files } = await window.supabaseClient
                     .from('files')
                     .select('storage_path')
@@ -569,23 +584,10 @@ async function handleAdminWipeUser() {
                         .remove(paths);
                 }
 
-                // 2. Delete files from DB (cascade deletes share codes)
-                await window.supabaseClient
-                    .from('files')
-                    .delete()
-                    .eq('user_id', adminTargetUserId);
-
-                // 3. Delete notes from DB
-                await window.supabaseClient
-                    .from('notes')
-                    .delete()
-                    .eq('user_id', adminTargetUserId);
-
-                // 4. Delete profile database row
-                const { error } = await window.supabaseClient
-                    .from('profiles')
-                    .delete()
-                    .eq('id', adminTargetUserId);
+                // 3. Call secure RPC function to delete user from auth.users (cascades database files/notes/profile rows)
+                const { error } = await window.supabaseClient.rpc('admin_delete_user', {
+                    target_user_id: adminTargetUserId
+                });
 
                 if (error) throw error;
 
@@ -615,7 +617,20 @@ async function deleteUserDirect(userId, email) {
             try {
                 window.showToast(`Deleting user ${email}...`, "info");
 
-                // 1. Retrieve all files to delete from storage
+                // 1. Fetch user avatar if any
+                const { data: profileData } = await window.supabaseClient
+                    .from('profiles')
+                    .select('avatar_url')
+                    .eq('id', userId)
+                    .single();
+
+                if (profileData && profileData.avatar_url) {
+                    await window.supabaseClient.storage
+                        .from('vault')
+                        .remove([profileData.avatar_url]);
+                }
+
+                // 2. Retrieve all files to delete from storage
                 const { data: files } = await window.supabaseClient
                     .from('files')
                     .select('storage_path')
@@ -628,23 +643,10 @@ async function deleteUserDirect(userId, email) {
                         .remove(paths);
                 }
 
-                // 2. Delete files from DB (cascade deletes share codes)
-                await window.supabaseClient
-                    .from('files')
-                    .delete()
-                    .eq('user_id', userId);
-
-                // 3. Delete notes from DB
-                await window.supabaseClient
-                    .from('notes')
-                    .delete()
-                    .eq('user_id', userId);
-
-                // 4. Delete profile database row
-                const { error } = await window.supabaseClient
-                    .from('profiles')
-                    .delete()
-                    .eq('id', userId);
+                // 3. Call secure RPC function to delete user from auth.users (cascades database files/notes/profile rows)
+                const { error } = await window.supabaseClient.rpc('admin_delete_user', {
+                    target_user_id: userId
+                });
 
                 if (error) throw error;
 

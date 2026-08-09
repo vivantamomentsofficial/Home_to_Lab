@@ -201,7 +201,8 @@ function handleAccountDecline() {
                 // A. Retrieve all file metadata to delete storage files
                 const { data: files } = await window.supabaseClient
                     .from('files')
-                    .select('storage_path');
+                    .select('storage_path')
+                    .eq('user_id', user.id);
 
                 if (files && files.length > 0) {
                     const paths = files.map(f => f.storage_path);
@@ -231,12 +232,20 @@ function handleAccountDecline() {
                     .delete()
                     .eq('user_id', user.id);
 
-                window.showToast("Data wiped! Logging out...", "success");
+                // D. Delete authentication user credentials in auth.users
+                const { error: rpcError } = await window.supabaseClient.rpc('delete_own_account');
+                if (rpcError) throw rpcError;
 
-                // D. Sign out and redirect
+                window.showToast("Account deleted and data wiped successfully!", "success");
+
+                // E. Sign out and redirect
                 setTimeout(async () => {
-                    await window.supabaseClient.auth.signOut();
-                    window.location.href = 'register';
+                    try {
+                        await window.supabaseClient.auth.signOut();
+                    } catch (e) {
+                        console.warn("SignOut during deletion caught:", e);
+                    }
+                    window.location.href = window.resolveRedirect('register');
                 }, 1500);
 
             } catch (err) {

@@ -99,7 +99,7 @@ async function initializeDashboard() {
     // 1. Verify Session
     const { data: { session } } = await window.supabaseClient.auth.getSession();
     if (!session) {
-        window.location.href = 'login';
+        window.location.href = window.resolveRedirect('login');
         return;
     }
 
@@ -167,7 +167,7 @@ async function initializeDashboard() {
             'Are you sure you want to end your session? This is recommended if you are on a shared computer lab PC.',
             async () => {
                 await window.supabaseClient.auth.signOut();
-                window.location.href = 'home';
+                window.location.href = window.resolveRedirect('home');
             }
         );
     });
@@ -227,7 +227,8 @@ async function updateStorageStats() {
 
         const { data, error } = await window.supabaseClient
             .from('files')
-            .select('size');
+            .select('size')
+            .eq('user_id', user.id);
 
         if (error) throw error;
 
@@ -252,10 +253,13 @@ window.updateStorageStats = updateStorageStats;
 // Update Overview tab stats cards and recent lists
 async function updateOverviewStats() {
     try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) return;
+
         // Query counts
-        const filesQuery = window.supabaseClient.from('files').select('id, filename, created_at, file_type, size', { count: 'exact' });
-        const notesQuery = window.supabaseClient.from('notes').select('id', { count: 'exact' });
-        const sharesQuery = window.supabaseClient.from('share_codes').select('id', { count: 'exact' }).gt('expires_at', new Date().toISOString());
+        const filesQuery = window.supabaseClient.from('files').select('id, filename, created_at, file_type, size', { count: 'exact' }).eq('user_id', user.id);
+        const notesQuery = window.supabaseClient.from('notes').select('id', { count: 'exact' }).eq('user_id', user.id);
+        const sharesQuery = window.supabaseClient.from('share_codes').select('id, files!inner(user_id)', { count: 'exact' }).eq('files.user_id', user.id).gt('expires_at', new Date().toISOString());
 
         const [filesRes, notesRes, sharesRes] = await Promise.all([filesQuery, notesQuery, sharesQuery]);
 
@@ -325,25 +329,23 @@ function setupKeyboardShortcuts() {
             }
         }
 
-        // 3. CTRL + SHIFT + V -> Quick Paste Note into Quick Text Form
+        // 3. CTRL + SHIFT + V -> Open Quick Paste Modal
         if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'v') {
             e.preventDefault();
-            switchSection('notes-tab');
-            const textarea = document.getElementById('note-content-input');
-            const titleInput = document.getElementById('note-title-input');
-            if (textarea) {
-                textarea.focus();
+            const modal = document.getElementById('quick-paste-modal');
+            const textarea = document.getElementById('quick-paste-textarea');
+            if (modal && textarea) {
+                modal.classList.add('active');
                 textarea.value = '';
-                if (titleInput) {
-                    titleInput.value = 'Quick Sync Clip';
-                }
+                textarea.focus();
+                
                 // Attempt to read clipboard if permitted
                 navigator.clipboard.readText().then(text => {
                     if (text) textarea.value = text;
                 }).catch(() => {
                     // Fail silently, user can paste manually
                 });
-                window.showToast('Switched to Quick Text and focused input (CTRL+SHIFT+V)', 'info');
+                window.showToast('Opened Quick Paste panel (CTRL+SHIFT+V)', 'info');
             }
         }
     });

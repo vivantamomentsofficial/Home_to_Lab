@@ -82,13 +82,13 @@ function handleAuthLifecycle() {
         
         if (event === 'SIGNED_IN' && !isAnonymous) {
             if (isAuthPage) {
-                window.location.href = 'dashboard';
+                window.location.href = window.resolveRedirect('dashboard');
             }
         }
         
         if (event === 'SIGNED_OUT' || (event === 'SIGNED_IN' && isAnonymous && isDashboard)) {
             if (isDashboard) {
-                window.location.href = 'login';
+                window.location.href = window.resolveRedirect('login');
             }
         }
 
@@ -102,11 +102,11 @@ function handleAuthLifecycle() {
         const isAnonymous = session && session.user && session.user.is_anonymous;
         if (session && !isAnonymous) {
             if (isAuthPage) {
-                window.location.href = 'dashboard';
+                window.location.href = window.resolveRedirect('dashboard');
             }
         } else {
             if (isDashboard) {
-                window.location.href = 'login';
+                window.location.href = window.resolveRedirect('login');
             }
         }
     });
@@ -163,7 +163,7 @@ function setupFormListeners() {
                     console.error("Failed to log login:", logErr);
                 }
                 setTimeout(() => {
-                    window.location.href = 'dashboard';
+                    window.location.href = window.resolveRedirect('dashboard');
                 }, 1000);
             }
         });
@@ -213,7 +213,7 @@ function setupFormListeners() {
                 if (data.session) {
                     showToast('Registration successful! Redirecting...', 'success');
                     setTimeout(() => {
-                        window.location.href = 'dashboard';
+                        window.location.href = window.resolveRedirect('dashboard');
                     }, 1000);
                 } else {
                     showToast('Registration successful! Please check your email for the verification link.', 'success');
@@ -334,7 +334,7 @@ function showResetPasswordOverlay() {
         } else {
             alert('Password updated successfully! Sign in with your new password.');
             overlay.remove();
-            window.location.href = 'login';
+            window.location.href = window.resolveRedirect('login');
         }
     });
 }
