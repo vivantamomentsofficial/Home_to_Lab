@@ -166,8 +166,8 @@ function renderQuickNotes(notes, searchVal = "") {
 
         card.innerHTML = `
             <div style="min-width:0; display:flex; flex-direction:column; gap:4px; flex:1;">
-                <div class="note-title" title="${note.title}">${note.title}</div>
-                <div class="note-body">${escapeHtml(note.content)}</div>
+                <div class="note-title" title="${window.escapeHtml(note.title)}">${window.escapeHtml(note.title)}</div>
+                <div class="note-body">${window.escapeHtml(note.content)}</div>
             </div>
             <div class="note-footer">
                 <span class="note-date">${dateStr}</span>
@@ -334,16 +334,4 @@ async function handleQuickPasteSave() {
         saveBtn.disabled = false;
         saveBtn.textContent = "Save to Server";
     }
-}
-
-// Helper to escape HTML characters
-function escapeHtml(text) {
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }

@@ -138,6 +138,18 @@ async function initializeDashboard() {
 
         // Default the admin to the Admin Control Centre on login
         switchSection('admin-tab');
+    } else {
+        const adminItem = document.getElementById('admin-sidebar-item');
+        if (adminItem) adminItem.style.display = 'none';
+
+        // Ensure regular user sharing tabs are visible
+        const uploadItem = document.getElementById('upload-sidebar-item');
+        const vaultItem = document.getElementById('vault-sidebar-item');
+        const quicktextItem = document.getElementById('quicktext-sidebar-item');
+
+        if (uploadItem) uploadItem.style.display = 'flex';
+        if (vaultItem) vaultItem.style.display = 'flex';
+        if (quicktextItem) quicktextItem.style.display = 'flex';
     }
 
     // 3. Load Overview Page Stats & Recent Activities

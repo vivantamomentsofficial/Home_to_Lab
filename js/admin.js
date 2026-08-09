@@ -361,11 +361,14 @@ async function loadAdminUserInventory() {
                 const item = document.createElement('div');
                 item.className = 'glass-card';
                 item.style.cssText = 'padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;';
+                const escapedFilename = window.escapeHtml(file.filename);
+                const jsEscapedFilename = file.filename.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                const jsEscapedPath = file.storage_path.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 item.innerHTML = `
-                    <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;" title="${file.filename}">${file.filename}</span>
+                    <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px;" title="${escapedFilename}">${escapedFilename}</span>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <button onclick="downloadAdminFile('${file.storage_path}', '${file.filename}')" class="btn btn-secondary" style="padding: 4px 6px; font-size: 10px;" title="Download"><i data-lucide="download" style="width: 12px; height: 12px;"></i></button>
-                        <button onclick="deleteAdminFile('${file.id}', '${file.storage_path}')" class="btn btn-danger" style="padding: 4px 6px; font-size: 10px;" title="Delete"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
+                        <button onclick="downloadAdminFile('${jsEscapedPath}', '${jsEscapedFilename}')" class="btn btn-secondary" style="padding: 4px 6px; font-size: 10px;" title="Download"><i data-lucide="download" style="width: 12px; height: 12px;"></i></button>
+                        <button onclick="deleteAdminFile('${file.id}', '${jsEscapedPath}')" class="btn btn-danger" style="padding: 4px 6px; font-size: 10px;" title="Delete"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
                     </div>
                 `;
                 filesList.appendChild(item);
@@ -382,10 +385,12 @@ async function loadAdminUserInventory() {
                 const item = document.createElement('div');
                 item.className = 'glass-card';
                 item.style.cssText = 'padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;';
+                const escapedTitle = window.escapeHtml(note.title);
+                const escapedContentPreview = window.escapeHtml(note.content.substring(0, 30));
                 item.innerHTML = `
                     <div style="display: flex; flex-direction: column; min-width: 0; flex: 1; margin-right: 10px;">
-                        <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${note.title}</span>
-                        <span style="font-size: 10px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${note.content.substring(0, 30)}</span>
+                        <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapedTitle}">${escapedTitle}</span>
+                        <span style="font-size: 10px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapedContentPreview}</span>
                     </div>
                     <button onclick="deleteAdminNote('${note.id}')" class="btn btn-danger" style="padding: 4px 6px; font-size: 10px;" title="Delete"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
                 `;

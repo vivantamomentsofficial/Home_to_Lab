@@ -58,7 +58,14 @@ async function initSupabase() {
 
     try {
         // Create client using the global @supabase/supabase-js loaded via CDN
-        supabaseClient = window.supabase.createClient(url, key);
+        const isSessionOnly = sessionStorage.getItem('CLOUDVAULT_SESSION_PERSIST') === 'session_only';
+        const clientOptions = {
+            auth: {
+                persistSession: true,
+                storage: isSessionOnly ? window.sessionStorage : window.localStorage
+            }
+        };
+        supabaseClient = window.supabase.createClient(url, key, clientOptions);
         window.supabaseClient = supabaseClient; // Expose globally
         return supabaseClient;
     } catch (error) {
@@ -196,4 +203,19 @@ function resolveRedirect(pageName) {
     return pageName;
 }
 window.resolveRedirect = resolveRedirect;
+
+// Helper to escape HTML characters globally to prevent XSS
+function escapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return String(text).replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+window.escapeHtml = escapeHtml;
+
 

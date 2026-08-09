@@ -89,13 +89,7 @@ CREATE POLICY "Users can delete their own files" ON public.files
 
 -- FIXED: Qualified columns to files.id to resolve the scoping bug (which was previously file_id = id, shadowing share_codes.id)
 DROP POLICY IF EXISTS "Allow public delete on shared files" ON public.files;
-CREATE POLICY "Allow public delete on shared files" ON public.files
-    FOR DELETE USING (
-        EXISTS (
-            SELECT 1 FROM public.share_codes
-            WHERE share_codes.file_id = files.id
-        )
-    );
+
 
 DROP POLICY IF EXISTS "Allow public read on shared files" ON public.files;
 CREATE POLICY "Allow public read on shared files" ON public.files
@@ -198,7 +192,10 @@ CREATE POLICY "Allow admin to do everything on profiles" ON public.profiles
 -- ---------------------------------------------------------
 DROP POLICY IF EXISTS "Allow users to insert their own login logs" ON public.login_logs;
 CREATE POLICY "Allow users to insert their own login logs" ON public.login_logs
-    FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id);
+    FOR INSERT TO authenticated WITH CHECK (
+        auth.uid() = user_id AND
+        auth.jwt() ->> 'email' = email
+    );
 
 DROP POLICY IF EXISTS "Allow admin to view all login logs" ON public.login_logs;
 CREATE POLICY "Allow admin to view all login logs" ON public.login_logs
@@ -472,8 +469,18 @@ CREATE POLICY "Admin can manage all folders" ON public.folders
 
 -- RLS Policies for storage_requests
 DROP POLICY IF EXISTS "Users can view and insert their own requests" ON public.storage_requests;
-CREATE POLICY "Users can view and insert their own requests" ON public.storage_requests
-    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own requests" ON public.storage_requests;
+CREATE POLICY "Users can view their own requests" ON public.storage_requests
+    FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert their own requests" ON public.storage_requests;
+CREATE POLICY "Users can insert their own requests" ON public.storage_requests
+    FOR INSERT TO authenticated WITH CHECK (
+        auth.uid() = user_id AND
+        status = 'pending'
+    );
+
 
 DROP POLICY IF EXISTS "Admin can view and update all requests" ON public.storage_requests;
 CREATE POLICY "Admin can view and update all requests" ON public.storage_requests

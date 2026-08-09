@@ -307,6 +307,7 @@ function renderGridCard(container, file) {
     const iconName = getFileIcon(file.file_type);
     const dateStr = new Date(file.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' });
     const typeClass = `file-type-${file.file_type || 'default'}`;
+    const escapedFilename = window.escapeHtml(file.filename);
 
     card.innerHTML = `
         <button class="file-options-trigger" onclick="toggleFileMenu(event, '${file.id}')">
@@ -323,7 +324,7 @@ function renderGridCard(container, file) {
             <i data-lucide="${iconName}" style="width: 40px; height: 40px; color: inherit;"></i>
         </div>
         <div class="file-details">
-            <div class="file-name" onclick="previewFile('${file.id}')" title="${file.filename}">${file.filename}</div>
+            <div class="file-name" onclick="previewFile('${file.id}')" title="${escapedFilename}">${escapedFilename}</div>
             <div class="file-meta">
                 <span>${window.formatBytes(file.size)}</span>
                 <span>${dateStr}</span>
@@ -352,13 +353,14 @@ function renderListItem(container, file) {
     const iconName = getFileIcon(file.file_type);
     const dateStr = new Date(file.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
     const typeClass = `file-type-${file.file_type || 'default'}`;
+    const escapedFilename = window.escapeHtml(file.filename);
 
     item.innerHTML = `
         <div class="file-list-left">
             <div class="file-list-icon ${typeClass}" style="width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: inherit; flex-shrink: 0;">
                 <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: inherit;"></i>
             </div>
-            <div class="file-list-name" onclick="previewFile('${file.id}')" title="${file.filename}">${file.filename}</div>
+            <div class="file-list-name" onclick="previewFile('${file.id}')" title="${escapedFilename}">${escapedFilename}</div>
         </div>
         <div style="display: flex; align-items: center; gap: 30px;">
             <div class="file-list-meta">

@@ -373,12 +373,3 @@ function showResetPasswordOverlay() {
     });
 }
 
-// Session termination checks (e.g. for "Remember Me" unset)
-window.addEventListener('beforeunload', () => {
-    if (sessionStorage.getItem('CLOUDVAULT_SESSION_PERSIST') === 'session_only') {
-        // Clear session on tab/browser close
-        if (window.supabaseClient) {
-            window.supabaseClient.auth.signOut();
-        }
-    }
-});

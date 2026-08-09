@@ -81,7 +81,7 @@
     }
     
     .sidebar-item {
-        display: flex !important;
+        display: flex;
         align-items: center !important;
         padding: 12px 18px !important;
         width: 100% !important;
