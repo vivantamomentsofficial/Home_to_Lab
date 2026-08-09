@@ -28,6 +28,9 @@ async function initializeAdminPanel() {
         // 4. Fetch and render login session logs
         await loadAdminLoginLogs();
 
+        // 4.5 Fetch and render storage upgrade requests
+        await loadAdminStorageRequests();
+
         // 5. Setup event listeners
         setupAdminEventListeners();
 
@@ -203,6 +206,12 @@ function setupAdminEventListeners() {
         updateNameBtn.onclick = handleAdminUpdateName;
     }
 
+    // Save user storage limit changes
+    const updateStorageBtn = document.getElementById('admin-update-storage-btn');
+    if (updateStorageBtn) {
+        updateStorageBtn.onclick = handleAdminUpdateStorage;
+    }
+
     // Create snippet on behalf
     const addNoteBtn = document.getElementById('admin-add-note-btn');
     if (addNoteBtn) {
@@ -248,6 +257,19 @@ async function openAdminUserModal(userId, email, fullName) {
     document.getElementById('admin-upload-filename-display').textContent = 'No file chosen';
     document.getElementById('admin-upload-submit-btn').style.display = 'none';
     document.getElementById('admin-upload-progress-container').style.display = 'none';
+
+    // Pre-populate target user's storage limit select
+    try {
+        const { data: profile } = await window.supabaseClient
+            .from('profiles')
+            .select('storage_limit')
+            .eq('id', userId)
+            .single();
+        const limitBytes = (profile && profile.storage_limit) ? parseInt(profile.storage_limit) : 100 * 1024 * 1024;
+        document.getElementById('admin-edit-storage-limit').value = limitBytes.toString();
+    } catch (e) {
+        console.warn("Could not load target user storage limit in admin modal:", e);
+    }
 
     document.getElementById('admin-user-detail-subtitle').textContent = `Managing data of: ${email}`;
     document.getElementById('admin-user-data-modal').classList.add('active');
@@ -664,3 +686,143 @@ async function deleteUserDirect(userId, email) {
     );
 }
 window.deleteUserDirect = deleteUserDirect;
+
+// =========================================================================
+// STORAGE UPGRADE REQUESTS & DIRECT LIMIT UPDATES (ADMIN ACTIONS)
+// =========================================================================
+
+async function loadAdminStorageRequests() {
+    const tableBody = document.getElementById('admin-storage-requests-body');
+    if (!tableBody) return;
+
+    try {
+        const { data: requests, error } = await window.supabaseClient
+            .from('storage_requests')
+            .select('*')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        renderStorageRequestsTable(requests || []);
+
+    } catch (err) {
+        console.error("Error loading storage requests:", err);
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger); padding: 20px 0;">Failed to load requests.</td></tr>`;
+    }
+}
+window.loadAdminStorageRequests = loadAdminStorageRequests;
+
+function renderStorageRequestsTable(requests) {
+    const tableBody = document.getElementById('admin-storage-requests-body');
+    if (!tableBody) return;
+
+    if (requests.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px 0;">No pending storage requests.</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = '';
+    requests.forEach(req => {
+        const row = document.createElement('tr');
+        const limitMb = Math.round(parseInt(req.requested_limit) / (1024 * 1024));
+        const dateStr = new Date(req.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        row.innerHTML = `
+            <td>
+                <div style="font-weight: 600; color: var(--text-primary);">${req.email}</div>
+            </td>
+            <td>
+                <span class="status-badge" style="background: rgba(14, 165, 233, 0.1); color: var(--primary); font-weight: 600; font-size: 12px; padding: 4px 8px; border-radius: 4px;">
+                    ${limitMb} MB
+                </span>
+            </td>
+            <td style="color: var(--text-muted); font-size: 13px;">${dateStr}</td>
+            <td style="text-align: right; padding-right: 20px;">
+                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="approveStorageRequest('${req.id}')" class="btn btn-primary" style="padding: 4px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                        <i data-lucide="check" style="width: 14px; height: 14px;"></i> Approve
+                    </button>
+                    <button onclick="rejectStorageRequest('${req.id}')" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px; display: flex; align-items: center; gap: 4px; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">
+                        <i data-lucide="x" style="width: 14px; height: 14px;"></i> Reject
+                    </button>
+                </div>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+}
+
+async function approveStorageRequest(requestId) {
+    try {
+        window.showToast("Approving storage upgrade...", "info");
+
+        const { error } = await window.supabaseClient
+            .from('storage_requests')
+            .update({ status: 'approved' })
+            .eq('id', requestId);
+
+        if (error) throw error;
+
+        window.showToast("Storage request approved successfully!", "success");
+        await loadAdminStorageRequests();
+        await loadAdminStats(); // Refresh stats
+
+    } catch (err) {
+        console.error("Error approving storage request:", err);
+        window.showToast("Failed to approve request.", "danger");
+    }
+}
+window.approveStorageRequest = approveStorageRequest;
+
+async function rejectStorageRequest(requestId) {
+    try {
+        window.showToast("Rejecting storage request...", "info");
+
+        const { error } = await window.supabaseClient
+            .from('storage_requests')
+            .update({ status: 'rejected' })
+            .eq('id', requestId);
+
+        if (error) throw error;
+
+        window.showToast("Storage request rejected successfully.", "success");
+        await loadAdminStorageRequests();
+
+    } catch (err) {
+        console.error("Error rejecting storage request:", err);
+        window.showToast("Failed to reject request.", "danger");
+    }
+}
+window.rejectStorageRequest = rejectStorageRequest;
+
+async function handleAdminUpdateStorage() {
+    const limitSelect = document.getElementById('admin-edit-storage-limit');
+    const newLimit = parseInt(limitSelect.value);
+
+    const updateStorageBtn = document.getElementById('admin-update-storage-btn');
+    const origText = updateStorageBtn.innerHTML;
+    updateStorageBtn.disabled = true;
+    updateStorageBtn.textContent = "Saving...";
+
+    try {
+        const { error } = await window.supabaseClient
+            .from('profiles')
+            .update({ storage_limit: newLimit })
+            .eq('id', adminTargetUserId);
+
+        if (error) throw error;
+
+        window.showToast("User storage limit updated successfully!", "success");
+
+    } catch (err) {
+        console.error("Error updating user storage limit directly:", err);
+        window.showToast("Failed to update user storage limit.", "danger");
+    } finally {
+        updateStorageBtn.disabled = false;
+        updateStorageBtn.innerHTML = origText;
+    }
+}
+

@@ -264,6 +264,12 @@
                             <option value="size">Size</option>
                         </select>
 
+                        <!-- New Folder Button -->
+                        <button id="create-folder-btn" class="btn btn-secondary" style="padding: 8px 12px; font-size: 13px; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="folder-plus" style="width: 16px; height: 16px;"></i>
+                            <span>New Folder</span>
+                        </button>
+
                         <!-- Layout Toggle -->
                         <button id="layout-toggle-btn" class="btn btn-secondary" style="padding: 8px; display: flex; align-items: center; justify-content: center;">
                             <i id="layout-toggle-icon" data-lucide="list" style="width: 18px; height: 18px;"></i>
@@ -272,8 +278,34 @@
                 </div>
 
                 <!-- Vault File Grid/List Panel -->
-                <div class="glass-card" style="padding: 30px; min-height: 400px; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div id="vault-empty-state" class="hidden" style="text-align: center; color: var(--text-muted); padding: 80px 0;">
+                <div class="glass-card" style="padding: 30px; min-height: 400px; display: flex; flex-direction: column; justify-content: flex-start; gap: 15px;">
+                    <!-- Folder breadcrumbs -->
+                    <div id="vault-breadcrumbs" style="display: none; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; margin-bottom: 5px;">
+                        <button id="breadcrumb-root-btn" style="color: var(--primary); background: none; border: none; cursor: pointer; padding: 0; font-family: inherit; font-size: inherit; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                            <i data-lucide="folder" style="width: 15px; height: 15px;"></i> My Vault
+                        </button>
+                        <i data-lucide="chevron-right" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                        <span id="breadcrumb-current-folder" style="color: var(--text-primary);">Folder Name</span>
+                    </div>
+
+                    <!-- Folders Grid Wrapper -->
+                    <div id="vault-folders-wrapper" style="display: none; margin-bottom: 10px;">
+                        <h4 style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; display: flex; align-items: center; gap: 4px;">
+                            <i data-lucide="folder" style="width: 14px; height: 14px;"></i> Folders
+                        </h4>
+                        <div id="vault-folders-container" class="folders-grid">
+                            <!-- Dynamic folders render here -->
+                        </div>
+                    </div>
+
+                    <!-- Files Header -->
+                    <div id="vault-files-header" style="display: none; margin-bottom: 5px; margin-top: 5px;">
+                        <h4 style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 4px;">
+                            <i data-lucide="file" style="width: 14px; height: 14px;"></i> Files
+                        </h4>
+                    </div>
+
+                    <div id="vault-empty-state" class="hidden" style="text-align: center; color: var(--text-muted); padding: 80px 0; width: 100%;">
                         <i data-lucide="folder-search" style="width: 48px; height: 48px; margin-bottom: 16px;"></i>
                         <h3>Your Vault is Empty</h3>
                         <p style="font-size: 13px; margin-top: 6px;">Upload files in the "Send to Server" tab or paste clipboard clips.</p>
@@ -410,6 +442,29 @@
                             </form>
                         </div>
 
+                        <!-- Storage Limit & Upgrades Card -->
+                        <div class="glass-card" style="padding: 30px; display: flex; flex-direction: column; gap: 20px;">
+                            <h3 style="font-size: 18px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Storage Quota & Upgrades</h3>
+                            <div style="display: flex; flex-direction: column; gap: 10px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 14px; color: var(--text-secondary);">Current Storage Limit:</span>
+                                    <strong id="profile-storage-limit-display" style="font-size: 15px; color: var(--primary);">100 MB</strong>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                                    By default, all student vaults are allocated 100 MB of storage space. If you need more room for assignments, project files, or source code, you can request an upgrade to 300 MB.
+                                </p>
+                            </div>
+                            <div id="profile-upgrade-action-container" style="margin-top: 5px;">
+                                <button id="request-storage-upgrade-btn" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <i data-lucide="arrow-up-circle" style="width: 18px; height: 18px;"></i>
+                                    Request 300 MB Upgrade
+                                </button>
+                                <div id="profile-upgrade-status-display" class="hidden" style="text-align: center; padding: 12px; border-radius: 8px; font-weight: 600; font-size: 13px;">
+                                    <!-- Request status content dynamic -->
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Danger Zone -->
                         <div class="glass-card" style="padding: 30px; border-color: rgba(239, 68, 68, 0.2); display: flex; flex-direction: column; gap: 15px;">
                             <h3 style="font-size: 18px; color: var(--danger); border-bottom: 1px solid rgba(239, 68, 68, 0.1); padding-bottom: 12px;">Danger Zone</h3>
@@ -482,8 +537,7 @@
                         </div>
                         <select id="setting-language" class="form-input" style="width: 150px; padding: 8px 12px; font-size: 13px; cursor: pointer;">
                             <option value="en">English (US)</option>
-                            <option value="es">Español</option>
-                            <option value="hi">हिन्दी</option>
+                            <option value="gu">ગુજરાતી (Gujarati)</option>
                         </select>
                     </div>
 
@@ -531,7 +585,7 @@
                 </div>
 
                 <!-- Admin Stats Grid -->
-                <div class="admin-stats-grid">
+                <div class="admin-stats-grid" style="margin-bottom: 24px;">
                     <div class="glass-card overview-stat-card">
                         <div class="stat-details">
                             <h3>TOTAL USERS</h3>
@@ -567,6 +621,31 @@
                         <div class="stat-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);">
                             <i data-lucide="activity" style="width: 24px; height: 24px;"></i>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Storage Upgrade Requests Card -->
+                <div class="glass-card" style="padding: 24px; margin-bottom: 24px;">
+                    <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <i data-lucide="arrow-up-circle" style="color: var(--primary); width: 18px; height: 18px;"></i>
+                        Storage Upgrade Requests (100MB to 300MB)
+                    </h3>
+                    <div class="admin-table-wrapper" style="max-height: 240px; overflow-y: auto;">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>User Email</th>
+                                    <th>Requested Limit</th>
+                                    <th>Requested At</th>
+                                    <th style="text-align: right; padding-right: 20px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-storage-requests-body">
+                                <tr>
+                                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px 0;">No pending storage requests.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -616,7 +695,7 @@
 
     <!-- Admin User Data Manager Modal -->
     <div id="admin-user-data-modal" class="modal-overlay">
-        <div class="glass-card modal-content" style="max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
+        <div class="glass-card modal-content" style="max-width: 900px; width: 95%; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column;">
             <button class="modal-close-btn" onclick="closePreviewModal('admin-user-data-modal')">
                 <i data-lucide="x" style="width: 20px; height: 20px;"></i>
             </button>
@@ -627,7 +706,7 @@
             <p id="admin-user-detail-subtitle" style="font-size: 12px; color: var(--text-secondary); margin-bottom: 20px;">User details and file inventory.</p>
             
             <!-- Quick Actions tab panel inside modal -->
-            <div class="admin-modal-layout">
+            <div class="admin-modal-layout" style="display: grid; grid-template-columns: repeat(3, 1fr) !important; gap: 16px; margin-bottom: 20px;">
                 <!-- Edit user info -->
                 <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
                     <div style="font-weight: 600; font-size: 13px;">Update Profile Details</div>
@@ -635,6 +714,19 @@
                         <input type="text" id="admin-edit-name-input" class="form-input" style="padding: 8px 12px; font-size: 13px;" placeholder="Full Name">
                     </div>
                     <button id="admin-update-name-btn" class="btn btn-secondary" style="font-size: 12px; padding: 8px; width: 100%;">Save Name Changes</button>
+                </div>
+                <!-- Set storage quota -->
+                <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="font-weight: 600; font-size: 13px;">Set Storage Limit</div>
+                    <div class="form-group" style="margin: 0;">
+                        <select id="admin-edit-storage-limit" class="form-input" style="padding: 8px 12px; font-size: 13px; cursor: pointer; background: var(--bg-secondary); color: var(--text-primary);">
+                            <option value="104857600">100 MB</option>
+                            <option value="209715200">200 MB</option>
+                            <option value="314572800">300 MB</option>
+                            <option value="524288000">500 MB</option>
+                        </select>
+                    </div>
+                    <button id="admin-update-storage-btn" class="btn btn-secondary" style="font-size: 12px; padding: 8px; width: 100%;">Save Limit Changes</button>
                 </div>
                 <!-- Upload/Add data on behalf -->
                 <div class="glass-card" style="padding: 16px; display: flex; flex-direction: column; gap: 10px;">

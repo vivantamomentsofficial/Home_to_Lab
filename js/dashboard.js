@@ -34,7 +34,10 @@ function switchSection(targetId) {
         titleText = "Quick Text Clipboard";
         if (window.loadQuickNotes) window.loadQuickNotes(); // Reload notes on switch
     }
-    if (targetId === 'profile-tab') titleText = "User Profile";
+    if (targetId === 'profile-tab') {
+        titleText = "User Profile";
+        if (window.loadStorageUpgradeInfo) window.loadStorageUpgradeInfo();
+    }
     if (targetId === 'settings-tab') titleText = "Settings";
     if (targetId === 'admin-tab') {
         titleText = "Admin Control Centre";
@@ -232,6 +235,18 @@ async function updateStorageStats() {
         const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) return 0;
 
+        // Fetch custom storage limit from profile
+        const { data: profile } = await window.supabaseClient
+            .from('profiles')
+            .select('storage_limit')
+            .eq('id', user.id)
+            .single();
+
+        let maxBytes = 100 * 1024 * 1024; // Default 100 MB fallback
+        if (profile && profile.storage_limit) {
+            maxBytes = parseInt(profile.storage_limit);
+        }
+
         const { data, error } = await window.supabaseClient
             .from('files')
             .select('size')
@@ -241,13 +256,13 @@ async function updateStorageStats() {
 
         // Calculate total size in bytes
         const totalBytes = data.reduce((acc, curr) => acc + parseInt(curr.size || 0), 0);
-        const maxBytes = 100 * 1024 * 1024; // 100 MB
         const percent = Math.min(100, Math.round((totalBytes / maxBytes) * 100));
+        const maxMbStr = `${Math.round(maxBytes / (1024 * 1024))} MB`;
 
         // Update Nav UI
         document.getElementById('nav-storage-percent').textContent = `${percent}%`;
         document.getElementById('nav-storage-fill').style.width = `${percent}%`;
-        document.getElementById('nav-storage-bytes').textContent = `${formatBytes(totalBytes)} of 100 MB`;
+        document.getElementById('nav-storage-bytes').textContent = `${formatBytes(totalBytes)} of ${maxMbStr}`;
 
         return totalBytes;
     } catch (err) {

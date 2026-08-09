@@ -35,6 +35,11 @@ function setupProfile() {
         avatarTrigger.addEventListener('click', () => avatarInput.click());
         avatarInput.addEventListener('change', handleAvatarUpload);
     }
+
+    const requestUpgradeBtn = document.getElementById('request-storage-upgrade-btn');
+    if (requestUpgradeBtn) {
+        requestUpgradeBtn.addEventListener('click', handleStorageUpgradeRequest);
+    }
 }
 
 // 1. Update Display Name
@@ -255,3 +260,109 @@ function handleAccountDecline() {
         }
     );
 }
+
+// =========================================================================
+// STORAGE UPGRADE REQUEST ACTIONS
+// =========================================================================
+
+async function loadStorageUpgradeInfo() {
+    const limitDisplay = document.getElementById('profile-storage-limit-display');
+    const requestBtn = document.getElementById('request-storage-upgrade-btn');
+    const statusDisplay = document.getElementById('profile-upgrade-status-display');
+
+    if (!limitDisplay) return;
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) return;
+
+        // A. Load user profile's current limit
+        const { data: profile } = await window.supabaseClient
+            .from('profiles')
+            .select('storage_limit')
+            .eq('id', user.id)
+            .single();
+
+        const limitBytes = (profile && profile.storage_limit) ? parseInt(profile.storage_limit) : 100 * 1024 * 1024;
+        const limitMb = Math.round(limitBytes / (1024 * 1024));
+        limitDisplay.textContent = `${limitMb} MB`;
+
+        // B. Check for active/pending upgrade requests
+        const { data: requests, error } = await window.supabaseClient
+            .from('storage_requests')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Check if there is any pending or approved request
+        const pendingRequest = requests.find(r => r.status === 'pending');
+
+        if (limitMb >= 300) {
+            // Already upgraded
+            if (requestBtn) requestBtn.classList.add('hidden');
+            if (statusDisplay) {
+                statusDisplay.classList.remove('hidden');
+                statusDisplay.style.background = 'rgba(16, 185, 129, 0.12)';
+                statusDisplay.style.color = 'var(--success)';
+                statusDisplay.innerHTML = `<i data-lucide="check-circle" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Premium Storage Tier Active (300 MB)`;
+            }
+        } else if (pendingRequest) {
+            // Pending request exists
+            if (requestBtn) requestBtn.classList.add('hidden');
+            if (statusDisplay) {
+                statusDisplay.classList.remove('hidden');
+                statusDisplay.style.background = 'rgba(245, 158, 11, 0.12)';
+                statusDisplay.style.color = 'var(--warning)';
+                statusDisplay.innerHTML = `<i data-lucide="clock" style="width: 16px; height: 16px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Upgrade Request Pending (300 MB)`;
+            }
+        } else {
+            // Show request button
+            if (requestBtn) requestBtn.classList.remove('hidden');
+            if (statusDisplay) statusDisplay.classList.add('hidden');
+        }
+
+        if (window.lucide) window.lucide.createIcons();
+
+    } catch (err) {
+        console.error("Error loading storage quota info:", err);
+    }
+}
+window.loadStorageUpgradeInfo = loadStorageUpgradeInfo;
+
+async function handleStorageUpgradeRequest() {
+    const requestBtn = document.getElementById('request-storage-upgrade-btn');
+    const origText = requestBtn.innerHTML;
+    requestBtn.disabled = true;
+    requestBtn.textContent = "Submitting Request...";
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) return;
+
+        // Insert new request for 300MB
+        const limitBytes = 300 * 1024 * 1024;
+        const { error } = await window.supabaseClient
+            .from('storage_requests')
+            .insert({
+                user_id: user.id,
+                email: user.email,
+                requested_limit: limitBytes,
+                status: 'pending'
+            });
+
+        if (error) throw error;
+
+        window.showToast("Storage upgrade request submitted successfully!", "success");
+        await loadStorageUpgradeInfo();
+
+    } catch (err) {
+        console.error("Error requesting storage upgrade:", err);
+        window.showToast("Failed to submit request.", "danger");
+    } finally {
+        requestBtn.disabled = false;
+        requestBtn.innerHTML = origText;
+    }
+}
+

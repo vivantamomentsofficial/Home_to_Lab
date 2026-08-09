@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Cache variables
 let cachedFiles = [];
+let cachedFolders = [];
+let currentFolderId = null;
 window.activeLayout = 'grid'; // 'grid' or 'list'
 let activeFilter = 'all';
 
@@ -83,6 +85,31 @@ function setupFilesManager() {
                 .catch(() => window.showToast("Failed to copy text.", "danger"));
         });
     }
+
+    // New Folder Button click
+    const createFolderBtn = document.getElementById('create-folder-btn');
+    if (createFolderBtn) {
+        createFolderBtn.addEventListener('click', handleCreateFolder);
+    }
+
+    // Breadcrumbs Root click & drop target
+    const breadcrumbRoot = document.getElementById('breadcrumb-root-btn');
+    if (breadcrumbRoot) {
+        breadcrumbRoot.addEventListener('click', () => {
+            currentFolderId = null;
+            filterAndRenderFiles();
+        });
+        breadcrumbRoot.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        });
+        breadcrumbRoot.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            const fileId = e.dataTransfer.getData('text/plain');
+            if (fileId) {
+                await moveFileToFolder(fileId, null);
+            }
+        });
+    }
 }
 
 function updateLayoutToggleIcon() {
@@ -113,6 +140,17 @@ async function loadVaultFiles() {
         const { data: { user } } = await window.supabaseClient.auth.getUser();
         if (!user) throw new Error("No user session found");
 
+        // A. Load Folders
+        const { data: foldersData, error: foldersErr } = await window.supabaseClient
+            .from('folders')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('name', { ascending: true });
+
+        if (foldersErr) throw foldersErr;
+        cachedFolders = foldersData || [];
+
+        // B. Load Files
         const { data, error } = await window.supabaseClient
             .from('files')
             .select('*')
@@ -121,11 +159,11 @@ async function loadVaultFiles() {
 
         if (error) throw error;
 
-        cachedFiles = data;
+        cachedFiles = data || [];
         filterAndRenderFiles();
 
     } catch (err) {
-        console.error("Error loading files:", err);
+        console.error("Error loading files & folders:", err);
         window.showToast("Failed to retrieve vault files.", "danger");
     } finally {
         skeleton.classList.add('hidden');
@@ -140,17 +178,70 @@ function filterAndRenderFiles() {
     const searchVal = document.getElementById('vault-search-input').value.trim().toLowerCase();
     const sortVal = document.getElementById('vault-sort-select').value;
 
+    const foldersWrapper = document.getElementById('vault-folders-wrapper');
+    const foldersContainer = document.getElementById('vault-folders-container');
+    const breadcrumbs = document.getElementById('vault-breadcrumbs');
+    const filesHeader = document.getElementById('vault-files-header');
+
     if (!container) return;
 
     container.innerHTML = '';
+    if (foldersContainer) foldersContainer.innerHTML = '';
 
-    // 1. Apply Filter
-    let filtered = cachedFiles;
-    if (activeFilter !== 'all') {
-        filtered = cachedFiles.filter(f => f.file_type === activeFilter);
+    // 1. Resolve breadcrumbs & folders visibility
+    let showFolders = currentFolderId === null;
+    let matchingFolders = cachedFolders;
+
+    if (searchVal) {
+        // If searching, search across all files and folders regardless of nesting
+        matchingFolders = cachedFolders.filter(f => f.name.toLowerCase().includes(searchVal));
+        showFolders = true; 
+        if (breadcrumbs) breadcrumbs.style.display = 'none';
+    } else {
+        if (currentFolderId !== null) {
+            if (breadcrumbs) {
+                breadcrumbs.style.display = 'flex';
+                const curFolder = cachedFolders.find(f => f.id === currentFolderId);
+                const breadcrumbCurrent = document.getElementById('breadcrumb-current-folder');
+                if (breadcrumbCurrent) breadcrumbCurrent.textContent = curFolder ? curFolder.name : "Folder";
+            }
+            if (foldersWrapper) foldersWrapper.style.display = 'none';
+        } else {
+            if (breadcrumbs) breadcrumbs.style.display = 'none';
+        }
     }
 
-    // 2. Apply Search
+    // 2. Render Folders
+    let renderedFoldersCount = 0;
+    if (showFolders && foldersContainer && foldersWrapper) {
+        matchingFolders.forEach(folder => {
+            renderFolderCard(foldersContainer, folder);
+            renderedFoldersCount++;
+        });
+
+        if (renderedFoldersCount > 0) {
+            foldersWrapper.style.display = 'block';
+        } else {
+            foldersWrapper.style.display = 'none';
+        }
+    } else {
+        if (foldersWrapper) foldersWrapper.style.display = 'none';
+    }
+
+    // 3. Filter and Sort Files
+    let filtered = cachedFiles;
+
+    // Filter by folder_id (unless searching)
+    if (!searchVal) {
+        filtered = cachedFiles.filter(f => f.folder_id === currentFolderId);
+    }
+
+    // Apply active tag category filter
+    if (activeFilter !== 'all') {
+        filtered = filtered.filter(f => f.file_type === activeFilter);
+    }
+
+    // Apply search filter
     if (searchVal) {
         filtered = filtered.filter(f => 
             f.filename.toLowerCase().includes(searchVal) ||
@@ -159,7 +250,7 @@ function filterAndRenderFiles() {
         );
     }
 
-    // 3. Apply Sort
+    // Apply Sort
     if (sortVal === 'newest') {
         filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortVal === 'oldest') {
@@ -170,8 +261,14 @@ function filterAndRenderFiles() {
         filtered.sort((a, b) => b.size - a.size);
     }
 
-    // Toggle Empty State
-    if (filtered.length === 0) {
+    // 4. Toggle headers & Empty State
+    if (renderedFoldersCount > 0 && filtered.length > 0) {
+        if (filesHeader) filesHeader.style.display = 'block';
+    } else {
+        if (filesHeader) filesHeader.style.display = 'none';
+    }
+
+    if (renderedFoldersCount === 0 && filtered.length === 0) {
         emptyState.classList.remove('hidden');
         container.classList.add('hidden');
         return;
@@ -187,7 +284,7 @@ function filterAndRenderFiles() {
         container.className = 'files-list';
     }
 
-    // 4. Render Items
+    // 5. Render Files
     filtered.forEach(file => {
         if (window.activeLayout === 'grid') {
             renderGridCard(container, file);
@@ -204,6 +301,7 @@ function renderGridCard(container, file) {
     const card = document.createElement('div');
     card.className = 'glass-card file-card scale-up';
     card.id = `file-${file.id}`;
+    card.setAttribute('draggable', 'true');
 
     // Get matching Lucide icon based on type
     const iconName = getFileIcon(file.file_type);
@@ -233,6 +331,14 @@ function renderGridCard(container, file) {
         </div>
     `;
 
+    card.addEventListener('dragstart', (e) => {
+        card.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', file.id);
+    });
+    card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+    });
+
     container.appendChild(card);
 }
 
@@ -241,6 +347,7 @@ function renderListItem(container, file) {
     const item = document.createElement('div');
     item.className = 'glass-card file-list-item scale-up';
     item.id = `file-${file.id}`;
+    item.setAttribute('draggable', 'true');
 
     const iconName = getFileIcon(file.file_type);
     const dateStr = new Date(file.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
@@ -272,6 +379,14 @@ function renderListItem(container, file) {
             </div>
         </div>
     `;
+
+    item.addEventListener('dragstart', (e) => {
+        item.classList.add('dragging');
+        e.dataTransfer.setData('text/plain', file.id);
+    });
+    item.addEventListener('dragend', () => {
+        item.classList.remove('dragging');
+    });
 
     container.appendChild(item);
 }
@@ -558,3 +673,144 @@ function getFileIcon(type) {
         default: return 'file';
     }
 }
+
+// =========================================================================
+// FOLDER CRUD & DRAG-AND-DROP ACTIONS
+// =========================================================================
+
+function renderFolderCard(container, folder) {
+    const card = document.createElement('div');
+    card.className = 'folder-card';
+    card.setAttribute('data-folder-id', folder.id);
+
+    card.innerHTML = `
+        <i data-lucide="folder" style="width: 24px; height: 24px; color: var(--primary); flex-shrink: 0;"></i>
+        <div class="folder-card-info">
+            <span class="folder-card-name" title="${folder.name}">${folder.name}</span>
+        </div>
+        <div class="folder-card-actions" onclick="event.stopPropagation();">
+            <button class="folder-action-btn" onclick="renameFolder('${folder.id}', '${folder.name}')" title="Rename Folder">
+                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+            </button>
+            <button class="folder-action-btn delete" onclick="deleteFolder('${folder.id}')" title="Delete Folder">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+        </div>
+    `;
+
+    card.addEventListener('click', () => {
+        currentFolderId = folder.id;
+        filterAndRenderFiles();
+    });
+
+    card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        card.classList.add('drag-hover');
+    });
+    card.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        card.classList.add('drag-hover');
+    });
+    card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-hover');
+    });
+    card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-hover');
+        const fileId = e.dataTransfer.getData('text/plain');
+        if (fileId) {
+            await moveFileToFolder(fileId, folder.id);
+        }
+    });
+
+    container.appendChild(card);
+}
+
+async function handleCreateFolder() {
+    const name = prompt("Enter new folder name:");
+    if (!name || !name.trim()) return;
+
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) return;
+
+        const { error } = await window.supabaseClient
+            .from('folders')
+            .insert({
+                name: name.trim(),
+                user_id: user.id
+            });
+
+        if (error) throw error;
+        window.showToast("Folder created successfully!", "success");
+        await loadVaultFiles();
+    } catch (err) {
+        console.error("Error creating folder:", err);
+        window.showToast("Failed to create folder.", "danger");
+    }
+}
+
+async function renameFolder(folderId, currentName) {
+    const name = prompt("Rename folder to:", currentName);
+    if (!name || !name.trim() || name.trim() === currentName) return;
+
+    try {
+        const { error } = await window.supabaseClient
+            .from('folders')
+            .update({ name: name.trim() })
+            .eq('id', folderId);
+
+        if (error) throw error;
+        window.showToast("Folder renamed successfully!", "success");
+        await loadVaultFiles();
+    } catch (err) {
+        console.error("Error renaming folder:", err);
+        window.showToast("Failed to rename folder.", "danger");
+    }
+}
+window.renameFolder = renameFolder;
+
+async function deleteFolder(folderId) {
+    window.showConfirmModal(
+        "Delete Folder",
+        "Are you sure you want to delete this folder? The files inside will be moved back to the main vault (files will not be deleted).",
+        async () => {
+            try {
+                const { error } = await window.supabaseClient
+                    .from('folders')
+                    .delete()
+                    .eq('id', folderId);
+
+                if (error) throw error;
+                
+                if (currentFolderId === folderId) {
+                    currentFolderId = null;
+                }
+                
+                window.showToast("Folder deleted successfully!", "success");
+                await loadVaultFiles();
+            } catch (err) {
+                console.error("Error deleting folder:", err);
+                window.showToast("Failed to delete folder.", "danger");
+            }
+        }
+    );
+}
+window.deleteFolder = deleteFolder;
+
+async function moveFileToFolder(fileId, folderId) {
+    try {
+        const { error } = await window.supabaseClient
+            .from('files')
+            .update({ folder_id: folderId })
+            .eq('id', fileId);
+
+        if (error) throw error;
+        window.showToast("File moved successfully!", "success");
+        await loadVaultFiles();
+    } catch (err) {
+        console.error("Error moving file:", err);
+        window.showToast("Failed to move file to folder.", "danger");
+    }
+}
+

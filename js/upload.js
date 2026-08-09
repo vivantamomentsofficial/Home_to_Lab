@@ -59,21 +59,39 @@ async function handleFiles(files) {
     
     // Check total free space first
     const totalBytesUsed = await window.updateStorageStats();
-    const maxStorage = 100 * 1024 * 1024; // 100MB
+    
+    let maxStorage = 100 * 1024 * 1024; // Default 100MB
+    try {
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (user) {
+            const { data: profile } = await window.supabaseClient
+                .from('profiles')
+                .select('storage_limit')
+                .eq('id', user.id)
+                .single();
+            if (profile && profile.storage_limit) {
+                maxStorage = parseInt(profile.storage_limit);
+            }
+        }
+    } catch (e) {
+        console.warn("Could not retrieve custom storage limit for validation, using 100MB fallback:", e);
+    }
+
+    const maxMbStr = `${Math.round(maxStorage / (1024 * 1024))}MB`;
     let currentBytesSession = totalBytesUsed;
 
     const filesArray = Array.from(files);
 
     for (const file of filesArray) {
-        // Validation 1: Individual file size < 100MB
+        // Validation 1: Individual file size < limit
         if (file.size > maxStorage) {
-            window.showToast(`Rejected: "${file.name}" exceeds the 100MB limit.`, 'danger');
+            window.showToast(`Rejected: "${file.name}" exceeds the ${maxMbStr} limit.`, 'danger');
             continue;
         }
 
         // Validation 2: Will it exceed the storage allocation?
         if (currentBytesSession + file.size > maxStorage) {
-            window.showToast(`Rejected: Uploading "${file.name}" will exceed your 100MB storage limit.`, 'warning');
+            window.showToast(`Rejected: Uploading "${file.name}" will exceed your ${maxMbStr} storage limit.`, 'warning');
             continue;
         }
 

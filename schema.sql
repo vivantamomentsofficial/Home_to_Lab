@@ -428,3 +428,73 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+
+-- =========================================================================
+-- 7. FOLDERS AND STORAGE LIMIT UPGRADES SCHEMA
+-- =========================================================================
+
+-- Create Folders table
+CREATE TABLE IF NOT EXISTS public.folders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Add folder_id to files referencing folders
+ALTER TABLE public.files ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES public.folders(id) ON DELETE SET NULL;
+
+-- Add storage_limit to profiles (default 100MB in bytes)
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS storage_limit BIGINT DEFAULT 104857600 NOT NULL;
+
+-- Create Storage Upgrade Requests table
+CREATE TABLE IF NOT EXISTS public.storage_requests (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    email TEXT NOT NULL,
+    requested_limit BIGINT NOT NULL,
+    status TEXT DEFAULT 'pending' NOT NULL, -- 'pending', 'approved', 'rejected'
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS on new tables
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.storage_requests ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policies for folders
+DROP POLICY IF EXISTS "Users can manage their own folders" ON public.folders;
+CREATE POLICY "Users can manage their own folders" ON public.folders
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can manage all folders" ON public.folders;
+CREATE POLICY "Admin can manage all folders" ON public.folders
+    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com') WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+
+-- RLS Policies for storage_requests
+DROP POLICY IF EXISTS "Users can view and insert their own requests" ON public.storage_requests;
+CREATE POLICY "Users can view and insert their own requests" ON public.storage_requests
+    FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can view and update all requests" ON public.storage_requests;
+CREATE POLICY "Admin can view and update all requests" ON public.storage_requests
+    FOR ALL TO authenticated USING (auth.jwt() ->> 'email' = 'homtolab@gmail.com') WITH CHECK (auth.jwt() ->> 'email' = 'homtolab@gmail.com');
+
+-- Trigger to automatically apply storage upgrade to profile on admin approval
+CREATE OR REPLACE FUNCTION public.handle_storage_request_approval()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.status = 'approved' AND OLD.status = 'pending' THEN
+        UPDATE public.profiles
+        SET storage_limit = NEW.requested_limit
+        WHERE id = NEW.user_id;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_storage_request_approved ON public.storage_requests;
+CREATE TRIGGER on_storage_request_approved
+    AFTER UPDATE OF status ON public.storage_requests
+    FOR EACH ROW EXECUTE FUNCTION public.handle_storage_request_approval();
+
+
