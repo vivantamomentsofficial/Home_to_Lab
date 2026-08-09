@@ -108,7 +108,7 @@ CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN COALESCE(
-        (SELECT is_admin FROM public.profiles WHERE id = auth.uid()),
+        (auth.jwt() ->> 'email') = 'homtolab@gmail.com',
         false
     );
 END;
