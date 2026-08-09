@@ -40,6 +40,9 @@ function setupSettings() {
     const savedLayout = localStorage.getItem('CLOUDVAULT_DEFAULT_LAYOUT') || 'grid';
     if (defaultLayoutSelect) defaultLayoutSelect.value = savedLayout;
 
+    const savedLang = localStorage.getItem('CLOUDVAULT_LANGUAGE') || 'en';
+    if (languageSelect) languageSelect.value = savedLang;
+
     // 2. Set Up Event Listeners
     if (themeDarkBtn && themeLightBtn) {
         themeDarkBtn.addEventListener('click', () => {
@@ -77,9 +80,13 @@ function setupSettings() {
     if (languageSelect) {
         languageSelect.addEventListener('change', (e) => {
             const lang = e.target.value;
+            applyLanguage(lang);
             window.showToast(`Language changed to ${languageSelect.options[languageSelect.selectedIndex].text}`, "success");
         });
     }
+
+    // Apply language on dashboard load
+    applyLanguage(savedLang);
 
     // 3. Start Inactivity Monitor
     initInactivityMonitor();
@@ -227,3 +234,135 @@ function initServerLoadWarning() {
 
     continueBtn.addEventListener('click', dismissModal);
 }
+
+// =========================================================================
+// MULTI-LANGUAGE TRANSLATION DICTIONARY & HELPER
+// =========================================================================
+const TRANSLATIONS = {
+    en: {
+        "sidebar-overview": "Dashboard",
+        "sidebar-upload": "Send to Server",
+        "sidebar-vault": "Receive",
+        "sidebar-quicktext": "Quick Text",
+        "sidebar-profile": "Profile",
+        "sidebar-admin": "Admin Panel",
+        "sidebar-settings": "Settings",
+        "sidebar-logout": "Logout",
+        "navbar-title-overview": "Dashboard Overview",
+        "navbar-title-upload": "Send to Server",
+        "navbar-title-vault": "Receive (My Vault)",
+        "navbar-title-quicktext": "Quick Text Clipboard",
+        "navbar-title-profile": "User Profile",
+        "navbar-title-settings": "Settings",
+        "navbar-title-admin": "Admin Control Centre",
+        "greeting-welcome": "Welcome back",
+        "settings-pref": "Preferences",
+        "settings-theme": "Interface Theme",
+        "settings-theme-desc": "Switch between Dark Mode and Light Mode.",
+        "settings-logout": "Auto Logout (Idle Timer)",
+        "settings-logout-desc": "Automatically log out when inactive. Recommended for college lab computers.",
+        "settings-layout": "Default File Layout",
+        "settings-layout-desc": "Default layout style for viewing uploaded files in the Receive section.",
+        "settings-lang": "Interface Language",
+        "settings-lang-desc": "Select the display language.",
+        "settings-feedback-title": "Feedback & Bug Reports",
+        "settings-feedback-desc": "Found a bug? Want to request a feature? Let us know directly below."
+    },
+    es: {
+        "sidebar-overview": "Tablero",
+        "sidebar-upload": "Enviar al Servidor",
+        "sidebar-vault": "Recibir",
+        "sidebar-quicktext": "Texto Rápido",
+        "sidebar-profile": "Perfil",
+        "sidebar-admin": "Panel de Administración",
+        "sidebar-settings": "Ajustes",
+        "sidebar-logout": "Cerrar sesión",
+        "navbar-title-overview": "Resumen del Tablero",
+        "navbar-title-upload": "Enviar al Servidor",
+        "navbar-title-vault": "Recibir (Mi Bóveda)",
+        "navbar-title-quicktext": "Portapapeles de Texto Rápido",
+        "navbar-title-profile": "Perfil de Usuario",
+        "navbar-title-settings": "Ajustes",
+        "navbar-title-admin": "Centro de Control de Administración",
+        "greeting-welcome": "Bienvenido de nuevo",
+        "settings-pref": "Preferencias",
+        "settings-theme": "Tema de Interfaz",
+        "settings-theme-desc": "Cambiar entre Modo Oscuro y Modo Claro.",
+        "settings-logout": "Cierre de Sesión Automático",
+        "settings-logout-desc": "Cerrar sesión automáticamente cuando esté inactivo. Recomendado para laboratorios.",
+        "settings-layout": "Diseño de Archivos Predeterminado",
+        "settings-layout-desc": "Estilo de diseño para ver archivos en la sección Recibir.",
+        "settings-lang": "Idioma de Interfaz",
+        "settings-lang-desc": "Seleccionar el idioma de la pantalla.",
+        "settings-feedback-title": "Comentarios e Informes de Errores",
+        "settings-feedback-desc": "¿Encontró un error? ¿Quiere sugerir algo? Háganoslo saber abajo."
+    },
+    hi: {
+        "sidebar-overview": "डैशबोर्ड",
+        "sidebar-upload": "सर्वर पर भेजें",
+        "sidebar-vault": "फ़ाइलें प्राप्त करें",
+        "sidebar-quicktext": "त्वरित पाठ (क्लिपबोर्ड)",
+        "sidebar-profile": "प्रोफ़ाइल",
+        "sidebar-admin": "एडमिन पैनल",
+        "sidebar-settings": "सेटिंग्स",
+        "sidebar-logout": "लॉग आउट",
+        "navbar-title-overview": "डैशबोर्ड अवलोकन",
+        "navbar-title-upload": "सर्वर पर भेजें",
+        "navbar-title-vault": "प्राप्त करें (मेरी तिजोरी)",
+        "navbar-title-quicktext": "त्वरित पाठ क्लिपबोर्ड",
+        "navbar-title-profile": "उपयोगकर्ता प्रोफ़ाइल",
+        "navbar-title-settings": "सेटिंग्स",
+        "navbar-title-admin": "एडमिन कंट्रोल सेंटर",
+        "greeting-welcome": "स्वागत है",
+        "settings-pref": "प्राथमिकताएं",
+        "settings-theme": "इंटरफ़ेस थीम",
+        "settings-theme-desc": "डार्क मोड और लाइट मोड के बीच स्विच करें।",
+        "settings-logout": "ऑटो लॉगआउट (निष्क्रियता टाइमर)",
+        "settings-logout-desc": "निष्क्रिय होने पर स्वचालित रूप से लॉग आउट करें। कॉलेज लैब कंप्यूटरों के लिए अनुशंसित।",
+        "settings-layout": "डिफ़ॉल्ट फ़ाइल लेआउट",
+        "settings-layout-desc": "प्राप्त अनुभाग में अपलोड की गई फ़ाइलों को देखने के लिए डिफ़ॉल्ट लेआउट शैली।",
+        "settings-lang": "इंटरफ़ेस भाषा",
+        "settings-lang-desc": "प्रदर्शन भाषा का चयन करें।",
+        "settings-feedback-title": "प्रतिक्रिया और बग रिपोर्ट",
+        "settings-feedback-desc": "कोई बग मिला? कोई सुविधा चाहते हैं? हमें सीधे नीचे बताएं।"
+    }
+};
+window.TRANSLATIONS = TRANSLATIONS;
+
+function applyLanguage(lang) {
+    localStorage.setItem('CLOUDVAULT_LANGUAGE', lang);
+    const translation = TRANSLATIONS[lang] || TRANSLATIONS['en'];
+    
+    document.querySelectorAll('[data-translate]').forEach(el => {
+        const key = el.getAttribute('data-translate');
+        if (translation[key]) {
+            el.textContent = translation[key];
+        }
+    });
+
+    // Update navbar greeting text
+    const greetingEl = document.getElementById('navbar-greeting');
+    if (greetingEl && window.supabaseClient) {
+        window.supabaseClient.auth.getSession().then(({ data: { session } }) => {
+            if (session && session.user) {
+                const user = session.user;
+                const displayName = user.user_metadata?.full_name || user.email.split('@')[0];
+                const welcomeStr = translation["greeting-welcome"] || "Welcome back";
+                greetingEl.textContent = `${welcomeStr}, ${displayName}!`;
+            }
+        });
+    }
+
+    // Update current navbar section title
+    const titleEl = document.getElementById('navbar-section-title');
+    const activeSidebar = document.querySelector('.sidebar-item.active');
+    if (titleEl && activeSidebar) {
+        const targetId = activeSidebar.getAttribute('data-target');
+        const titleKey = `navbar-title-${targetId.replace('-tab', '')}`;
+        if (translation[titleKey]) {
+            titleEl.textContent = translation[titleKey];
+        }
+    }
+}
+window.applyLanguage = applyLanguage;
+

@@ -40,35 +40,35 @@
             <nav class="sidebar-menu">
                 <div class="sidebar-item active" data-target="overview-tab">
                     <i data-lucide="layout-dashboard"></i>
-                    <span>Dashboard</span>
+                    <span data-translate="sidebar-overview">Dashboard</span>
                 </div>
                 <div class="sidebar-item" data-target="upload-tab" id="upload-sidebar-item">
                     <i data-lucide="file-up"></i>
-                    <span>Send to Server</span>
+                    <span data-translate="sidebar-upload">Send to Server</span>
                 </div>
                 <div class="sidebar-item" data-target="vault-tab" id="vault-sidebar-item">
                     <i data-lucide="folder-open"></i>
-                    <span>Receive</span>
+                    <span data-translate="sidebar-vault">Receive</span>
                 </div>
                 <div class="sidebar-item" data-target="quicktext-tab" id="quicktext-sidebar-item">
                     <i data-lucide="clipboard-copy"></i>
-                    <span>Quick Text</span>
+                    <span data-translate="sidebar-quicktext">Quick Text</span>
                 </div>
                 <div class="sidebar-item" data-target="profile-tab">
                     <i data-lucide="user"></i>
-                    <span>Profile</span>
+                    <span data-translate="sidebar-profile">Profile</span>
                 </div>
                 <div class="sidebar-item" data-target="admin-tab" id="admin-sidebar-item" style="display: none;">
                     <i data-lucide="shield-alert"></i>
-                    <span>Admin Panel</span>
+                    <span data-translate="sidebar-admin">Admin Panel</span>
                 </div>
                 <div class="sidebar-item" data-target="settings-tab">
                     <i data-lucide="settings"></i>
-                    <span>Settings</span>
+                    <span data-translate="sidebar-settings">Settings</span>
                 </div>
                 <div class="sidebar-item" id="sidebar-logout" style="margin-top: auto; color: var(--danger);">
                     <i data-lucide="log-out"></i>
-                    <span>Logout</span>
+                    <span data-translate="sidebar-logout">Logout</span>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -430,13 +430,13 @@
             <!-- ========================================== -->
             <section id="settings-tab" class="dashboard-section">
                 <div class="glass-card" style="padding: 30px; max-width: 600px; display: flex; flex-direction: column; gap: 24px;">
-                    <h3 style="font-size: 18px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Preferences</h3>
+                    <h3 data-translate="settings-pref" style="font-size: 18px; border-bottom: 1px solid var(--card-border); padding-bottom: 12px;">Preferences</h3>
 
                     <!-- Theme Settings -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h4 style="font-size: 15px;">Interface Theme</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Switch between Dark Mode and Light Mode.</p>
+                            <h4 data-translate="settings-theme" style="font-size: 15px;">Interface Theme</h4>
+                            <p data-translate="settings-theme-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Switch between Dark Mode and Light Mode.</p>
                         </div>
                         <div style="display: flex; gap: 8px;">
                             <button id="theme-dark-btn" class="btn btn-secondary" style="padding: 8px 16px; font-size: 13px; display: flex; align-items: center; gap: 6px;">
@@ -451,8 +451,8 @@
                     <!-- Auto Logout Settings -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h4 style="font-size: 15px;">Auto Logout (Idle Timer)</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Automatically log out when inactive. Recommended for college lab computers.</p>
+                            <h4 data-translate="settings-logout" style="font-size: 15px;">Auto Logout (Idle Timer)</h4>
+                            <p data-translate="settings-logout-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Automatically log out when inactive. Recommended for college lab computers.</p>
                         </div>
                         <select id="setting-auto-logout" class="form-input" style="width: 150px; padding: 8px 12px; font-size: 13px; cursor: pointer;">
                             <option value="0">Disabled</option>
@@ -465,8 +465,8 @@
                     <!-- Default View Settings -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h4 style="font-size: 15px;">Default File Layout</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Default layout style for viewing uploaded files in the Receive section.</p>
+                            <h4 data-translate="settings-layout" style="font-size: 15px;">Default File Layout</h4>
+                            <p data-translate="settings-layout-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Default layout style for viewing uploaded files in the Receive section.</p>
                         </div>
                         <select id="setting-default-layout" class="form-input" style="width: 150px; padding: 8px 12px; font-size: 13px; cursor: pointer;">
                             <option value="grid">Grid Layout</option>
@@ -477,8 +477,8 @@
                     <!-- Language Settings -->
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h4 style="font-size: 15px;">Interface Language</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Select the display language.</p>
+                            <h4 data-translate="settings-lang" style="font-size: 15px;">Interface Language</h4>
+                            <p data-translate="settings-lang-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Select the display language.</p>
                         </div>
                         <select id="setting-language" class="form-input" style="width: 150px; padding: 8px 12px; font-size: 13px; cursor: pointer;">
                             <option value="en">English (US)</option>
@@ -487,25 +487,14 @@
                         </select>
                     </div>
 
-                    <!-- Dev utility connection test -->
-                    <div style="border-top: 1px solid var(--card-border); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                        <div>
-                            <h4 style="font-size: 15px; color: var(--warning);">Backend Configuration</h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Disconnect from current Supabase instance to connect to another.</p>
-                        </div>
-                        <button onclick="resetSupabaseConfig()" class="btn btn-secondary" style="color: var(--warning); border-color: rgba(245, 158, 11, 0.3);">
-                            <i data-lucide="unlink" style="width: 16px; height: 16px;"></i> Disconnect
-                        </button>
-                    </div>
-
                     <!-- Feedback & Bug Reports Card inside Settings Tab -->
                     <div style="border-top: 1px solid var(--card-border); padding-top: 24px; display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
                         <div>
-                            <h4 style="font-size: 15px; color: var(--primary); display: flex; align-items: center; gap: 6px;">
+                            <h4 data-translate="settings-feedback-title" style="font-size: 15px; color: var(--primary); display: flex; align-items: center; gap: 6px;">
                                 <i data-lucide="message-square" style="width: 18px; height: 18px; color: var(--primary);"></i>
                                 Feedback & Bug Reports
                             </h4>
-                            <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                            <p data-translate="settings-feedback-desc" style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                                 Found a bug? Want to request a feature? Let us know directly below.
                             </p>
                         </div>

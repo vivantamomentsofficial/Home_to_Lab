@@ -41,6 +41,13 @@ function switchSection(targetId) {
         if (window.initializeAdminPanel) window.initializeAdminPanel(); // Load admin panel on switch
     }
     
+    // Resolve dynamic language title
+    const lang = localStorage.getItem('CLOUDVAULT_LANGUAGE') || 'en';
+    const titleKey = `navbar-title-${targetId.replace('-tab', '')}`;
+    if (window.TRANSLATIONS && window.TRANSLATIONS[lang] && window.TRANSLATIONS[lang][titleKey]) {
+        titleText = window.TRANSLATIONS[lang][titleKey];
+    }
+    
     titleEl.textContent = titleText;
 }
 window.switchSection = switchSection;
