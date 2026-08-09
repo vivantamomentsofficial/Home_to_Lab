@@ -336,8 +336,53 @@ CREATE TRIGGER on_auth_user_updated
 
 
 -- =========================================================================
--- 5. SEED INITIAL USERS
+-- 5. SEED SUPER ADMIN
 -- =========================================================================
+
+-- Delete existing super admin if exists to prevent duplicates (bypassing ON CONFLICT constraint error)
+DELETE FROM auth.users WHERE email = 'homtolab@gmail.com';
+
+-- Insert Super Admin into auth.users
+INSERT INTO auth.users (
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    confirmed_at,
+    recovery_sent_at,
+    last_sign_in_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token
+)
+VALUES (
+    '00000000-0000-0000-0000-000000000000',
+    '77777777-7777-7777-7777-777777777777', -- Static admin UUID
+    'authenticated',
+    'authenticated',
+    'homtolab@gmail.com',
+    crypt('26072008', gen_salt('bf')),
+    now(),
+    now(),
+    NULL,
+    now(),
+    '{"provider": "email", "providers": ["email"]}',
+    '{"full_name": "Super Admin"}',
+    now(),
+    now(),
+    '',
+    '',
+    '',
+    ''
+);
 
 -- Run initial sync of all existing users into the profiles table
 INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
@@ -356,7 +401,9 @@ ON CONFLICT (id) DO UPDATE SET
     full_name = EXCLUDED.full_name,
     college = EXCLUDED.college,
     avatar_url = EXCLUDED.avatar_url,
-    last_sign_in_at = EXCLUDED.last_sign_in_at;
+    last_sign_in_at = EXCLUDED.last_sign_in_at,
+    is_admin = EXCLUDED.is_admin;
+
 
 
 -- =========================================================================
