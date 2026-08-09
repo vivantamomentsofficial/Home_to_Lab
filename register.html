@@ -25,6 +25,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Cloudflare Turnstile CAPTCHA SDK -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         body {
             display: flex;
@@ -146,6 +148,9 @@
                         <input type="password" id="confirm-password" class="form-input" placeholder="Re-enter password" required autocomplete="new-password" minlength="6">
                     </div>
                 </div>
+
+                <!-- Cloudflare Turnstile CAPTCHA Widget -->
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAAAEK3i3q8cw05m9-C" style="margin-top: 15px; margin-bottom: 10px; display: flex; justify-content: center;"></div>
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
                     <span>Register</span>

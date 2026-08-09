@@ -1,6 +1,7 @@
 /* CloudVault Super Admin Control Panel Controller */
 
 let adminCachedUsers = [];
+let adminCachedSnippets = [];
 let adminTargetUserId = null;
 let adminTargetUserEmail = null;
 
@@ -30,6 +31,9 @@ async function initializeAdminPanel() {
 
         // 4.5 Fetch and render storage upgrade requests
         await loadAdminStorageRequests();
+
+        // 4.6 Fetch and render overall snippets database
+        await loadAdminOverallSnippets();
 
         // 5. Setup event listeners
         setupAdminEventListeners();
@@ -241,6 +245,46 @@ function setupAdminEventListeners() {
     const wipeUserBtn = document.getElementById('admin-wipe-user-btn');
     if (wipeUserBtn) {
         wipeUserBtn.onclick = handleAdminWipeUser;
+    }
+
+    // Snippet search input listener
+    const snippetSearchInput = document.getElementById('admin-snippet-search');
+    if (snippetSearchInput) {
+        snippetSearchInput.oninput = (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filtered = adminCachedSnippets.filter(s => 
+                s.title.toLowerCase().includes(query) || 
+                s.content.toLowerCase().includes(query) ||
+                (s.userName && s.userName.toLowerCase().includes(query)) ||
+                (s.userEmail && s.userEmail.toLowerCase().includes(query))
+            );
+            renderOverallSnippetsTable(filtered);
+        };
+    }
+
+    // Refresh Dashboard button listener
+    const refreshBtn = document.getElementById('admin-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.onclick = async () => {
+            const icon = document.getElementById('admin-refresh-icon');
+            if (icon) icon.classList.add('animate-spin');
+            refreshBtn.disabled = true;
+
+            try {
+                await loadAdminStats();
+                await loadAdminUsers();
+                await loadAdminLoginLogs();
+                await loadAdminStorageRequests();
+                await loadAdminOverallSnippets();
+                window.showToast("Admin Dashboard refreshed successfully!", "success");
+            } catch (err) {
+                console.error("Manual refresh error:", err);
+                window.showToast("Failed to refresh dashboard.", "danger");
+            } finally {
+                if (icon) icon.classList.remove('animate-spin');
+                refreshBtn.disabled = false;
+            }
+        };
     }
 }
 
@@ -768,6 +812,7 @@ async function approveStorageRequest(requestId) {
 
         window.showToast("Storage request approved successfully!", "success");
         await loadAdminStorageRequests();
+        await loadAdminUsers(); // Refresh user storage limit in main table
         await loadAdminStats(); // Refresh stats
 
     } catch (err) {
@@ -817,6 +862,11 @@ async function handleAdminUpdateStorage() {
 
         window.showToast("User storage limit updated successfully!", "success");
 
+        // Refresh UI list and stats
+        await loadAdminUsers();
+        await loadAdminStorageRequests();
+        await loadAdminStats();
+
     } catch (err) {
         console.error("Error updating user storage limit directly:", err);
         window.showToast("Failed to update user storage limit.", "danger");
@@ -825,4 +875,150 @@ async function handleAdminUpdateStorage() {
         updateStorageBtn.innerHTML = origText;
     }
 }
+
+// =========================================================================
+// OVERALL SNIPPETS DATABASE FUNCTIONS
+// =========================================================================
+
+async function loadAdminOverallSnippets() {
+    const tableBody = document.getElementById('admin-overall-snippets-body');
+    if (!tableBody) return;
+
+    try {
+        // Fetch all notes (snippets)
+        const { data: notes, error: notesError } = await window.supabaseClient
+            .from('notes')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (notesError) throw notesError;
+
+        // Fetch profiles to map user names
+        const { data: profiles, error: profilesError } = await window.supabaseClient
+            .from('profiles')
+            .select('id, full_name, email');
+
+        if (profilesError) throw profilesError;
+
+        const profileMap = {};
+        if (profiles) {
+            profiles.forEach(p => {
+                profileMap[p.id] = {
+                    name: p.full_name || 'Anonymous User',
+                    email: p.email || 'N/A'
+                };
+            });
+        }
+
+        // Map user details to snippets
+        adminCachedSnippets = (notes || []).map(note => {
+            const userDetails = profileMap[note.user_id] || { name: 'Anonymous User', email: 'N/A' };
+            return {
+                ...note,
+                userName: userDetails.name,
+                userEmail: userDetails.email
+            };
+        });
+
+        // Clear search query value
+        const searchInput = document.getElementById('admin-snippet-search');
+        if (searchInput) searchInput.value = '';
+
+        renderOverallSnippetsTable(adminCachedSnippets);
+
+    } catch (err) {
+        console.error("Error loading overall snippets:", err);
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--danger); padding: 20px 0;">Failed to load snippets database.</td></tr>`;
+    }
+}
+window.loadAdminOverallSnippets = loadAdminOverallSnippets;
+
+function renderOverallSnippetsTable(snippets) {
+    const tableBody = document.getElementById('admin-overall-snippets-body');
+    if (!tableBody) return;
+
+    if (snippets.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px 0;">No snippets found.</td></tr>`;
+        return;
+    }
+
+    tableBody.innerHTML = '';
+    snippets.forEach(snippet => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = '1px solid var(--card-border)';
+        
+        // Escape HTML to prevent XSS
+        const safeTitle = snippet.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const safeContent = snippet.content.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        const previewContent = safeContent.length > 80 ? safeContent.substring(0, 80) + '...' : safeContent;
+
+        tr.innerHTML = `
+            <td style="padding: 12px 10px; padding-left: 15px; vertical-align: middle;">
+                <div style="font-weight: 600; color: var(--text-primary);">${snippet.userName}</div>
+                <div style="font-size: 11px; color: var(--text-muted);">${snippet.userEmail}</div>
+            </td>
+            <td style="padding: 12px 10px; font-weight: 500; color: var(--text-secondary); vertical-align: middle;">
+                ${safeTitle}
+            </td>
+            <td style="padding: 12px 10px; color: var(--text-muted); font-family: monospace; font-size: 12px; vertical-align: middle; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                ${previewContent}
+            </td>
+            <td style="padding: 12px 10px; text-align: right; padding-right: 20px; vertical-align: middle;">
+                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+                    <button onclick="copySnippetById('${snippet.id}')" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i data-lucide="copy" style="width: 12px; height: 12px;"></i> Copy
+                    </button>
+                    <button onclick="deleteAdminSnippet('${snippet.id}')" class="btn btn-danger" style="padding: 6px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i> Delete
+                    </button>
+                </div>
+            </td>
+        `;
+        tableBody.appendChild(tr);
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+}
+window.renderOverallSnippetsTable = renderOverallSnippetsTable;
+
+async function copySnippetById(noteId) {
+    const snippet = adminCachedSnippets.find(s => s.id === noteId);
+    if (!snippet) return;
+    try {
+        await navigator.clipboard.writeText(snippet.content);
+        window.showToast("Snippet content copied to clipboard!", "success");
+    } catch (err) {
+        console.error("Failed to copy snippet text:", err);
+        window.showToast("Failed to copy to clipboard.", "danger");
+    }
+}
+window.copySnippetById = copySnippetById;
+
+async function deleteAdminSnippet(noteId) {
+    window.showConfirmModal(
+        "Delete Snippet",
+        "Are you sure you want to permanently delete this snippet? This action cannot be undone.",
+        async () => {
+            try {
+                window.showToast("Deleting snippet...", "info");
+
+                const { error } = await window.supabaseClient
+                    .from('notes')
+                    .delete()
+                    .eq('id', noteId);
+
+                if (error) throw error;
+
+                window.showToast("Snippet deleted successfully!", "success");
+                await loadAdminOverallSnippets();
+                await loadAdminStats(); // Update total snippet counts
+
+            } catch (err) {
+                console.error("Error deleting note snippet:", err);
+                window.showToast("Failed to delete snippet.", "danger");
+            }
+        }
+    );
+}
+window.deleteAdminSnippet = deleteAdminSnippet;
 

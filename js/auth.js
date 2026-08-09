@@ -138,9 +138,21 @@ function setupFormListeners() {
                 sessionStorage.removeItem('CLOUDVAULT_SESSION_PERSIST');
             }
 
+            const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || (typeof turnstile !== 'undefined' ? turnstile.getResponse() : null);
+            if (!captchaToken) {
+                showToast('Please complete the Captcha check.', 'warning');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origContent;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
             const { error } = await window.supabaseClient.auth.signInWithPassword({
                 email,
-                password
+                password,
+                options: {
+                    captchaToken: captchaToken
+                }
             });
 
             if (error) {
@@ -192,6 +204,15 @@ function setupFormListeners() {
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<span>Creating Account...</span><div class="skeleton" style="width: 18px; height: 18px; border-radius: 50%;"></div>`;
 
+            const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || (typeof turnstile !== 'undefined' ? turnstile.getResponse() : null);
+            if (!captchaToken) {
+                showToast('Please complete the Captcha check.', 'warning');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origContent;
+                if (window.lucide) window.lucide.createIcons();
+                return;
+            }
+
             const { data, error } = await window.supabaseClient.auth.signUp({
                 email,
                 password,
@@ -199,7 +220,8 @@ function setupFormListeners() {
                     data: {
                         full_name: fullname,
                         college: college
-                    }
+                    },
+                    captchaToken: captchaToken
                 }
             });
 
@@ -212,6 +234,18 @@ function setupFormListeners() {
                 // If email confirmation is required, Supabase returns a user but session is null
                 if (data.session) {
                     showToast('Registration successful! Redirecting...', 'success');
+                    try {
+                        const { data: { user } } = await window.supabaseClient.auth.getUser();
+                        if (user) {
+                            await window.supabaseClient.from('login_logs').insert({
+                                user_id: user.id,
+                                email: user.email,
+                                login_time: new Date().toISOString()
+                            });
+                        }
+                    } catch (logErr) {
+                        console.error("Failed to log registration login:", logErr);
+                    }
                     setTimeout(() => {
                         window.location.href = window.resolveRedirect('dashboard');
                     }, 1000);

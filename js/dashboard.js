@@ -25,6 +25,11 @@ function switchSection(targetId) {
     // 3. Update top navbar title
     const titleEl = document.getElementById('navbar-section-title');
     let titleText = "Dashboard Overview";
+    if (targetId === 'overview-tab') {
+        titleText = "Dashboard Overview";
+        if (window.updateOverviewStats) window.updateOverviewStats();
+        if (window.updateStorageStats) window.updateStorageStats();
+    }
     if (targetId === 'upload-tab') titleText = "Send to Server";
     if (targetId === 'vault-tab') {
         titleText = "Receive (My Vault)";
@@ -263,6 +268,12 @@ async function updateStorageStats() {
         document.getElementById('nav-storage-percent').textContent = `${percent}%`;
         document.getElementById('nav-storage-fill').style.width = `${percent}%`;
         document.getElementById('nav-storage-bytes').textContent = `${formatBytes(totalBytes)} of ${maxMbStr}`;
+
+        // Update dashboard storage limit overview card
+        const statLimitEl = document.getElementById('stat-storage-limit');
+        if (statLimitEl) {
+            statLimitEl.textContent = maxMbStr;
+        }
 
         return totalBytes;
     } catch (err) {
