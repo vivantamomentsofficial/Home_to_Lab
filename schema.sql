@@ -50,6 +50,10 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     is_admin BOOLEAN DEFAULT false NOT NULL
 );
 
+-- Ensure columns exist if the table was created in an older version of the schema
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS college TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false NOT NULL;
+
 -- Login logs table (to track user logins for the Admin)
 CREATE TABLE IF NOT EXISTS public.login_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
