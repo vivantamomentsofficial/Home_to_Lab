@@ -255,7 +255,7 @@
         }
 
         .section-tag {
-            color: var(--accent);
+            color: var(--primary);
             font-size: 13px;
             font-weight: 600;
             text-transform: uppercase;
@@ -749,7 +749,7 @@
                 </div>
                 <span>CloudVault</span>
             </div>
-            <button id="drawer-close-btn" class="drawer-close-btn">
+            <button id="drawer-close-btn" class="drawer-close-btn" aria-label="Close menu">
                 <i data-lucide="x" style="width: 24px; height: 24px;"></i>
             </button>
         </div>
@@ -794,7 +794,7 @@
                 <div style="background: rgba(14, 165, 233, 0.08); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
                     <i data-lucide="download-cloud" style="width: 18px; height: 18px;"></i>
                 </div>
-                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; font-family: 'Outfit', sans-serif;">Retrieve Shared File</h3>
+                <h2 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; font-family: 'Outfit', sans-serif;">Retrieve Shared File</h2>
             </div>
             <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.5;">
                 Enter a 6-digit temporary share code to download a file instantly.
@@ -918,7 +918,7 @@
                 <div class="glass-card"
                     style="padding: 24px; display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center;">
                     <div
-                        style="font-size: 36px; font-weight: 800; color: var(--success); font-family: 'Outfit', sans-serif;">
+                        style="font-size: 36px; font-weight: 800; color: #047857; font-family: 'Outfit', sans-serif;">
                         25+</div>
                     <div
                         style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">
@@ -1130,20 +1130,20 @@
                     style="display: flex; flex-direction: column; gap: 16px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" style="font-weight: 600; font-size: 12px;">Your Name</label>
-                            <input type="text" name="name" class="form-input"
+                            <label for="feedback-name" class="form-label" style="font-weight: 600; font-size: 12px;">Your Name</label>
+                            <input type="text" id="feedback-name" name="name" class="form-input"
                                 style="padding: 8px 12px; font-size: 13px;" placeholder="Full Name" required>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
-                            <label class="form-label" style="font-weight: 600; font-size: 12px;">Email Address</label>
-                            <input type="email" name="email" class="form-input"
+                            <label for="feedback-email" class="form-label" style="font-weight: 600; font-size: 12px;">Email Address</label>
+                            <input type="email" id="feedback-email" name="email" class="form-input"
                                 style="padding: 8px 12px; font-size: 13px;" placeholder="college@example.com" required>
                         </div>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600; font-size: 12px;">What is this about?</label>
-                        <select name="topic" class="form-input"
+                        <label for="feedback-topic" class="form-label" style="font-weight: 600; font-size: 12px;">What is this about?</label>
+                        <select id="feedback-topic" name="topic" class="form-input"
                             style="padding: 8px 12px; font-size: 13px; background: var(--bg-secondary); color: var(--text-primary);"
                             required>
                             <option value="Feature Request">Request a Feature</option>
@@ -1153,8 +1153,8 @@
                     </div>
 
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label class="form-label" style="font-weight: 600; font-size: 12px;">Details</label>
-                        <textarea name="message" class="form-input"
+                        <label for="feedback-message" class="form-label" style="font-weight: 600; font-size: 12px;">Details</label>
+                        <textarea id="feedback-message" name="message" class="form-input"
                             style="padding: 8px 12px; height: 100px; resize: none; font-size: 13px;"
                             placeholder="Describe features you want, or details of the issue..." required></textarea>
                     </div>
@@ -1172,7 +1172,7 @@
     <!-- Public File Retrieval Modal -->
     <div id="retrieve-modal" class="modal-overlay">
         <div class="glass-card modal-content" style="max-width: 450px;">
-            <button class="modal-close-btn" onclick="closeRetrieveModal()">
+            <button class="modal-close-btn" onclick="closeRetrieveModal()" aria-label="Close modal">
                 <i data-lucide="x" style="width: 20px; height: 20px;"></i>
             </button>
             <h3 style="font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
@@ -1403,7 +1403,7 @@
                                 files (
                                     id,
                                     filename,
-                                    file_size,
+                                    size,
                                     file_type
                                 )
                             `)
@@ -1420,7 +1420,7 @@
                         // Populate details
                         document.getElementById('retrieved-filename').textContent = data.files.filename;
                         document.getElementById('retrieved-filename').title = data.files.filename;
-                        document.getElementById('retrieved-filesize').textContent = formatBytesLocal(data.files.file_size || 0);
+                        document.getElementById('retrieved-filesize').textContent = formatBytesLocal(data.files.size || 0);
                         document.getElementById('retrieved-filetype').textContent = data.files.file_type || 'Unknown';
 
                         const expiryTime = new Date(data.expires_at);

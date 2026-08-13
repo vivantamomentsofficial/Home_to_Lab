@@ -12,12 +12,12 @@
     --text-secondary: #334155;  /* Slate-700 */
     --text-muted: #64748B;      /* Slate-500 */
     
-    --primary: #0284C7;         /* Vibrant Sky Blue 600 */
-    --primary-hover: #0369A1;   /* Sky 700 */
-    --primary-glow: rgba(2, 132, 199, 0.15);
+    --primary: #0369A1;         /* Sky 700 for accessible primary brand highlights */
+    --primary-hover: #075985;   /* Sky 800 */
+    --primary-glow: rgba(3, 105, 161, 0.15);
     
-    --accent: #0EA5E9;          /* Sky 500 */
-    --accent-hover: #0284C7;
+    --accent: #0284C7;          /* Sky 600 */
+    --accent-hover: #0369A1;
     
     --success: #10B981;
     --danger: #EF4444;
@@ -1312,7 +1312,7 @@ button, input, select, textarea {
 .server-load-btn-primary {
     background: var(--warning);
     border: 1px solid var(--warning);
-    color: #FFFFFF;
+    color: #0F172A;
 }
 
 .server-load-btn-primary:hover {
