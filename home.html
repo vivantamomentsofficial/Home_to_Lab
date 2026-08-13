@@ -984,7 +984,7 @@
                     <i data-lucide="message-square" style="color: var(--primary); width: 18px; height: 18px;"></i>
                     Send Feedback / Bug Report
                 </h3>
-                <form action="https://formspree.io/f/mnpajoyg" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
+                <form id="landing-feedback-form" action="https://formspree.io/f/mnpajoyg" method="POST" style="display: flex; flex-direction: column; gap: 16px;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                         <div class="form-group" style="margin-bottom: 0;">
                             <label class="form-label" style="font-weight: 600; font-size: 12px;">Your Name</label>
@@ -1045,6 +1045,57 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Render Lucide Icons immediately on load
             if (window.lucide) window.lucide.createIcons();
+
+            // Intercept Landing Feedback Form Submit
+            const feedbackForm = document.getElementById('landing-feedback-form');
+            if (feedbackForm) {
+                feedbackForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const submitBtn = feedbackForm.querySelector('button[type="submit"]');
+                    const origText = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = `<span>Sending...</span>`;
+                    
+                    const formData = new FormData(feedbackForm);
+                    
+                    try {
+                        const response = await fetch(feedbackForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+                        
+                        if (response.ok) {
+                            if (window.showToast) {
+                                window.showToast("Thank you! Your feedback has been submitted.", "success");
+                            } else {
+                                alert("Thank you! Your feedback has been submitted.");
+                            }
+                            feedbackForm.reset();
+                        } else {
+                            const data = await response.json();
+                            const errMsg = (data && data.errors) ? data.errors.map(err => err.message).join(", ") : "Failed to submit feedback.";
+                            if (window.showToast) {
+                                window.showToast(errMsg, "danger");
+                            } else {
+                                alert(errMsg);
+                            }
+                        }
+                    } catch (err) {
+                        console.error("Feedback submit error:", err);
+                        if (window.showToast) {
+                            window.showToast("Failed to send feedback: " + err.message, "danger");
+                        } else {
+                            alert("Failed to send feedback: " + err.message);
+                        }
+                    } finally {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = origText;
+                    }
+                });
+            }
 
             // Mobile Drawer Controls
             const menuBtn = document.getElementById('mobile-menu-btn');

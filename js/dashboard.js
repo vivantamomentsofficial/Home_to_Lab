@@ -128,13 +128,28 @@ async function initializeDashboard() {
         if (adminItem) adminItem.style.display = 'flex';
 
         // Hide regular user sharing tabs for the admin
+        const overviewItem = document.getElementById('overview-sidebar-item');
         const uploadItem = document.getElementById('upload-sidebar-item');
         const vaultItem = document.getElementById('vault-sidebar-item');
         const quicktextItem = document.getElementById('quicktext-sidebar-item');
+        const profileItem = document.getElementById('profile-sidebar-item');
+        const storageContainer = document.getElementById('nav-storage-bar-container');
 
+        if (overviewItem) overviewItem.style.display = 'none';
         if (uploadItem) uploadItem.style.display = 'none';
         if (vaultItem) vaultItem.style.display = 'none';
         if (quicktextItem) quicktextItem.style.display = 'none';
+        if (profileItem) profileItem.style.display = 'none';
+        if (storageContainer) storageContainer.style.display = 'none';
+
+        // Adjust avatar and disable profile tab link
+        const avatarEl = document.getElementById('nav-user-avatar');
+        if (avatarEl) avatarEl.textContent = 'AD';
+        const avatarWrapper = document.querySelector('.user-avatar-wrapper');
+        if (avatarWrapper) {
+            avatarWrapper.removeAttribute('onclick');
+            avatarWrapper.style.cursor = 'default';
+        }
 
         // Default the admin to the Admin Control Centre on login
         switchSection('admin-tab');
@@ -143,13 +158,19 @@ async function initializeDashboard() {
         if (adminItem) adminItem.style.display = 'none';
 
         // Ensure regular user sharing tabs are visible
+        const overviewItem = document.getElementById('overview-sidebar-item');
         const uploadItem = document.getElementById('upload-sidebar-item');
         const vaultItem = document.getElementById('vault-sidebar-item');
         const quicktextItem = document.getElementById('quicktext-sidebar-item');
+        const profileItem = document.getElementById('profile-sidebar-item');
+        const storageContainer = document.getElementById('nav-storage-bar-container');
 
+        if (overviewItem) overviewItem.style.display = 'flex';
         if (uploadItem) uploadItem.style.display = 'flex';
         if (vaultItem) vaultItem.style.display = 'flex';
         if (quicktextItem) quicktextItem.style.display = 'flex';
+        if (profileItem) profileItem.style.display = 'flex';
+        if (storageContainer) storageContainer.style.display = 'flex';
     }
 
     // 3. Load Overview Page Stats & Recent Activities

@@ -376,11 +376,17 @@ async function loadAdminUserInventory() {
                 item.innerHTML = `
                     <span style="font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px;" title="${escapedFilename}">${escapedFilename}</span>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <button onclick="previewAdminFile('${file.id}', '${file.file_type}', '${jsEscapedFilename}', '${jsEscapedPath}')" class="btn btn-secondary" style="padding: 4px 6px; font-size: 10px;" title="Preview"><i data-lucide="eye" style="width: 12px; height: 12px;"></i></button>
+                        <button class="btn btn-secondary admin-preview-file-btn" style="padding: 4px 6px; font-size: 10px;" title="Preview"><i data-lucide="eye" style="width: 12px; height: 12px;"></i></button>
                         <button onclick="downloadAdminFile('${jsEscapedPath}', '${jsEscapedFilename}')" class="btn btn-secondary" style="padding: 4px 6px; font-size: 10px;" title="Download"><i data-lucide="download" style="width: 12px; height: 12px;"></i></button>
                         <button onclick="deleteAdminFile('${file.id}', '${jsEscapedPath}')" class="btn btn-danger" style="padding: 4px 6px; font-size: 10px;" title="Delete"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
                     </div>
                 `;
+                const previewBtn = item.querySelector('.admin-preview-file-btn');
+                if (previewBtn) {
+                    previewBtn.addEventListener('click', () => {
+                        previewAdminFile(file.id, file.file_type, file.filename, file.storage_path);
+                    });
+                }
                 filesList.appendChild(item);
             });
         }
@@ -397,18 +403,23 @@ async function loadAdminUserInventory() {
                 item.style.cssText = 'padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; font-size: 12px;';
                 const escapedTitle = window.escapeHtml(note.title);
                 const escapedContentPreview = window.escapeHtml(note.content.substring(0, 30));
-                const jsEscapedTitle = note.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                const jsEscapedContent = note.content.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
                 item.innerHTML = `
-                    <div style="display: flex; flex-direction: column; min-width: 0; flex: 1; margin-right: 10px; cursor: pointer;" onclick="previewAdminNote('${jsEscapedTitle}', '${jsEscapedContent}')" title="Click to preview content">
+                    <div class="admin-note-click-area" style="display: flex; flex-direction: column; min-width: 0; flex: 1; margin-right: 10px; cursor: pointer;" title="Click to preview content">
                         <span style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapedTitle}">${escapedTitle}</span>
                         <span style="font-size: 10px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapedContentPreview}</span>
                     </div>
                     <div style="display: flex; gap: 6px; align-items: center;">
-                        <button onclick="previewAdminNote('${jsEscapedTitle}', '${jsEscapedContent}')" class="btn btn-secondary" style="padding: 4px 6px; font-size: 10px;" title="Preview"><i data-lucide="eye" style="width: 12px; height: 12px;"></i></button>
+                        <button class="btn btn-secondary admin-preview-note-btn" style="padding: 4px 6px; font-size: 10px;" title="Preview"><i data-lucide="eye" style="width: 12px; height: 12px;"></i></button>
                         <button onclick="deleteAdminNote('${note.id}')" class="btn btn-danger" style="padding: 4px 6px; font-size: 10px;" title="Delete"><i data-lucide="trash" style="width: 12px; height: 12px;"></i></button>
                     </div>
                 `;
+                const clickArea = item.querySelector('.admin-note-click-area');
+                const previewBtn = item.querySelector('.admin-preview-note-btn');
+                const runPreview = () => previewAdminNote(note.title, note.content);
+                
+                if (clickArea) clickArea.addEventListener('click', runPreview);
+                if (previewBtn) previewBtn.addEventListener('click', runPreview);
+                
                 notesList.appendChild(item);
             });
         }
@@ -1053,7 +1064,7 @@ function renderOverallSnippetsTable(snippets) {
             </td>
             <td style="padding: 12px 10px; text-align: right; padding-right: 20px; vertical-align: middle;">
                 <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
-                    <button onclick="previewAdminNote('${snippet.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${snippet.content.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}')" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
+                    <button class="btn btn-secondary admin-view-snippet-btn" style="padding: 6px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
                         <i data-lucide="eye" style="width: 12px; height: 12px;"></i> View
                     </button>
                     <button onclick="copySnippetById('${snippet.id}')" class="btn btn-secondary" style="padding: 6px 10px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px;">
@@ -1065,6 +1076,15 @@ function renderOverallSnippetsTable(snippets) {
                 </div>
             </td>
         `;
+        
+        // Add event listener programmatically to prevent double quote attributes crash
+        const viewBtn = tr.querySelector('.admin-view-snippet-btn');
+        if (viewBtn) {
+            viewBtn.addEventListener('click', () => {
+                previewAdminNote(snippet.title, snippet.content);
+            });
+        }
+
         tableBody.appendChild(tr);
     });
 
