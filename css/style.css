@@ -728,6 +728,7 @@ button, input, select, textarea {
     display: flex;
     flex-direction: column;
     gap: 10px;
+    overflow: visible !important;
 }
 
 .file-list-item {
@@ -736,6 +737,8 @@ button, input, select, textarea {
     align-items: center;
     justify-content: space-between;
     gap: 20px;
+    position: relative;
+    overflow: visible !important;
 }
 
 .file-list-left {
@@ -1423,12 +1426,32 @@ button, input, select, textarea {
 .admin-modal-layout {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 20px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 600px) {
     .admin-modal-layout {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 900px) {
+    .admin-modal-layout {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.admin-inventory-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    flex: 1;
+    min-height: 250px;
+}
+
+@media (min-width: 768px) {
+    .admin-inventory-layout {
         grid-template-columns: 1fr 1fr;
     }
 }

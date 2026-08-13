@@ -58,7 +58,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT fa
 CREATE TABLE IF NOT EXISTS public.login_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
-    email TEXT NOT NULL,
+    email TEXT, -- Nullable to support guest logs
     login_time TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -211,8 +211,7 @@ CREATE POLICY "Allow admin to do everything on profiles" ON public.profiles
 DROP POLICY IF EXISTS "Allow users to insert their own login logs" ON public.login_logs;
 CREATE POLICY "Allow users to insert their own login logs" ON public.login_logs
     FOR INSERT TO authenticated WITH CHECK (
-        auth.uid() = user_id AND
-        auth.jwt() ->> 'email' = email
+        auth.uid() = user_id
     );
 
 DROP POLICY IF EXISTS "Allow admin to view all login logs" ON public.login_logs;
@@ -292,7 +291,7 @@ CREATE POLICY "Admin can manage all storage files" ON storage.objects
 -- 4. PROFILE AUTOMATION & TRIGGERS
 -- =========================================================================
 
--- Trigger function to synchronize profiles with auth.users
+-- Trigger function to synchronize profiles with auth.users and log login sessions
 CREATE OR REPLACE FUNCTION public.handle_auth_user_change()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -308,6 +307,10 @@ BEGIN
             NEW.last_sign_in_at,
             COALESCE((NEW.email = 'homtolab@gmail.com'), false)
         );
+        -- Log login upon sign-up creation
+        INSERT INTO public.login_logs (user_id, email, login_time)
+        VALUES (NEW.id, COALESCE(NEW.email, 'guest@cloudvault.local'), COALESCE(NEW.last_sign_in_at, now()));
+        
         RETURN NEW;
     ELSIF (TG_OP = 'UPDATE') THEN
         UPDATE public.profiles
@@ -318,6 +321,13 @@ BEGIN
             avatar_url = NEW.raw_user_meta_data->>'avatar_url',
             last_sign_in_at = NEW.last_sign_in_at
         WHERE id = NEW.id;
+
+        -- Automatically log new login sessions on auth updates (when last_sign_in_at shifts)
+        IF NEW.last_sign_in_at IS DISTINCT FROM OLD.last_sign_in_at AND NEW.last_sign_in_at IS NOT NULL THEN
+            INSERT INTO public.login_logs (user_id, email, login_time)
+            VALUES (NEW.id, COALESCE(NEW.email, 'guest@cloudvault.local'), NEW.last_sign_in_at);
+        END IF;
+
         RETURN NEW;
     ELSIF (TG_OP = 'DELETE') THEN
         DELETE FROM public.profiles WHERE id = OLD.id;

@@ -88,6 +88,68 @@ function setupSettings() {
     // Apply language on dashboard load
     applyLanguage(savedLang);
 
+    // 2.5 Setup Feedback Form submission interceptor
+    const feedbackForm = document.querySelector('form[action="https://formspree.io/f/mnpajoyg"]');
+    if (feedbackForm) {
+        // Set dynamic email value on initialize
+        if (window.supabaseClient) {
+            window.supabaseClient.auth.getUser().then(({ data: { user } }) => {
+                if (user) {
+                    const emailInput = document.getElementById('feedback-user-email');
+                    if (emailInput) emailInput.value = user.email;
+                }
+            }).catch(e => console.warn("Failed to get user email for feedback form:", e));
+        }
+
+        feedbackForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const submitBtn = feedbackForm.querySelector('button[type="submit"]');
+            const origText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span>Sending...</span>`;
+            
+            const formData = new FormData(feedbackForm);
+            
+            try {
+                const response = await fetch(feedbackForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    window.showToast("Thank you! Your feedback has been submitted.", "success");
+                    feedbackForm.reset();
+                    
+                    // Re-populate email in reset form
+                    if (window.supabaseClient) {
+                        const { data: { user } } = await window.supabaseClient.auth.getUser();
+                        if (user) {
+                            const emailInput = document.getElementById('feedback-user-email');
+                            if (emailInput) emailInput.value = user.email;
+                        }
+                    }
+                } else {
+                    const data = await response.json();
+                    if (data && data.errors) {
+                        window.showToast(data.errors.map(err => err.message).join(", "), "danger");
+                    } else {
+                        window.showToast("Failed to submit feedback.", "danger");
+                    }
+                }
+            } catch (err) {
+                console.error("Feedback submit error:", err);
+                window.showToast("Failed to send feedback: " + err.message, "danger");
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origText;
+            }
+        });
+    }
+
     // 3. Start Inactivity Monitor
     initInactivityMonitor();
 }

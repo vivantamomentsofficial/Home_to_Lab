@@ -16,6 +16,7 @@ let cachedNotes = [];
 function setupClipboard() {
     const noteForm = document.getElementById('note-form');
     const noteSearchInput = document.getElementById('note-search-input');
+    const noteSortSelect = document.getElementById('note-sort-select');
     const noteClearBtn = document.getElementById('note-clear-btn');
 
     const quickPasteSaveBtn = document.getElementById('quick-paste-save-btn');
@@ -28,6 +29,12 @@ function setupClipboard() {
     if (noteSearchInput) {
         noteSearchInput.addEventListener('input', () => {
             renderQuickNotes(cachedNotes, noteSearchInput.value.trim());
+        });
+    }
+
+    if (noteSortSelect) {
+        noteSortSelect.addEventListener('change', () => {
+            renderQuickNotes(cachedNotes, noteSearchInput ? noteSearchInput.value.trim() : "");
         });
     }
 
@@ -140,13 +147,21 @@ function renderQuickNotes(notes, searchVal = "") {
     container.innerHTML = '';
 
     // Filter notes locally
-    let filtered = notes;
+    let filtered = [...notes];
     if (searchVal) {
         const query = searchVal.toLowerCase();
-        filtered = notes.filter(n => 
+        filtered = filtered.filter(n => 
             n.title.toLowerCase().includes(query) || 
             n.content.toLowerCase().includes(query)
         );
+    }
+
+    // Sort notes locally
+    const sortVal = document.getElementById('note-sort-select')?.value || 'newest';
+    if (sortVal === 'newest') {
+        filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    } else if (sortVal === 'oldest') {
+        filtered.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     }
 
     if (filtered.length === 0) {

@@ -167,7 +167,7 @@ function setupFormListeners() {
                     if (user) {
                         await window.supabaseClient.from('login_logs').insert({
                             user_id: user.id,
-                            email: user.email,
+                            email: user.email || 'guest@cloudvault.local',
                             login_time: new Date().toISOString()
                         });
                     }
@@ -239,7 +239,7 @@ function setupFormListeners() {
                         if (user) {
                             await window.supabaseClient.from('login_logs').insert({
                                 user_id: user.id,
-                                email: user.email,
+                                email: user.email || 'guest@cloudvault.local',
                                 login_time: new Date().toISOString()
                             });
                         }

@@ -397,16 +397,24 @@ function renderListItem(container, file) {
 function toggleFileMenu(event, fileId) {
     event.stopPropagation();
     
-    // Close other menus
+    // Close other menus and reset their parent's z-index
     document.querySelectorAll('.file-options-menu').forEach(menu => {
         if (menu.id !== `menu-${fileId}`) {
             menu.classList.remove('active');
+            const parentCard = menu.closest('.file-card') || menu.closest('.file-list-item') || menu.parentElement;
+            if (parentCard) {
+                parentCard.style.zIndex = '';
+            }
         }
     });
 
     const targetMenu = document.getElementById(`menu-${fileId}`);
     if (targetMenu) {
-        targetMenu.classList.toggle('active');
+        const isActive = targetMenu.classList.toggle('active');
+        const parentCard = targetMenu.closest('.file-card') || targetMenu.closest('.file-list-item') || targetMenu.parentElement;
+        if (parentCard) {
+            parentCard.style.zIndex = isActive ? '100' : '';
+        }
     }
 }
 window.toggleFileMenu = toggleFileMenu;
