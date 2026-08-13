@@ -8,18 +8,18 @@
     <!-- SEO Optimization -->
     <title>Home to Lab (CloudVault) - Student Personal Cloud & Clipboard</title>
     <meta name="description"
-        content="CloudVault (Home to Lab) is a free student personal cloud storage and online clipboard. Transfer files and copy notes from home to college computer labs instantly using temporary 6-digit sharing codes.">
+        content="Home to Lab (CloudVault) is a free student personal cloud storage and online clipboard. Transfer files and notes from home to college computer labs instantly using temporary 6-digit sharing codes.">
     <meta name="keywords"
-        content="home to lab, home lab, cloudvault, hometolab, student cloud storage, temporary file sharing, computer lab file transfer, online clipboard, cloud vault, college file transfer">
+        content="home to lab, hometolab, home lab, cloudvault, cloud vault, student cloud storage, student personal cloud, online clipboard, temporary file sharing, college file transfer, lab file transfer, share code download">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://hometolab.vercel.app/home">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hometolab.vercel.app/">
-    <meta property="og:title" content="Home to Lab (CloudVault) - Student Cloud & Clipboard">
+    <meta property="og:title" content="Home to Lab (CloudVault) - Student Personal Cloud & Clipboard">
     <meta property="og:description"
-        content="Securely transfer your assignment files and clipboard text snippets from home to college computer labs instantly using temporary 6-digit share codes.">
+        content="Home to Lab (CloudVault) is a free student personal cloud storage and online clipboard. Transfer files and notes from home to college computer labs instantly using temporary 6-digit sharing codes.">
     <meta property="og:image" content="https://hometolab.vercel.app/assets/preview.png">
     <meta property="og:site_name" content="CloudVault">
     <meta property="og:locale" content="en_US">
@@ -27,9 +27,9 @@
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://hometolab.vercel.app/">
-    <meta property="twitter:title" content="Home to Lab (CloudVault) - Student Cloud & Clipboard">
+    <meta property="twitter:title" content="Home to Lab (CloudVault) - Student Personal Cloud & Clipboard">
     <meta property="twitter:description"
-        content="Securely transfer your assignment files and clipboard text snippets from home to college computer labs instantly using temporary 6-digit share codes.">
+        content="Home to Lab (CloudVault) is a free student personal cloud storage and online clipboard. Transfer files and notes from home to college computer labs instantly using temporary 6-digit sharing codes.">
     <meta property="twitter:image" content="https://hometolab.vercel.app/assets/preview.png">
 
     <!-- Google Search Console Verification -->
@@ -724,6 +724,7 @@
         <nav class="nav-links">
             <a href="#features" class="nav-link">Features</a>
             <a href="#how-it-works" class="nav-link">How It Works</a>
+            <a href="#retrieve" class="nav-link" id="nav-retrieve-link">Retrieve File</a>
             <a href="login" class="btn btn-secondary" style="padding: 8px 16px; font-size: 14px;">Sign In</a>
             <a href="register" class="btn btn-primary" style="padding: 8px 16px; font-size: 14px;">Sign Up</a>
         </nav>
@@ -755,6 +756,7 @@
         <div class="drawer-body">
             <a href="#features" class="drawer-link">Features</a>
             <a href="#how-it-works" class="drawer-link">How It Works</a>
+            <a href="#retrieve" class="drawer-link" id="drawer-retrieve-link">Retrieve File</a>
             <div style="margin-top: 30px; display: flex; flex-direction: column; gap: 15px; width: 100%;">
                 <a href="login" class="btn btn-secondary" style="justify-content: center; width: 100%;">Sign In</a>
                 <a href="register" class="btn btn-primary" style="justify-content: center; width: 100%;">Sign Up</a>
@@ -772,10 +774,9 @@
             <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
             Built for College Students & Lab Users
         </div>
-        <h1 class="hero-title" style="z-index: 2;">From Home to Computer Lab, Instantly.</h1>
+        <h1 class="hero-title" style="z-index: 2;">Home to Lab, Instantly.</h1>
         <p class="hero-subtitle" style="z-index: 2;">
-            Upload files or paste notes from home. Access them on any library or college computer without plugging in
-            USBs or risking your logins on unsecure PCs.
+            Home to Lab (CloudVault) allows you to upload files or paste notes from home and access them on any library or college computer instantly without plugging in USBs or risking your logins on unsecure PCs.
         </p>
         <div class="hero-buttons" style="z-index: 2;">
             <a href="register" class="btn btn-primary">
@@ -785,6 +786,27 @@
             <a href="#features" class="btn btn-secondary">
                 <span>Explore Features</span>
             </a>
+        </div>
+
+        <!-- Share Code Quick Retrieval Card -->
+        <div id="retrieve-section" class="glass-card" style="z-index: 2; max-width: 480px; width: 100%; padding: 25px; margin-top: 15px; border: 1px solid rgba(14, 165, 233, 0.2); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); animation: fadeInUp 0.8s ease 0.1s both;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px;">
+                <div style="background: rgba(14, 165, 233, 0.08); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                    <i data-lucide="download-cloud" style="width: 18px; height: 18px;"></i>
+                </div>
+                <h3 style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; font-family: 'Outfit', sans-serif;">Retrieve Shared File</h3>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 15px; line-height: 1.5;">
+                Enter a 6-digit temporary share code to download a file instantly.
+            </p>
+            <div class="code-input-container" style="display: flex; gap: 10px; align-items: center; justify-content: center; margin-top: 0;">
+                <input type="text" id="share-code-input" class="code-input" placeholder="000000" maxlength="6" 
+                       style="width: 150px; flex: none; height: 46px; font-size: 18px; padding: 0; letter-spacing: 3px; font-family: 'Outfit', sans-serif; text-transform: uppercase;">
+                <button id="retrieve-file-btn" class="btn btn-primary" style="height: 46px; padding: 0 20px; font-size: 14px;">
+                    <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                    <span>Retrieve</span>
+                </button>
+            </div>
         </div>
 
         <!-- App Mockup Window -->
@@ -1147,6 +1169,49 @@
         </div>
     </section>
 
+    <!-- Public File Retrieval Modal -->
+    <div id="retrieve-modal" class="modal-overlay">
+        <div class="glass-card modal-content" style="max-width: 450px;">
+            <button class="modal-close-btn" onclick="closeRetrieveModal()">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+            <h3 style="font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <i data-lucide="file-check" style="width: 20px; height: 20px; color: var(--success);"></i>
+                File Found!
+            </h3>
+            <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 20px;">
+                The temporary share code is valid. You can now download the file.
+            </p>
+            
+            <div class="retrieved-file-details">
+                <div class="detail-row">
+                    <span class="detail-label">File Name</span>
+                    <span class="detail-value" id="retrieved-filename" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;">document.pdf</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">File Size</span>
+                    <span class="detail-value" id="retrieved-filesize">0 KB</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">File Type</span>
+                    <span class="detail-value" id="retrieved-filetype" style="text-transform: uppercase;">pdf</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Expires In</span>
+                    <span class="detail-value" id="retrieved-expires" style="color: var(--warning); font-weight: 700;">29m 30s</span>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                <button class="btn btn-secondary" onclick="closeRetrieveModal()">Close</button>
+                <button id="download-retrieved-btn" class="btn btn-primary">
+                    <i data-lucide="download" style="width: 18px; height: 18px;"></i>
+                    <span>Download File</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notifications Container -->
     <div id="toast-container"></div>
 
@@ -1255,6 +1320,177 @@
 
                 drawerLinks.forEach(link => {
                     link.addEventListener('click', closeDrawer);
+                });
+            }
+
+            // Share Code Retrieval Logic
+            const codeInput = document.getElementById('share-code-input');
+            const retrieveBtn = document.getElementById('retrieve-file-btn');
+            const retrieveModal = document.getElementById('retrieve-modal');
+            const downloadBtn = document.getElementById('download-retrieved-btn');
+            
+            let activeRetrieval = null;
+            let countdownInterval = null;
+
+            if (codeInput) {
+                codeInput.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                });
+                codeInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        retrieveBtn.click();
+                    }
+                });
+            }
+
+            window.focusRetrieveInput = (e) => {
+                if (e) e.preventDefault();
+                const target = document.getElementById('retrieve-section');
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                    setTimeout(() => {
+                        if (codeInput) codeInput.focus();
+                    }, 500);
+                }
+            };
+
+            const desktopRetrieveLink = document.getElementById('nav-retrieve-link');
+            if (desktopRetrieveLink) {
+                desktopRetrieveLink.addEventListener('click', focusRetrieveInput);
+            }
+            const drawerRetrieveLink = document.getElementById('drawer-retrieve-link');
+            if (drawerRetrieveLink) {
+                drawerRetrieveLink.addEventListener('click', focusRetrieveInput);
+            }
+
+            function formatBytesLocal(bytes, decimals = 2) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const dm = decimals < 0 ? 0 : decimals;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+            }
+
+            if (retrieveBtn) {
+                retrieveBtn.addEventListener('click', async () => {
+                    const code = codeInput ? codeInput.value.trim() : '';
+                    if (code.length !== 6) {
+                        if (window.showToast) window.showToast("Please enter a valid 6-digit code.", "warning");
+                        else alert("Please enter a valid 6-digit code.");
+                        return;
+                    }
+
+                    if (!window.supabaseClient) {
+                        if (window.showToast) window.showToast("Supabase is initializing. Please try again in a moment.", "info");
+                        else alert("Supabase is initializing. Please try again in a moment.");
+                        return;
+                    }
+
+                    retrieveBtn.disabled = true;
+                    const origText = retrieveBtn.innerHTML;
+                    retrieveBtn.innerHTML = `<span>Loading...</span>`;
+
+                    try {
+                        const { data, error } = await window.supabaseClient
+                            .from('share_codes')
+                            .select(`
+                                id,
+                                code,
+                                signed_url,
+                                expires_at,
+                                files (
+                                    id,
+                                    filename,
+                                    file_size,
+                                    file_type
+                                )
+                            `)
+                            .eq('code', code)
+                            .gt('expires_at', new Date().toISOString())
+                            .single();
+
+                        if (error || !data || !data.files) {
+                            throw new Error("Invalid or expired share code.");
+                        }
+
+                        activeRetrieval = data;
+
+                        // Populate details
+                        document.getElementById('retrieved-filename').textContent = data.files.filename;
+                        document.getElementById('retrieved-filename').title = data.files.filename;
+                        document.getElementById('retrieved-filesize').textContent = formatBytesLocal(data.files.file_size || 0);
+                        document.getElementById('retrieved-filetype').textContent = data.files.file_type || 'Unknown';
+
+                        const expiryTime = new Date(data.expires_at);
+                        
+                        if (countdownInterval) clearInterval(countdownInterval);
+                        
+                        function updateTimer() {
+                            const msLeft = expiryTime - new Date();
+                            if (msLeft <= 0) {
+                                clearInterval(countdownInterval);
+                                document.getElementById('retrieved-expires').textContent = "Expired";
+                                document.getElementById('retrieved-expires').style.color = "var(--danger)";
+                                downloadBtn.disabled = true;
+                            } else {
+                                const totalSecs = Math.floor(msLeft / 1000);
+                                const mins = Math.floor(totalSecs / 60);
+                                const secs = totalSecs % 60;
+                                document.getElementById('retrieved-expires').textContent = `${mins}m ${secs}s`;
+                                document.getElementById('retrieved-expires').style.color = "var(--warning)";
+                                downloadBtn.disabled = false;
+                            }
+                        }
+                        updateTimer();
+                        countdownInterval = setInterval(updateTimer, 1000);
+
+                        // Open modal
+                        retrieveModal.classList.add('active');
+                        if (window.lucide) window.lucide.createIcons();
+                        
+                    } catch (err) {
+                        console.error("Retrieve error:", err);
+                        if (window.showToast) window.showToast("Invalid or expired share code.", "danger");
+                        else alert("Invalid or expired share code.");
+                    } finally {
+                        retrieveBtn.disabled = false;
+                        retrieveBtn.innerHTML = origText;
+                    }
+                });
+            }
+
+            window.closeRetrieveModal = () => {
+                if (retrieveModal) retrieveModal.classList.remove('active');
+                if (countdownInterval) clearInterval(countdownInterval);
+                activeRetrieval = null;
+            };
+
+            if (downloadBtn) {
+                downloadBtn.addEventListener('click', () => {
+                    if (!activeRetrieval || !activeRetrieval.signed_url) {
+                        if (window.showToast) window.showToast("Retrieval session expired.", "danger");
+                        return;
+                    }
+                    
+                    if (window.showToast) window.showToast("Starting download...", "info");
+                    
+                    try {
+                        const a = document.createElement('a');
+                        a.href = activeRetrieval.signed_url;
+                        a.download = activeRetrieval.files.filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        
+                        if (window.showToast) window.showToast("Downloading started!", "success");
+                        closeRetrieveModal();
+                        if (codeInput) codeInput.value = "";
+                    } catch (err) {
+                        console.error("Download trigger error:", err);
+                        if (window.showToast) window.showToast("Download failed to initiate.", "danger");
+                    }
                 });
             }
         });
