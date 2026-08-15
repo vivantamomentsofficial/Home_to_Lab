@@ -6,7 +6,7 @@ import { Key, Mail, ShieldAlert, ArrowLeft, Sun, Moon, Shield } from 'lucide-rea
 import { useTheme } from '../context/ThemeContext';
 
 const Login = () => {
-  const { login, supabase } = useAuth();
+  const { login, supabase, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
