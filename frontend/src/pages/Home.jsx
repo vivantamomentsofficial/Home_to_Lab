@@ -121,7 +121,7 @@ const Home = () => {
 
       await emailjs.send(serviceId, templateId, templateParams, publicKey);
 
-      showToast('Thank you! Your feedback has been submitted via EmailJS.', 'success');
+      showToast('Thank you! Your feedback has been submitted.', 'success');
       setFeedbackName('');
       setFeedbackEmail('');
       setFeedbackTopic('Feature Request');

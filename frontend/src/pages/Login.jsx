@@ -153,9 +153,15 @@ const Login = () => {
       {/* Background Orbs */}
       <div className="glow-orb glow-orb-primary"></div>
       <div className="glow-orb glow-orb-accent"></div>
-
-
-
+      {/* Back to Home Link */}
+      <div className="absolute top-5 left-5 z-20 flex gap-2">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Home
+        </Link>
+      </div>
       <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up">
         {/* Header Icon */}
         <div className="flex justify-center mb-6">
