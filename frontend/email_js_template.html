@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New CloudVault Message</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f7f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table role="presentation" width="100%" max-width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); overflow: hidden; border-collapse: separate;">
+          
+          <!-- Header Gradient Banner -->
+          <tr>
+            <td style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); padding: 30px 40px; text-align: center;">
+              <table role="presentation" align="center" style="margin: 0 auto;">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <div style="font-size: 32px; margin-right: 10px; display: inline-block; line-height: 1;">🛡️</div>
+                  </td>
+                  <td style="vertical-align: middle;">
+                    <span style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">CloudVault Support</span>
+                  </td>
+                </tr>
+              </table>
+              <div style="margin-top: 12px; font-size: 13px; color: #e0f2fe; font-weight: 500; letter-spacing: 1px; text-transform: uppercase;">Inquiry Dispatch System</div>
+            </td>
+          </tr>
+
+          <!-- Content Block -->
+          <tr>
+            <td style="padding: 40px 40px 30px 40px;">
+              <p style="margin: 0 0 25px 0; font-size: 15px; color: #334155; line-height: 1.6;">
+                Hello Administrator,<br><br>
+                A new feedback entry has been submitted via the CloudVault contact portal. Below are the user details and inquiry payload:
+              </p>
+
+              <!-- User Information Card -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f0f9ff; border: 1px solid #bae6fd; border-radius: 12px; padding: 20px; margin-bottom: 30px;">
+                <tr>
+                  <td style="padding-bottom: 12px; font-size: 13px; color: #0284c7; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;" colspan="2">Sender Identity</td>
+                </tr>
+                <tr>
+                  <td width="30%" style="font-size: 13px; font-weight: bold; color: #475569; padding: 6px 0;">Name:</td>
+                  <td width="70%" style="font-size: 14px; color: #0f172a; padding: 6px 0;">{{from_name}}</td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; font-weight: bold; color: #475569; padding: 6px 0;">Email:</td>
+                  <td style="font-size: 14px; color: #0f172a; padding: 6px 0; font-family: monospace;">
+                    <a href="mailto:{{from_email}}" style="color: #0284c7; text-decoration: none; font-weight: 500;">{{from_email}}</a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="font-size: 13px; font-weight: bold; color: #475569; padding: 6px 0;">Category:</td>
+                  <td style="font-size: 14px; color: #0f172a; padding: 6px 0;">
+                    <span style="background-color: #e0f2fe; color: #0369a1; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-transform: uppercase;">{{topic}}</span>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Message Body -->
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                <tr>
+                  <td style="font-size: 13px; color: #475569; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; padding-bottom: 8px;">Message Payload</td>
+                </tr>
+                <tr>
+                  <td style="background-color: #fafafa; border: 1px solid #e2e8f0; border-left: 4px solid #0284c7; border-radius: 0 8px 8px 0; padding: 20px; font-size: 15px; color: #1e293b; line-height: 1.7; font-style: italic; white-space: pre-wrap;">
+                    "{{message}}"
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer/Action Block -->
+          <tr>
+            <td style="background-color: #f8fafc; padding: 25px 40px; border-top: 1px solid #f1f5f9; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8; line-height: 1.5;">
+                This dispatch is an automated notification from the CloudVault application context.<br>
+                Reply directly to this email notification to establish direct contact with <strong>{{from_name}}</strong>.
+              </p>
+            </td>
+          </tr>
+        </table>
+
+        <!-- Copyright / Subtext -->
+        <table role="presentation" width="100%" max-width="600" style="max-width: 600px; margin-top: 20px;">
+          <tr>
+            <td align="center" style="font-size: 11px; color: #94a3b8; line-height: 1.5;">
+              &copy; 2026 Home to Lab - CloudVault Security System. All rights reserved.
+            </td>
+          </tr>
+        </table>
+
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
