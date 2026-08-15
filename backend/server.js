@@ -16,6 +16,7 @@ const allowedOrigins = [
   'http://127.0.0.1:5173',
   'https://hometolab.vercel.app',
   'https://hometolab.com',
+  'https://home-to-lab.vercel.app',
 ];
 app.use(
   cors({
@@ -23,7 +24,7 @@ app.use(
       // Allow requests with no origin (like mobile apps, curl, server-to-server)
       if (!origin) return callback(null, true);
       
-      const isAllowed = allowedOrigins.some((o) => origin.startsWith(o));
+      const isAllowed = allowedOrigins.some((o) => origin.startsWith(o)) || origin.endsWith('.vercel.app');
       if (isAllowed || process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
@@ -55,10 +56,12 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve frontend in production (optional, if building mono-bundle)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../frontend/dist')));
+const fs = require('fs');
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../frontend/dist', 'index.html'));
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
 } else {
   app.get('/', (req, res) => {
