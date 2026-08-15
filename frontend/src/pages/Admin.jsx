@@ -780,13 +780,6 @@ const Admin = () => {
             >
               <RefreshCw className="w-4.5 h-4.5" />
             </button>
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-brand-border-light dark:border-brand-border-dark text-slate-600 dark:text-slate-300 transition-colors"
-              title="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
           </div>
         </header>
 
@@ -1115,7 +1108,7 @@ const Admin = () => {
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
           <div className="glass-card max-w-sm w-full p-6 shadow-2xl animate-scale-up">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <ShieldAlert className="w-5 h-5 text-red-500" />
               {confirmData.title}
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-6">

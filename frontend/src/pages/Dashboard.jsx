@@ -1158,14 +1158,6 @@ const Dashboard = () => {
               Manage your personal CloudVault uploads.
             </p>
           </div>
-          
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-brand-border-light dark:border-brand-border-dark text-slate-600 dark:text-slate-300 transition-colors"
-            title="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
         </header>
 
         {/* TAB 1: OVERVIEW */}
@@ -1741,28 +1733,6 @@ const Dashboard = () => {
                   <option value="30">30 Minutes</option>
                 </select>
               </div>
-            </div>
-
-            <div className="pt-6 border-t border-slate-100 dark:border-slate-800/80">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Toggle Interface Mode</h3>
-              <p className="text-xs text-slate-500 mb-4">
-                Switch between light theme outlines and deep midnight dark theme palettes.
-              </p>
-              
-              <button
-                onClick={toggleTheme}
-                className="btn-secondary py-2.5 px-5 text-sm inline-flex items-center gap-2"
-              >
-                {theme === 'dark' ? (
-                  <>
-                    <Sun className="w-4 h-4 text-amber-500" /> Switch to Light Mode
-                  </>
-                ) : (
-                  <>
-                    <Moon className="w-4 h-4 text-indigo-500" /> Switch to Dark Mode
-                  </>
-                )}
-              </button>
             </div>
           </div>
         )}

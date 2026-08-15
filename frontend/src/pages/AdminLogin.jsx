@@ -75,13 +75,6 @@ const AdminLogin = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Preset User Profile (locked to homtolab@gmail.com) */}
-          <div>
-            <label className="label-title">ADMIN EMAIL</label>
-            <div className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4.5 py-3 text-xs text-slate-500 font-mono font-bold select-all">
-              homtolab@gmail.com
-            </div>
-          </div>
 
           {/* Password Input */}
           <div>

@@ -159,16 +159,7 @@ const Login = () => {
       <div className="glow-orb glow-orb-primary"></div>
       <div className="glow-orb glow-orb-accent"></div>
 
-      {/* Floating Theme switcher & Back button */}
-      <div className="absolute top-5 right-5 z-20 flex gap-2">
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-brand-border-light dark:border-brand-border-dark text-slate-600 dark:text-slate-300 transition-colors"
-          aria-label="Toggle Theme"
-        >
-          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-      </div>
+
 
       <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up">
         {/* Header Icon */}
