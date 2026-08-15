@@ -109,7 +109,7 @@ const Home = () => {
 
     try {
       const serviceId = 'service_98oq29o';
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_default';
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_v0fdm9h';
       const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
 
       const templateParams = {
