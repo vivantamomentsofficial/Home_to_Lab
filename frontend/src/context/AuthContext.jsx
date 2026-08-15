@@ -81,10 +81,22 @@ export const AuthProvider = ({ children }) => {
           const isAnonymous = newSession && newSession.user && newSession.user.is_anonymous;
           if (event === 'SIGNED_IN' && !isAnonymous && newSession?.user) {
             try {
+              let ipAddress = '127.0.0.1';
+              try {
+                const ipRes = await fetch('https://api.ipify.org?format=json');
+                if (ipRes.ok) {
+                  const ipData = await ipRes.json();
+                  ipAddress = ipData.ip || '127.0.0.1';
+                }
+              } catch (ipErr) {
+                console.warn('Failed to fetch IP address:', ipErr);
+              }
+
               await client.from('login_logs').insert({
                 user_id: newSession.user.id,
                 email: newSession.user.email || 'guest@cloudvault.local',
-                login_time: new Date().toISOString()
+                login_time: new Date().toISOString(),
+                ip_address: ipAddress
               });
             } catch (err) {
               console.error('Failed to log login action in Supabase:', err);

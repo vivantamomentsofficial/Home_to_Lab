@@ -1080,15 +1080,20 @@ const Admin = () => {
                 {logs.map((log) => (
                   <div
                     key={log.id}
-                    className="glass-card p-3 flex justify-between items-center text-xs border-slate-100 dark:border-slate-800"
+                    className="glass-card p-3 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs border-slate-100 dark:border-slate-800"
                   >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div className="w-1.5 h-1.5 rounded-full bg-brand-primary"></div>
-                      <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono select-all">
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono select-all truncate">
                         {log.email}
                       </span>
+                      {log.ip_address && (
+                        <span className="px-2 py-0.5 bg-slate-100 text-[10px] text-slate-500 rounded font-mono font-bold">
+                          IP: {log.ip_address}
+                        </span>
+                      )}
                     </div>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-slate-400 whitespace-nowrap font-medium">
                       {new Date(log.login_time).toLocaleString()}
                     </span>
                   </div>

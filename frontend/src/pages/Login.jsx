@@ -32,6 +32,17 @@ const Login = () => {
   // Cloudflare Turnstile state
   const [turnstileLoaded, setTurnstileLoaded] = useState(false);
 
+  // Redirect logged in sessions
+  useEffect(() => {
+    if (user) {
+      if (user.email === 'homtolab@gmail.com') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, navigate]);
+
   // Capture timeout reason
   useEffect(() => {
     const reason = searchParams.get('reason');
@@ -89,7 +100,11 @@ const Login = () => {
 
       await login(email, password, captchaToken, rememberMe);
       showToast('Welcome back to CloudVault!', 'success');
-      navigate('/dashboard');
+      if (email.trim().toLowerCase() === 'homtolab@gmail.com') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Incorrect email or password.', 'danger');

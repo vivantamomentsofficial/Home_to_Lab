@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -6,7 +6,7 @@ import { Shield, Key, ArrowLeft, Sun, Moon, Eye, EyeOff } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const AdminLogin = () => {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -14,6 +14,18 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Redirect logged in sessions
+  useEffect(() => {
+    if (user) {
+      if (user.email === 'homtolab@gmail.com') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, navigate]);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -43,7 +43,11 @@ const AdminRoute = ({ children }) => {
     );
   }
 
-  if (!user || user.email !== 'homtolab@gmail.com') {
+  if (!user) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  if (user.email !== 'homtolab@gmail.com') {
     return <Navigate to="/dashboard" replace />;
   }
 

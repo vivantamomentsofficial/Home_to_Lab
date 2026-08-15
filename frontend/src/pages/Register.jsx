@@ -6,7 +6,7 @@ import { Key, Mail, User, School, ShieldAlert, ArrowLeft, Sun, Moon, Shield } fr
 import { useTheme } from '../context/ThemeContext';
 
 const Register = () => {
-  const { register } = useAuth();
+  const { register, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -19,6 +19,17 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+
+  // Redirect logged in sessions
+  useEffect(() => {
+    if (user) {
+      if (user.email === 'homtolab@gmail.com') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  }, [user, navigate]);
 
   // Inject Turnstile script
   useEffect(() => {

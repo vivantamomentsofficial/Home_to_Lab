@@ -60,8 +60,13 @@ CREATE TABLE IF NOT EXISTS public.login_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     email TEXT, -- Nullable to support guest logs
-    login_time TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    login_time TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    ip_address TEXT
 );
+
+-- Ensure migration updates
+ALTER TABLE public.login_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
+
 
 -- =========================================================================
 -- 2. ROW LEVEL SECURITY (RLS) POLICIES
