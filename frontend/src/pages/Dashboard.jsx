@@ -7,7 +7,7 @@ import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield
+  X, Check, AlertTriangle, ShieldCheck, Shield, Camera
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -57,8 +57,15 @@ const Dashboard = () => {
   const [clipboardLocked, setClipboardLocked] = useState(false);
 
   // Storage Upgrade Request State
-  const [requestedLimit, setRequestedLimit] = useState('209715200'); // 200MB in bytes
+  const [requestedLimit, setRequestedLimit] = useState('314572800'); // Default to 300MB in bytes
   const [requestPending, setRequestPending] = useState(false);
+
+  // Avatar and Security States
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Inactivity logout state
   const [inactivityLimit, setInactivityLimit] = useState(() => {
@@ -120,7 +127,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, college, storage_limit, upload_locked, clipboard_locked, is_suspended')
+        .select('full_name, college, storage_limit, upload_locked, clipboard_locked, is_suspended, avatar_url')
         .eq('id', user.id)
         .single();
       
@@ -136,6 +143,16 @@ const Dashboard = () => {
         setStorageLimit(data.storage_limit || 100 * 1024 * 1024);
         setUploadLocked(!!data.upload_locked);
         setClipboardLocked(!!data.clipboard_locked);
+
+        // Resolve avatar image URL using a signed URL if set
+        if (data.avatar_url) {
+          const { data: signedData, error: signedError } = await supabase.storage
+            .from('vault')
+            .createSignedUrl(data.avatar_url, 3600);
+          if (signedData) {
+            setAvatarUrl(signedData.signedUrl);
+          }
+        }
       }
     } catch (err) {
       console.error(err);
@@ -285,17 +302,7 @@ const Dashboard = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName.trim(),
-          college: college.trim()
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-
-      // Update auth metadata
+      // Update auth metadata (trigger will sync this to profiles table automatically)
       const { error: authErr } = await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
@@ -304,10 +311,85 @@ const Dashboard = () => {
       });
       if (authErr) throw authErr;
 
-      showToast('Profile credentials updated successfully!', 'success');
+      showToast('Profile details updated successfully!', 'success');
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Failed to update user profile.', 'danger');
+    }
+  };
+
+  // Avatar Upload
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Avatar image must be smaller than 2MB.', 'warning');
+      return;
+    }
+
+    showToast('Uploading avatar...', 'info');
+    try {
+      const ext = file.name.split('.').pop();
+      const avatarPath = `avatars/${user.id}/avatar_${Date.now()}.${ext}`;
+
+      // Upload file to Supabase storage 'vault'
+      const { error: uploadError } = await supabase.storage
+        .from('vault')
+        .upload(avatarPath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Update user auth metadata (trigger will sync this to profiles table automatically)
+      const { error: updateError } = await supabase.auth.updateUser({
+        data: { avatar_url: avatarPath },
+      });
+
+      if (updateError) throw updateError;
+
+      // Create signed URL for local UI state
+      const { data: signedData } = await supabase.storage
+        .from('vault')
+        .createSignedUrl(avatarPath, 3600);
+
+      if (signedData) {
+        setAvatarUrl(signedData.signedUrl);
+      }
+
+      showToast('Profile picture updated successfully!', 'success');
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      showToast('Failed to upload avatar.', 'danger');
+    }
+  };
+
+  // Password Update
+  const handlePasswordUpdate = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      showToast('Password must be at least 6 characters.', 'warning');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords do not match.', 'warning');
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      showToast('Password updated successfully!', 'success');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Failed to update password.', 'danger');
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -1149,14 +1231,52 @@ const Dashboard = () => {
       <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
         
         {/* Top bar header */}
-        <header className="flex justify-between items-center gap-4 border-b border-slate-100 dark:border-slate-800/50 pb-4">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800/50 pb-4">
           <div>
-            <h1 className="text-2xl font-bold font-display text-slate-800 dark:text-white capitalize">
-              {activeTab} Workspace
+            <h1 className="text-2xl font-bold font-display text-slate-800 dark:text-white">
+              {activeTab === 'profile' ? 'User Profile' : 
+               activeTab === 'overview' ? 'Dashboard Overview' : 
+               activeTab === 'upload' ? 'Send to Server' : 
+               activeTab === 'vault' ? 'Receive (My Vault)' : 
+               activeTab === 'clipboard' ? 'Quick Text Clipboard' : 
+               activeTab === 'settings' ? 'Settings' : 
+               activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
-            <p className="text-xs text-slate-400">
-              Manage your personal CloudVault uploads.
+            <p className="text-xs text-slate-400 mt-0.5">
+              Welcome back, {fullName || user?.email?.split('@')[0]}!
             </p>
+          </div>
+
+          <div className="flex items-center gap-4 w-full sm:w-auto self-stretch sm:self-auto justify-between sm:justify-end">
+            {/* Storage Progress Bar */}
+            <div className="flex flex-col gap-1 min-w-[150px] sm:min-w-[200px]">
+              <div className="flex justify-between items-center text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+                <span>Storage Used</span>
+                <span>{((usedStorage / storageLimit) * 100).toFixed(0)}%</span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-brand-primary rounded-full transition-all duration-300"
+                  style={{ width: `${Math.min(100, (usedStorage / storageLimit) * 100)}%` }}
+                ></div>
+              </div>
+              <span className="text-[9px] text-slate-400 text-right">
+                {formatBytes(usedStorage)} of {formatBytes(storageLimit)}
+              </span>
+            </div>
+
+            {/* User Nav Avatar */}
+            <div 
+              onClick={() => setActiveTab('profile')}
+              className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-display font-semibold text-brand-primary text-sm uppercase cursor-pointer hover:bg-brand-primary/25 transition-all duration-200 shrink-0 overflow-hidden"
+              title="View Profile"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
+              )}
+            </div>
           </div>
         </header>
 
@@ -1740,13 +1860,52 @@ const Dashboard = () => {
         {/* TAB 6: PROFILE INFO */}
         {activeTab === 'profile' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start animate-fade-in">
-            {/* Left: General Settings */}
+            {/* Left: Profile Information */}
             <div className="glass-card p-6 flex flex-col gap-5">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white">Profile Details</h3>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
+                Profile Information
+              </h3>
               
-              <form onSubmit={handleProfileSave} className="space-y-4">
+              <div className="flex items-center gap-5">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-2 border-brand-primary bg-brand-primary/10 flex items-center justify-center font-display font-semibold text-brand-primary text-2xl uppercase overflow-hidden">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
+                    )}
+                  </div>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-secondary absolute bottom-0 right-0 p-1.5 rounded-full w-7 h-7 flex items-center justify-center shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
+                    type="button"
+                  >
+                    <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleAvatarUpload} 
+                    className="hidden" 
+                    accept="image/*" 
+                  />
+                </div>
                 <div>
-                  <label className="label-title">DISPLAY NAME</label>
+                  <h4 className="text-lg font-bold text-slate-800 dark:text-white">
+                    {fullName || 'Student Name'}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {user?.email}
+                  </p>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                    Joined: {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleProfileSave} className="space-y-4 pt-2">
+                <div>
+                  <label className="label-title">Display Name</label>
                   <input
                     type="text"
                     value={fullName}
@@ -1756,7 +1915,7 @@ const Dashboard = () => {
                   />
                 </div>
                 <div>
-                  <label className="label-title">COLLEGE / INSTITUTION</label>
+                  <label className="label-title">College / Institution</label>
                   <input
                     type="text"
                     value={college}
@@ -1765,19 +1924,63 @@ const Dashboard = () => {
                   />
                 </div>
                 <button type="submit" className="w-full btn-primary py-2.5 text-sm">
-                  Save Changes
+                  Save Name
                 </button>
               </form>
             </div>
 
-            {/* Right: Storage Allocation Requests & Danger Zone */}
+            {/* Right: Security & Storage Quota & Danger Zone */}
             <div className="flex flex-col gap-6">
+              {/* Security (Change Password) */}
+              <div className="glass-card p-6 flex flex-col gap-4">
+                <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
+                  Security
+                </h3>
+                <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                  <div>
+                    <label className="label-title">New Password</label>
+                    <input
+                      type="password"
+                      placeholder="Min 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="input-field"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <div>
+                    <label className="label-title">Confirm New Password</label>
+                    <input
+                      type="password"
+                      placeholder="Re-enter password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="input-field"
+                      required
+                      minLength={6}
+                    />
+                  </div>
+                  <button type="submit" disabled={passwordLoading} className="w-full btn-primary py-2.5 text-xs">
+                    {passwordLoading ? 'Updating...' : 'Update Password'}
+                  </button>
+                </form>
+              </div>
+
               {/* Storage upgrade request */}
               <div className="glass-card p-6 flex flex-col gap-4">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white">Request Storage Upgrade</h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Submit a request to the system administrator to upgrade your personal storage allocation.
-                </p>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
+                  Storage Quota & Upgrades
+                </h3>
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500 dark:text-slate-400">Current Storage Limit:</span>
+                    <strong className="font-bold text-brand-primary">{formatBytes(storageLimit)}</strong>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                    By default, all student vaults are allocated 100 MB of storage space. If you need more room for assignments, project files, or source code, you can request an upgrade to 300 MB.
+                  </p>
+                </div>
 
                 {requestPending ? (
                   <div className="flex items-center gap-2 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-semibold">
@@ -1794,19 +1997,19 @@ const Dashboard = () => {
                         className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 outline-none"
                       >
                         <option value="209715200">200 MB</option>
+                        <option value="314572800">300 MB</option>
                         <option value="524288000">500 MB</option>
                         <option value="1073741824">1 GB</option>
-                        <option value="2147483648">2 GB</option>
                       </select>
                     </div>
                     <button type="submit" className="w-full btn-primary py-2.5 text-xs">
-                      Submit Upgrade Request
+                      Request 300 MB Upgrade
                     </button>
                   </form>
                 )}
               </div>
 
-              {/* Danger Zone Wiping */}
+              {/* Danger Zone */}
               <div className="glass-card p-6 border-red-500/20 bg-red-500/5 flex flex-col gap-4">
                 <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
                   <ShieldAlert className="w-4.5 h-4.5" /> Danger Zone
@@ -1818,7 +2021,7 @@ const Dashboard = () => {
                   onClick={triggerWipeAccount}
                   className="w-full btn-danger py-2.5 text-xs"
                 >
-                  Permanently Delete My Account
+                  Delete Account
                 </button>
               </div>
             </div>

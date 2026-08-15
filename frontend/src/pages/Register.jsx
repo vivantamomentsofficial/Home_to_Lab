@@ -30,7 +30,20 @@ const Register = () => {
     }
   }, [user, navigate]);
 
-
+  // Cloudflare Turnstile state
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (window.turnstile) {
+        clearInterval(timer);
+        try {
+          window.turnstile.implicitRender();
+        } catch (err) {
+          console.warn('Turnstile render error:', err);
+        }
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,9 +58,16 @@ const Register = () => {
       return;
     }
 
+    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
+                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+    if (!captchaToken) {
+      showToast('Please complete the Captcha check.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
-      const signUpData = await register(email, password, fullName, college, undefined);
+      const signUpData = await register(email, password, fullName, college, captchaToken);
 
       // Check if session is logged in immediately, otherwise require confirmation
       if (signUpData.session) {
@@ -173,7 +193,11 @@ const Register = () => {
             </div>
           </div>
 
-
+          {/* Cloudflare Turnstile CAPTCHA Widget */}
+          <div 
+            className="cf-turnstile flex justify-center mb-4" 
+            data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
+          ></div>
 
           <button
             type="submit"

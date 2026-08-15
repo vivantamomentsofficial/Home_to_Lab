@@ -30,7 +30,19 @@ const Login = () => {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   // Cloudflare Turnstile state
-
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (window.turnstile) {
+        clearInterval(timer);
+        try {
+          window.turnstile.implicitRender();
+        } catch (err) {
+          console.warn('Turnstile render error:', err);
+        }
+      }
+    }, 100);
+    return () => clearInterval(timer);
+  }, []);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -78,9 +90,16 @@ const Login = () => {
       return;
     }
 
+    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
+                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+    if (!captchaToken) {
+      showToast('Please complete the Captcha check.', 'warning');
+      return;
+    }
+
     setLoading(true);
     try {
-      await login(email, password, undefined, rememberMe);
+      await login(email, password, captchaToken, rememberMe);
       showToast('Welcome back to CloudVault!', 'success');
       if (email.trim().toLowerCase() === 'homtolab@gmail.com') {
         navigate('/admin');
@@ -329,7 +348,11 @@ const Login = () => {
                 </label>
               </div>
 
-
+              {/* Cloudflare Turnstile CAPTCHA Widget */}
+              <div 
+                className="cf-turnstile flex justify-center mb-4" 
+                data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
+              ></div>
 
               <button
                 type="submit"
