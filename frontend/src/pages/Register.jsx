@@ -196,7 +196,7 @@ const Register = () => {
           {/* Cloudflare Turnstile CAPTCHA Widget */}
           <div 
             className="cf-turnstile flex justify-center mb-4" 
-            data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
+            data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
           ></div>
 
           <button
