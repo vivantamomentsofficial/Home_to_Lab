@@ -1,0 +1,219 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Key, Mail, User, School, ShieldAlert, ArrowLeft, Sun, Moon, Shield } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+
+const Register = () => {
+  const { register } = useAuth();
+  const { theme, toggleTheme } = useTheme();
+  const { showToast } = useToast();
+  const navigate = useNavigate();
+
+  // Form states
+  const [fullName, setFullName] = useState('');
+  const [college, setCollege] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+
+  // Inject Turnstile script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setTurnstileLoaded(true);
+    document.body.appendChild(script);
+
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (password.length < 6) {
+      showToast('Password must be at least 6 characters.', 'warning');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showToast('Passwords do not match.', 'warning');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const captchaToken = window.turnstile?.getResponse();
+      if (!captchaToken && turnstileLoaded) {
+        showToast('Please complete the Captcha check.', 'warning');
+        setLoading(false);
+        return;
+      }
+
+      const signUpData = await register(email, password, fullName, college, captchaToken);
+
+      // Check if session is logged in immediately, otherwise require confirmation
+      if (signUpData.session) {
+        showToast('Registration successful! Redirecting...', 'success');
+        navigate('/dashboard');
+      } else {
+        showToast('Registration successful! Please check your email inbox to confirm registration.', 'success');
+        navigate('/login');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Failed to complete registration.', 'danger');
+      window.turnstile?.reset();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="relative min-h-screen flex items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300 p-4">
+      {/* Background Orbs */}
+      <div className="glow-orb glow-orb-primary"></div>
+      <div className="glow-orb glow-orb-accent"></div>
+
+      {/* Floating Theme switcher */}
+      <div className="absolute top-5 right-5 z-20 flex gap-2">
+        <button
+          onClick={toggleTheme}
+          className="p-2.5 rounded-xl bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 border border-brand-border-light dark:border-brand-border-dark text-slate-600 dark:text-slate-300 transition-colors"
+          aria-label="Toggle Theme"
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+      </div>
+
+      <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up">
+        {/* Header Icon */}
+        <div className="flex justify-center mb-6">
+          <Link to="/" className="flex items-center gap-2">
+            <Shield className="w-8 h-8 text-brand-primary stroke-[2.5]" />
+            <span className="font-display font-black text-2xl text-slate-800 dark:text-white">
+              CloudVault
+            </span>
+          </Link>
+        </div>
+
+        <h2 className="text-xl font-bold font-display text-center text-slate-800 dark:text-white mb-2">
+          Create Student Account
+        </h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-6">
+          Set up a temporary personal cloud bridge for your college files.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="label-title">FULL NAME</label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="text"
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="input-field pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-title">COLLEGE / SCHOOL</label>
+            <div className="relative">
+              <School className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="text"
+                placeholder="State College University"
+                value={college}
+                onChange={(e) => setCollege(e.target.value)}
+                className="input-field pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-title">EMAIL ADDRESS</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="email"
+                placeholder="student@college.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-field pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-title">PASSWORD</label>
+            <div className="relative">
+              <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                placeholder="Minimum 6 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="input-field pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="label-title">CONFIRM PASSWORD</label>
+            <div className="relative">
+              <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+              <input
+                type="password"
+                placeholder="Re-enter password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="input-field pl-10"
+                required
+              />
+            </div>
+          </div>
+
+          {/* Turnstile Captcha Widget */}
+          <div
+            className="cf-turnstile flex justify-center my-3"
+            data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
+          ></div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full btn-primary h-12 flex justify-center items-center mt-6"
+          >
+            {loading ? (
+              <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            ) : (
+              'Create Account'
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 text-center text-xs text-slate-500 dark:text-slate-400">
+          Already have an account?{' '}
+          <Link to="/login" className="text-brand-primary hover:underline font-bold">
+            Sign in here
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Register;
