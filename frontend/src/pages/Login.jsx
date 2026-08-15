@@ -30,7 +30,7 @@ const Login = () => {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   // Cloudflare Turnstile state
-  const [turnstileLoaded, setTurnstileLoaded] = useState(false);
+
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -51,17 +51,8 @@ const Login = () => {
     }
   }, [searchParams, showToast]);
 
-  // Handle password recovery check & Turnstile script injection
+  // Handle password recovery check
   useEffect(() => {
-    // 1. Inject Turnstile script
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setTurnstileLoaded(true);
-    document.body.appendChild(script);
-
-    // 2. Set up listener to capturePASSWORD_RECOVERY events
     let subscription = null;
     if (supabase) {
       const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -73,7 +64,6 @@ const Login = () => {
     }
 
     return () => {
-      document.body.removeChild(script);
       if (subscription) {
         subscription.unsubscribe();
       }
@@ -90,15 +80,7 @@ const Login = () => {
 
     setLoading(true);
     try {
-      // Fetch CAPTCHA token
-      const captchaToken = window.turnstile?.getResponse();
-      if (!captchaToken && turnstileLoaded) {
-        showToast('Please complete the Captcha check.', 'warning');
-        setLoading(false);
-        return;
-      }
-
-      await login(email, password, captchaToken, rememberMe);
+      await login(email, password, undefined, rememberMe);
       showToast('Welcome back to CloudVault!', 'success');
       if (email.trim().toLowerCase() === 'homtolab@gmail.com') {
         navigate('/admin');
@@ -108,8 +90,6 @@ const Login = () => {
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Incorrect email or password.', 'danger');
-      // Reset Turnstile widget on failure
-      window.turnstile?.reset();
     } finally {
       setLoading(false);
     }
@@ -343,11 +323,7 @@ const Login = () => {
                 </label>
               </div>
 
-              {/* Turnstile Captcha Widget */}
-              <div
-                className="cf-turnstile flex justify-center my-3"
-                data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
-              ></div>
+
 
               <button
                 type="submit"

@@ -18,7 +18,6 @@ const Register = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [turnstileLoaded, setTurnstileLoaded] = useState(false);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -31,19 +30,7 @@ const Register = () => {
     }
   }, [user, navigate]);
 
-  // Inject Turnstile script
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => setTurnstileLoaded(true);
-    document.body.appendChild(script);
 
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,14 +47,7 @@ const Register = () => {
 
     setLoading(true);
     try {
-      const captchaToken = window.turnstile?.getResponse();
-      if (!captchaToken && turnstileLoaded) {
-        showToast('Please complete the Captcha check.', 'warning');
-        setLoading(false);
-        return;
-      }
-
-      const signUpData = await register(email, password, fullName, college, captchaToken);
+      const signUpData = await register(email, password, fullName, college, undefined);
 
       // Check if session is logged in immediately, otherwise require confirmation
       if (signUpData.session) {
@@ -79,8 +59,7 @@ const Register = () => {
       }
     } catch (err) {
       console.error(err);
-      showToast(err.message || 'Failed to complete registration.', 'danger');
-      window.turnstile?.reset();
+      showToast(err.message || 'Registration failed.', 'danger');
     } finally {
       setLoading(false);
     }
@@ -188,11 +167,7 @@ const Register = () => {
             </div>
           </div>
 
-          {/* Turnstile Captcha Widget */}
-          <div
-            className="cf-turnstile flex justify-center my-3"
-            data-sitekey="0x4AAAAAAEK3i3q8cw05m9-C"
-          ></div>
+
 
           <button
             type="submit"

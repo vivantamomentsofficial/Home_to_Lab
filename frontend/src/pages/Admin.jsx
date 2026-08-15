@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import {
   ShieldAlert, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
-  Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud
+  Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -42,6 +42,7 @@ const Admin = () => {
 
   // Page sections: 'overview' | 'users' | 'requests' | 'snippets' | 'logs'
   const [activeSection, setActiveSection] = useState('overview');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Stats State
   const [stats, setStats] = useState({ usersCount: 0, filesCount: 0, notesCount: 0, loginsCount: 0 });
@@ -665,21 +666,50 @@ const Admin = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300">
       
+      {/* Mobile Header Bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-slate-900 text-white z-30 shadow-md">
+        <div className="flex items-center gap-2.5">
+          <Shield className="w-6 h-6 text-brand-primary-light" />
+          <span className="font-display font-black text-lg text-white">CloudVault Admin</span>
+        </div>
+        <button
+          onClick={() => setIsDrawerOpen(true)}
+          className="p-2 bg-slate-800 rounded-xl text-slate-300"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+      </div>
+
       {/* Sidebar navigation */}
-      <aside className="w-full lg:w-64 bg-slate-900 text-slate-100 flex flex-col p-5 z-20 shrink-0">
-        <div className="flex items-center gap-2.5 mb-8">
-          <Shield className="w-7 h-7 text-brand-primary-light stroke-[2.5]" />
-          <span className="font-display font-black text-xl text-white">
-            CloudVault
-          </span>
-          <span className="px-2 py-0.5 bg-brand-primary/20 text-[9px] font-bold text-brand-primary-light rounded tracking-wider uppercase border border-brand-primary/40">
-            Admin
-          </span>
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 flex flex-col p-5 z-40 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
+          isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 opacity-0'
+        }`}
+      >
+        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-7 h-7 text-brand-primary-light stroke-[2.5]" />
+            <span className="font-display font-black text-xl text-white">
+              CloudVault
+            </span>
+            <span className="px-2 py-0.5 bg-brand-primary/20 text-[9px] font-bold text-brand-primary-light rounded tracking-wider uppercase border border-brand-primary/40">
+              Admin
+            </span>
+          </div>
+          <button
+            onClick={() => setIsDrawerOpen(false)}
+            className="lg:hidden p-1 bg-slate-800 rounded-lg text-slate-400 hover:text-white"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
         </div>
 
         <nav className="flex-1 flex flex-col gap-1.5">
           <button
-            onClick={() => setActiveSection('overview')}
+            onClick={() => {
+              setActiveSection('overview');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'overview'
                 ? 'bg-brand-primary text-white shadow-md'
@@ -690,7 +720,10 @@ const Admin = () => {
           </button>
           
           <button
-            onClick={() => setActiveSection('users')}
+            onClick={() => {
+              setActiveSection('users');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'users'
                 ? 'bg-brand-primary text-white shadow-md'
@@ -701,7 +734,10 @@ const Admin = () => {
           </button>
 
           <button
-            onClick={() => setActiveSection('requests')}
+            onClick={() => {
+              setActiveSection('requests');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'requests'
                 ? 'bg-brand-primary text-white shadow-md'
@@ -712,7 +748,10 @@ const Admin = () => {
           </button>
 
           <button
-            onClick={() => setActiveSection('snippets')}
+            onClick={() => {
+              setActiveSection('snippets');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'snippets'
                 ? 'bg-brand-primary text-white shadow-md'
@@ -723,7 +762,10 @@ const Admin = () => {
           </button>
 
           <button
-            onClick={() => setActiveSection('logs')}
+            onClick={() => {
+              setActiveSection('logs');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'logs'
                 ? 'bg-brand-primary text-white shadow-md'
@@ -732,15 +774,6 @@ const Admin = () => {
           >
             <Key className="w-4 h-4" /> Login Audits
           </button>
-
-          <div className="pt-4 mt-4 border-t border-slate-800">
-            <Link
-              to="/dashboard"
-              className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800/40 rounded-xl text-sm font-semibold transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" /> Exit Admin Centre
-            </Link>
-          </div>
         </nav>
 
         <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-800">
@@ -757,6 +790,14 @@ const Admin = () => {
           </button>
         </div>
       </aside>
+
+      {/* Overlay backdrop for mobile drawer */}
+      {isDrawerOpen && (
+        <div
+          onClick={() => setIsDrawerOpen(false)}
+          className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-30 lg:hidden"
+        ></div>
+      )}
 
       {/* Main Panel Content */}
       <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
@@ -871,7 +912,7 @@ const Admin = () => {
               </div>
             ) : (
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs min-w-[700px]">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold tracking-wider">
                       <th className="pb-3 pr-4 font-bold uppercase">User Name</th>
@@ -936,7 +977,7 @@ const Admin = () => {
               </div>
             ) : (
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs min-w-[700px]">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold tracking-wider">
                       <th className="pb-3 pr-4 font-bold uppercase">Requested Email</th>
@@ -1009,7 +1050,7 @@ const Admin = () => {
               </div>
             ) : (
               <div className="overflow-x-auto custom-scrollbar">
-                <table className="w-full text-left border-collapse text-xs">
+                <table className="w-full text-left border-collapse text-xs min-w-[750px]">
                   <thead>
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold tracking-wider">
                       <th className="pb-3 pr-4 font-bold uppercase">Owner Details</th>

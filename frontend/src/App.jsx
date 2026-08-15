@@ -27,6 +27,10 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.email === 'homtolab@gmail.com') {
+    return <Navigate to="/admin" replace />;
+  }
+
   return children;
 };
 
