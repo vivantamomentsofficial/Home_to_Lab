@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -29,20 +29,27 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
+  const turnstileRef = useRef(null);
+
   // Cloudflare Turnstile state
   useEffect(() => {
     const timer = setInterval(() => {
-      if (window.turnstile) {
+      if (window.turnstile && turnstileRef.current) {
         clearInterval(timer);
         try {
-          window.turnstile.implicitRender();
+          if (turnstileRef.current.children.length === 0) {
+            window.turnstile.render(turnstileRef.current, {
+              sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+              theme: theme === 'dark' ? 'dark' : 'light',
+            });
+          }
         } catch (err) {
           console.warn('Turnstile render error:', err);
         }
       }
     }, 100);
     return () => clearInterval(timer);
-  }, []);
+  }, [theme]);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -350,6 +357,7 @@ const Login = () => {
 
               {/* Cloudflare Turnstile CAPTCHA Widget */}
               <div 
+                ref={turnstileRef}
                 className="cf-turnstile flex justify-center mb-4" 
                 data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
               ></div>
