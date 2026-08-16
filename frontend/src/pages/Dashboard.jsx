@@ -1334,13 +1334,22 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={handleLogoutClick}
-            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
-            title="Log Out"
-          >
-            <LogOut className="w-4.5 h-4.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={toggleTheme}
+              className="p-1.5 text-slate-400 hover:text-brand-primary dark:hover:text-white transition-colors cursor-pointer"
+              title="Toggle theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
+            <button
+              onClick={handleLogoutClick}
+              className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+              title="Log Out"
+            >
+              <LogOut className="w-4.5 h-4.5" />
+            </button>
+          </div>
         </div>
       </aside>
 
