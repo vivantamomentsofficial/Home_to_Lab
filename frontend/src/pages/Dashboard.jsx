@@ -26,7 +26,7 @@ import {
 import { encryptFileBuffer, decryptFileBuffer } from '../utils/cryptoHelper';
 import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
-  LogOut, Sun, Moon, ShieldAlert, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
+  LogOut, Sun, Moon, ShieldAlert, Bell, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu
 } from 'lucide-react';
@@ -141,6 +141,10 @@ const Dashboard = () => {
   const [newTxtContent, setNewTxtContent] = useState('');
   const [newTxtEncrypt, setNewTxtEncrypt] = useState(false);
   const [newTxtPassphrase, setNewTxtPassphrase] = useState('');
+
+  // Global announcement popup state
+  const [activeAlert, setActiveAlert] = useState(null);
+  const [showAlertModal, setShowAlertModal] = useState(false);
 
   // Modals / Overlays triggers
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -273,6 +277,32 @@ const Dashboard = () => {
   };
 
 
+  const fetchActiveAlert = async () => {
+    if (!supabase) return;
+    try {
+      const { data, error } = await supabase
+        .from('global_alerts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      if (data && data.length > 0) {
+        const latestAlert = data[0];
+        setActiveAlert(latestAlert);
+        setShowAlertModal(true);
+        
+        // Auto close after 10 seconds
+        setTimeout(() => {
+          setShowAlertModal(false);
+        }, 10000);
+      }
+    } catch (err) {
+      console.error('Failed to fetch active alerts:', err);
+    }
+  };
+
   const fetchUpgradeRequestStatus = async () => {
     if (!supabase || !user) return;
     try {
@@ -293,13 +323,13 @@ const Dashboard = () => {
     }
   };
 
-  // Initial load
   useEffect(() => {
     if (user) {
       fetchProfileDetails();
       fetchStorageStats();
       fetchUpgradeRequestStatus();
       fetchUserLoginLogs();
+      fetchActiveAlert();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -844,7 +874,7 @@ const Dashboard = () => {
           upsert: false,
           signal: controller.signal,
           onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+            const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
             setActiveUploads((prev) => {
               if (!prev[uploadId]) return prev;
               return {
@@ -1814,13 +1844,7 @@ const Dashboard = () => {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={toggleTheme}
-            className="p-2 bg-slate-50 dark:bg-slate-850 rounded-xl text-slate-500 hover:text-brand-primary dark:text-slate-400 transition-colors cursor-pointer"
-            title="Toggle theme"
-          >
-            {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
-          </button>
+          
           
           <div 
             onClick={() => {
@@ -1979,13 +2003,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              onClick={toggleTheme}
-              className="p-1.5 text-slate-400 hover:text-brand-primary dark:hover:text-white transition-colors cursor-pointer"
-              title="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
+            
             <button
               onClick={handleLogoutClick}
               className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
@@ -3530,6 +3548,43 @@ const Dashboard = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Global Announcement Alert Popup */}
+      {showAlertModal && activeAlert && (
+        <div className="fixed inset-0 z-[999999] flex items-center justify-center bg-slate-950/70 backdrop-blur-md p-4">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl border-red-500/20 animate-scale-up relative">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-550/10 flex items-center justify-center text-red-500 shrink-0">
+                <Bell className="w-5 h-5 animate-bounce" />
+              </div>
+              <div>
+                <span className="text-[10px] uppercase tracking-wider font-extrabold text-red-500 bg-red-500/10 px-2 py-0.5 rounded">
+                  System Announcement
+                </span>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white mt-1 leading-snug">
+                  {activeAlert.title}
+                </h3>
+              </div>
+            </div>
+
+            <div className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap bg-slate-50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-100 dark:border-slate-850 mb-6 max-h-[40vh] overflow-y-auto custom-scrollbar">
+              {activeAlert.message}
+            </div>
+
+            <div className="flex justify-between items-center gap-4">
+              <span className="text-[10px] text-slate-400 font-medium">
+                Auto-dismissing in 10s...
+              </span>
+              <button
+                onClick={() => setShowAlertModal(false)}
+                className="btn-primary py-2 px-4 text-xs font-bold w-24 cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

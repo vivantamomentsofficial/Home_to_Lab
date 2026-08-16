@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import {
-  ShieldAlert, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
+  ShieldAlert, Bell, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
   Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu, Trash2
 } from 'lucide-react';
 
@@ -92,6 +92,12 @@ const Admin = () => {
   // Lightbox Previews
   const [previewImage, setPreviewImage] = useState(null);
   const [previewText, setPreviewText] = useState(null);
+
+  // Global announcements/alerts states
+  const [globalAlerts, setGlobalAlerts] = useState([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   // Request Headers Generator
   const getHeaders = () => {
@@ -237,6 +243,63 @@ const Admin = () => {
     }
   };
 
+  // 6. Global Alerts management functions
+  const fetchGlobalAlerts = async () => {
+    setAlertsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('global_alerts')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setGlobalAlerts(data || []);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to load announcements: ' + err.message, 'danger');
+    } finally {
+      setAlertsLoading(false);
+    }
+  };
+
+  const handleCreateAlertSubmit = async (e) => {
+    e.preventDefault();
+    if (!alertTitle.trim() || !alertMessage.trim()) {
+      showToast('Title and message are required.', 'warning');
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from('global_alerts')
+        .insert({
+          title: alertTitle.trim(),
+          message: alertMessage.trim()
+        });
+      if (error) throw error;
+      showToast('Announcement posted successfully!', 'success');
+      setAlertTitle('');
+      setAlertMessage('');
+      fetchGlobalAlerts();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to post announcement: ' + err.message, 'danger');
+    }
+  };
+
+  const handleDeleteAlert = async (alertId) => {
+    try {
+      const { error } = await supabase
+        .from('global_alerts')
+        .delete()
+        .eq('id', alertId);
+      if (error) throw error;
+      showToast('Announcement deleted.', 'success');
+      fetchGlobalAlerts();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete announcement: ' + err.message, 'danger');
+    }
+  };
+
   // Trigger page section fetch
   useEffect(() => {
     if (session) {
@@ -245,6 +308,7 @@ const Admin = () => {
       if (activeSection === 'requests') fetchUpgradeRequests();
       if (activeSection === 'snippets') fetchSnippets();
       if (activeSection === 'logs') fetchLogs();
+      if (activeSection === 'alerts') fetchGlobalAlerts();
     }
   }, [activeSection, session]);
 
@@ -255,7 +319,8 @@ const Admin = () => {
       fetchUsers(),
       fetchUpgradeRequests(),
       fetchSnippets(),
-      fetchLogs()
+      fetchLogs(),
+      fetchGlobalAlerts()
     ]);
     showToast('Dashboard details updated!', 'success');
   };
@@ -828,6 +893,20 @@ const Admin = () => {
           >
             <Key className="w-4 h-4" /> Login Audits
           </button>
+
+          <button
+            onClick={() => {
+              setActiveSection('alerts');
+              setIsDrawerOpen(false);
+            }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+              activeSection === 'alerts'
+                ? 'bg-gradient-to-r from-red-600 to-rose-655 text-white shadow-md shadow-red-500/10'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
+            }`}
+          >
+            <Bell className="w-4 h-4" /> System Alerts
+          </button>
         </nav>
 
         <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-800">
@@ -1242,6 +1321,87 @@ const Admin = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* TAB: SYSTEM ALERTS */}
+        {activeSection === 'alerts' && (
+          <div className="glass-card p-6 flex flex-col gap-6 animate-fade-in">
+            <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Global System Announcements</h3>
+              <p className="text-xs text-slate-400">
+                Post custom popup alerts that will be shown to users for 10 seconds immediately when they load their dashboard.
+              </p>
+            </div>
+
+            {/* Create Announcement Form */}
+            <form onSubmit={handleCreateAlertSubmit} className="space-y-4 max-w-xl bg-slate-50/50 dark:bg-slate-900/50 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Create New Alert</h4>
+              <div>
+                <label className="label-title">ALERT TITLE</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Server Maintenance Notice"
+                  value={alertTitle}
+                  onChange={(e) => setAlertTitle(e.target.value)}
+                  className="input-field py-2 text-xs"
+                  required
+                />
+              </div>
+              <div>
+                <label className="label-title">ALERT MESSAGE</label>
+                <textarea
+                  rows={3}
+                  placeholder="Enter notice details for users..."
+                  value={alertMessage}
+                  onChange={(e) => setAlertMessage(e.target.value)}
+                  className="input-field py-2 text-xs"
+                  required
+                ></textarea>
+              </div>
+              <button type="submit" className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
+                <Plus className="w-4 h-4" /> Post Announcement
+              </button>
+            </form>
+
+            {/* Current Active Announcements List */}
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Announcements</h4>
+              {alertsLoading ? (
+                <div className="flex items-center py-6">
+                  <div className="w-6 h-6 rounded-full border-2 border-brand-primary border-t-transparent animate-spin"></div>
+                </div>
+              ) : globalAlerts.length === 0 ? (
+                <div className="text-xs text-slate-400 bg-slate-50/50 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 p-6 rounded-2xl text-center">
+                  No active announcements posted.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {globalAlerts.map((alert) => (
+                    <div key={alert.id} className="glass-card p-5 border-slate-200 dark:border-slate-800 flex flex-col justify-between gap-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Bell className="w-4 h-4 text-brand-primary shrink-0" />
+                          <h5 className="font-bold text-sm text-slate-800 dark:text-white truncate">{alert.title}</h5>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{alert.message}</p>
+                        <span className="block text-[10px] text-slate-400 font-mono">
+                          Posted: {new Date(alert.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-end border-t border-slate-100 dark:border-slate-850 pt-3">
+                        <button
+                          onClick={() => handleDeleteAlert(alert.id)}
+                          className="btn-danger py-1.5 px-3 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Trash className="w-3 h-3" /> Delete Alert
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </main>

@@ -663,6 +663,30 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- =========================================================================
+-- 9. GLOBAL ANNOUNCEMENTS / ALERTS
+-- =========================================================================
+
+CREATE TABLE IF NOT EXISTS public.global_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Enable RLS
+ALTER TABLE public.global_alerts ENABLE ROW LEVEL SECURITY;
+
+-- Select policy: anyone can view
+DROP POLICY IF EXISTS "Anyone can view global alerts" ON public.global_alerts;
+CREATE POLICY "Anyone can view global alerts" ON public.global_alerts
+    FOR SELECT USING (true);
+
+-- Admin policy: manage anything
+DROP POLICY IF EXISTS "Admin can manage global alerts" ON public.global_alerts;
+CREATE POLICY "Admin can manage global alerts" ON public.global_alerts
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 
 
