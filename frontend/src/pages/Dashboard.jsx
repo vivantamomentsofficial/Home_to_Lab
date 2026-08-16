@@ -45,6 +45,14 @@ const Dashboard = () => {
   const { showToast } = useToast();
   const navigate = useNavigate();
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'Good Morning';
+    if (hour >= 12 && hour < 17) return 'Good Afternoon';
+    if (hour >= 17 && hour < 22) return 'Good Evening';
+    return 'Good Night';
+  };
+
   // Active workspace tab: 'overview' | 'upload' | 'clipboard' | 'vault' | 'settings' | 'profile'
   const [activeTab, setActiveTab] = useState('overview');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -1344,7 +1352,7 @@ const Dashboard = () => {
                activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h1>
             <p className="text-xs text-slate-400 mt-0.5">
-              Welcome back, {fullName || user?.email?.split('@')[0]}!
+              Welcome to CloudVault! {getGreeting()}, {fullName.split(' ')[0] || user?.email?.split('@')[0]}!
             </p>
           </div>
 
