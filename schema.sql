@@ -645,4 +645,24 @@ CREATE TRIGGER check_clipboard_lock_before_insert
     EXECUTE FUNCTION public.check_user_clipboard_lock();
 
 
+-- =========================================================================
+-- 6. AUTOMATED STORAGE CLEANUP (pg_cron)
+-- =========================================================================
+
+-- Function to delete expired share codes and files older than 7 days
+CREATE OR REPLACE FUNCTION public.cleanup_old_data()
+RETURNS void AS $$
+BEGIN
+    -- Delete share codes that have already expired
+    DELETE FROM public.share_codes
+    WHERE expires_at < now();
+
+    -- Delete files (and their linked share codes via cascade) older than 7 days
+    DELETE FROM public.files
+    WHERE created_at < now() - INTERVAL '7 days';
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+
 

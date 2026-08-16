@@ -22,6 +22,8 @@ import {
   fetchProfileDetailsFromDb, 
   fetchLoginLogsFromDb 
 } from '../services/profileService';
+
+import { encryptFileBuffer, decryptFileBuffer } from '../utils/cryptoHelper';
 import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
@@ -143,6 +145,15 @@ const Dashboard = () => {
   // Session monitor state
   const [loginLogs, setLoginLogs] = useState([]);
   const [logsLoading, setLogsLoading] = useState(false);
+
+  // Encryption & PWA / Multi-download states
+  const [isEncryptionEnabled, setIsEncryptionEnabled] = useState(false);
+  const [uploadPassphrase, setUploadPassphrase] = useState('');
+  const [showDecryptModal, setShowDecryptModal] = useState(false);
+  const [decryptPassphrase, setDecryptPassphrase] = useState('');
+  const [decryptTargetFile, setDecryptTargetFile] = useState(null);
+  const [decryptActionType, setDecryptActionType] = useState('download'); // 'download' | 'preview'
+  const [selectedFileIds, setSelectedFileIds] = useState([]);
 
   // File Previews Lightbox
   const [previewImage, setPreviewImage] = useState(null);
@@ -739,20 +750,32 @@ const Dashboard = () => {
 
     let currentUsed = usedStorage;
     const itemsArray = Array.from(incomingFiles);
+    const passphrase = isEncryptionEnabled ? uploadPassphrase : '';
 
     for (const file of itemsArray) {
+      let processedFile = file;
+
+      // Local Image Compression
+      if (file.type?.startsWith('image/')) {
+        try {
+          processedFile = await compressImageFile(file);
+        } catch (err) {
+          console.warn('Image compression failed, uploading original:', err);
+        }
+      }
+
       // Validate quota limits
-      if (file.size > storageLimit) {
-        showToast(`Rejected: "${file.name}" exceeds the ${formatBytes(storageLimit)} limit.`, 'danger');
+      if (processedFile.size > storageLimit) {
+        showToast(`Rejected: "${processedFile.name}" exceeds the ${formatBytes(storageLimit)} limit.`, 'danger');
         continue;
       }
 
-      if (currentUsed + file.size > storageLimit) {
-        showToast(`Rejected: Uploading "${file.name}" will exceed your allocated limit.`, 'warning');
+      if (currentUsed + processedFile.size > storageLimit) {
+        showToast(`Rejected: Uploading "${processedFile.name}" will exceed your allocated limit.`, 'warning');
         continue;
       }
 
-      currentUsed += file.size;
+      currentUsed += processedFile.size;
 
       // Generate random upload ID
       const uploadId = 'up_' + Math.random().toString(36).substring(2, 9);
@@ -762,21 +785,21 @@ const Dashboard = () => {
       setActiveUploads((prev) => ({
         ...prev,
         [uploadId]: {
-          name: file.name,
-          size: file.size,
+          name: processedFile.name,
+          size: processedFile.size,
           progress: 0,
           status: 'ready',
           controller: null,
-          fileObj: file
+          fileObj: processedFile
         }
       }));
 
       // Start upload
-      startUploadingFile(uploadId, file);
+      startUploadingFile(uploadId, processedFile, passphrase);
     }
   };
 
-  const startUploadingFile = async (uploadId, file) => {
+  const startUploadingFile = async (uploadId, file, passphrase = '') => {
     const controller = new AbortController();
 
     setActiveUploads((prev) => ({
@@ -788,13 +811,24 @@ const Dashboard = () => {
       }
     }));
 
-    const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-    const storagePath = `uploads/${user.id}/${uniquePrefix}_${file.name}`;
+    const isEncrypted = !!passphrase;
+    let fileToUpload = file;
+    let fileNameToSave = file.name;
 
     try {
+      if (isEncrypted) {
+        const arrayBuffer = await file.arrayBuffer();
+        const encryptedBuffer = await encryptFileBuffer(arrayBuffer, passphrase);
+        fileNameToSave = `[encrypted]_${file.name}`;
+        fileToUpload = new File([encryptedBuffer], fileNameToSave, { type: 'application/octet-stream' });
+      }
+
+      const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+      const storagePath = `uploads/${user.id}/${uniquePrefix}_${fileNameToSave}`;
+
       const { data, error } = await supabase.storage
         .from('vault')
-        .upload(storagePath, file, {
+        .upload(storagePath, fileToUpload, {
           cacheControl: '3600',
           upsert: false,
           signal: controller.signal,
@@ -816,16 +850,16 @@ const Dashboard = () => {
       if (error) throw error;
 
       // Register file entry in DB catalog
-      const fileCategory = getFileCategory(file.name, file.type || 'application/octet-stream');
+      const fileCategory = getFileCategory(fileNameToSave, fileToUpload.type || 'application/octet-stream');
       const { error: dbError } = await supabase
         .from('files')
         .insert({
           user_id: user.id,
-          filename: file.name,
+          filename: fileNameToSave,
           storage_path: storagePath,
           file_type: fileCategory,
-          size: file.size,
-          folder_id: currentFolderId // Assigns to current folder folder nesting
+          size: fileToUpload.size,
+          folder_id: currentFolderId
         });
 
       if (dbError) throw dbError;
@@ -855,24 +889,36 @@ const Dashboard = () => {
           return updated;
         });
       }, 3000);
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        showToast(`Upload of "${file.name}" aborted.`, 'warning');
-        return;
-      }
-      console.error(err);
 
-      setActiveUploads((prev) => {
-        if (!prev[uploadId]) return prev;
-        return {
-          ...prev,
-          [uploadId]: {
-            ...prev[uploadId],
-            status: 'failed'
-          }
-        };
-      });
-      showToast(`Upload failed for "${file.name}".`, 'danger');
+    } catch (err) {
+      console.error(err);
+      if (err.name === 'AbortError') {
+        setActiveUploads((prev) => {
+          if (!prev[uploadId]) return prev;
+          return {
+            ...prev,
+            [uploadId]: {
+              ...prev[uploadId],
+              status: 'cancelled',
+              progress: 0
+            }
+          };
+        });
+        showToast(`Upload of "${file.name}" aborted.`, 'warning');
+      } else {
+        setActiveUploads((prev) => {
+          if (!prev[uploadId]) return prev;
+          return {
+            ...prev,
+            [uploadId]: {
+              ...prev[uploadId],
+              status: 'failed',
+              progress: 0
+            }
+          };
+        });
+        showToast(`Failed to upload "${file.name}": ${err.message}`, 'danger');
+      }
     }
   };
 
@@ -1086,11 +1132,195 @@ const Dashboard = () => {
     };
   }, []);
 
+  const compressImageFile = (file) => {
+    return new Promise((resolve) => {
+      const imgType = file.type;
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(imgType)) {
+        resolve(file);
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxDim = 1920;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                  type: 'image/jpeg',
+                  lastModified: Date.now(),
+                });
+                resolve(compressedFile);
+              } else {
+                resolve(file);
+              }
+            },
+            'image/jpeg',
+            0.75
+          );
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleDecryptAndDownload = async (path, filename, passphrase) => {
+    try {
+      showToast('Downloading encrypted file...', 'info');
+      const signedUrl = await createSignedDownloadUrl(supabase, path, 300);
+      
+      const res = await fetch(signedUrl);
+      if (!res.ok) throw new Error("Failed to fetch file content.");
+      const combinedBuffer = await res.arrayBuffer();
+      
+      const decryptedBuffer = await decryptFileBuffer(combinedBuffer, passphrase);
+      const cleanFilename = filename.replace('[encrypted]_', '');
+      
+      const blob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = cleanFilename;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      showToast('File decrypted and downloaded!', 'success');
+      setShowDecryptModal(false);
+    } catch (err) {
+      console.error(err);
+      showToast('Decryption failed: ' + err.message, 'danger');
+    }
+  };
+
+  const handleDecryptAndPreview = async (file, passphrase) => {
+    try {
+      showToast('Retrieving and decrypting file...', 'info');
+      const category = getFileCategory(file.filename, 'application/octet-stream');
+      const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 300);
+      
+      const res = await fetch(signedUrl);
+      if (!res.ok) throw new Error("Failed to fetch file content.");
+      const combinedBuffer = await res.arrayBuffer();
+      
+      const decryptedBuffer = await decryptFileBuffer(combinedBuffer, passphrase);
+      const cleanName = file.filename.replace('[encrypted]_', '');
+
+      if (category === 'image') {
+        const blob = new Blob([decryptedBuffer], { type: 'image/jpeg' });
+        const url = URL.createObjectURL(blob);
+        setPreviewImage({ title: cleanName, url: url });
+      } 
+      else if (category === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
+        const blob = new Blob([decryptedBuffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } 
+      else if (category === 'text' || category === 'code') {
+        const textDecoder = new TextDecoder();
+        const text = textDecoder.decode(decryptedBuffer);
+        setPreviewText({ title: cleanName, content: text });
+      } 
+      else {
+        showToast('Preview is not supported for this file type.', 'warning');
+      }
+      
+      setShowDecryptModal(false);
+    } catch (err) {
+      console.error(err);
+      showToast('Decryption failed: ' + err.message, 'danger');
+    }
+  };
+
+  const handleToggleSelectFile = (fileId) => {
+    setSelectedFileIds((prev) => {
+      if (prev.includes(fileId)) {
+        return prev.filter(id => id !== fileId);
+      } else {
+        return [...prev, fileId];
+      }
+    });
+  };
+
+  const handleBatchDownloadZip = async () => {
+    if (downloadLocked) {
+      showToast('Download privileges have been revoked.', 'danger');
+      return;
+    }
+    
+    const selectedFiles = files.filter(f => selectedFileIds.includes(f.id));
+    const hasEncrypted = selectedFiles.some(f => f.filename.startsWith('[encrypted]_'));
+    
+    if (hasEncrypted) {
+      showToast('Encrypted files cannot be batch downloaded inside a ZIP.', 'warning');
+      return;
+    }
+
+    showToast('Preparing ZIP archive...', 'info');
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      for (const file of selectedFiles) {
+        const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 300);
+        const res = await fetch(signedUrl);
+        if (!res.ok) throw new Error(`Failed to fetch file: ${file.filename}`);
+        const fileData = await res.blob();
+        zip.file(file.filename, fileData);
+      }
+
+      const zipContent = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipContent);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CloudVault_batch_${Date.now()}.zip`;
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      showToast('ZIP archive downloaded successfully!', 'success');
+      setSelectedFileIds([]);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to create ZIP: ' + err.message, 'danger');
+    }
+  };
+
   const handleDownloadFileDirect = async (path, filename) => {
     if (downloadLocked) {
       showToast('Download privileges have been revoked by the administrator.', 'danger');
       return;
     }
+
+    if (filename.startsWith('[encrypted]_')) {
+      setDecryptTargetFile({ path, filename });
+      setDecryptActionType('download');
+      setDecryptPassphrase('');
+      setShowDecryptModal(true);
+      return;
+    }
+
     try {
       showToast('Creating download URL...', 'info');
       const { data, error } = await supabase.storage
@@ -1113,6 +1343,15 @@ const Dashboard = () => {
       showToast('Preview privileges have been revoked by the administrator.', 'danger');
       return;
     }
+
+    if (file.filename.startsWith('[encrypted]_')) {
+      setDecryptTargetFile(file);
+      setDecryptActionType('preview');
+      setDecryptPassphrase('');
+      setShowDecryptModal(true);
+      return;
+    }
+
     const category = getFileCategory(file.filename, 'application/octet-stream');
     
     if (category === 'image') {
@@ -1577,30 +1816,57 @@ const Dashboard = () => {
                 </div>
               </div>
             ) : (
-              /* Drag & Drop uploader card */
-              <div
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={handleDropFiles}
-                className="glass-card border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-brand-primary/50 transition-all p-10 flex flex-col items-center justify-center text-center cursor-pointer"
-              >
-                <input
-                  type="file"
-                  id="dashboard-file-input"
-                  multiple
-                  className="hidden"
-                  onChange={handleBrowseFiles}
-                />
-                <label htmlFor="dashboard-file-input" className="cursor-pointer flex flex-col items-center gap-4">
-                  <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary animate-pulse">
-                    <UploadCloud className="w-10 h-10" />
+              <div className="space-y-4">
+                <div
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDropFiles}
+                  className="glass-card border-2 border-dashed border-slate-300 dark:border-slate-800 hover:border-brand-primary/50 transition-all p-10 flex flex-col items-center justify-center text-center cursor-pointer"
+                >
+                  <input
+                    type="file"
+                    id="dashboard-file-input"
+                    multiple
+                    className="hidden"
+                    onChange={handleBrowseFiles}
+                  />
+                  <label htmlFor="dashboard-file-input" className="cursor-pointer flex flex-col items-center gap-4">
+                    <div className="p-4 bg-brand-primary/10 rounded-full text-brand-primary animate-pulse">
+                      <UploadCloud className="w-10 h-10" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-white">Drag & Drop Files Here</h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        or click to browse files from your computer. (Max size: {formatBytes(storageLimit)})
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
+                {/* Encryption Options */}
+                <div className="glass-card p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="enable-encryption"
+                      checked={isEncryptionEnabled}
+                      onChange={(e) => setIsEncryptionEnabled(e.target.checked)}
+                      className="w-4 h-4 text-brand-primary border-slate-300 rounded focus:ring-brand-primary cursor-pointer"
+                    />
+                    <label htmlFor="enable-encryption" className="text-xs font-bold text-slate-700 dark:text-slate-350 cursor-pointer select-none">
+                      Encrypt Upload (Zero-Knowledge AES-GCM)
+                    </label>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-slate-800 dark:text-white">Drag & Drop Files Here</h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      or click to browse files from your computer. (Max size: {formatBytes(storageLimit)})
-                    </p>
-                  </div>
-                </label>
+                  
+                  {isEncryptionEnabled && (
+                    <input
+                      type="password"
+                      placeholder="Passphrase to Encrypt"
+                      value={uploadPassphrase}
+                      onChange={(e) => setUploadPassphrase(e.target.value)}
+                      className="w-full md:w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-brand-primary"
+                    />
+                  )}
+                </div>
               </div>
             )}
             
@@ -1900,6 +2166,31 @@ const Dashboard = () => {
                 )}
 
                 {/* 2. Files container */}
+                {/* Batch Action Bar */}
+                {selectedFileIds.length > 0 && (
+                  <div className="glass-card p-3 bg-brand-primary/5 border border-brand-primary/20 flex justify-between items-center rounded-xl animate-fade-in mb-3">
+                    <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      {selectedFileIds.length} {selectedFileIds.length === 1 ? 'file' : 'files'} selected
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleBatchDownloadZip}
+                        className="btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download as ZIP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFileIds([])}
+                        className="btn-secondary py-1.5 px-3 text-xs font-bold cursor-pointer"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {getFilteredFiles().length === 0 ? (
                   <div className="text-center py-20 text-slate-400 text-sm">
                     No files found in this directory. Upload files to get started!
@@ -1914,9 +2205,20 @@ const Dashboard = () => {
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', file.id)}
                         className="glass-card p-4 hover:shadow-md relative flex flex-col justify-between border-slate-100 dark:border-slate-800"
                       >
+                        {/* Checkbox select */}
+                        <div className="absolute top-4 left-4 z-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedFileIds.includes(file.id)}
+                            onChange={() => handleToggleSelectFile(file.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-3.5 h-3.5 text-brand-primary border-slate-350 rounded cursor-pointer"
+                          />
+                        </div>
+
                         <div>
                           <div className="flex justify-between items-start gap-2">
-                            <div className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl">
+                            <div className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl ml-6">
                               {getFileIcon(file.filename)}
                             </div>
                             
@@ -1981,7 +2283,7 @@ const Dashboard = () => {
                           </div>
                           
                           <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate" title={file.filename}>
-                            {file.filename}
+                            {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
                           </h4>
                           <p className="text-[10px] text-slate-400 mt-1">
                             {formatBytes(file.size)}
@@ -2005,12 +2307,21 @@ const Dashboard = () => {
                         className="glass-card p-3 flex items-center justify-between gap-4 hover:shadow-sm border-slate-100 dark:border-slate-800"
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Checkbox select */}
+                          <input
+                            type="checkbox"
+                            checked={selectedFileIds.includes(file.id)}
+                            onChange={() => handleToggleSelectFile(file.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-3.5 h-3.5 text-brand-primary border-slate-350 rounded cursor-pointer mr-1 shrink-0"
+                          />
+
                           <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0">
                             {getFileIcon(file.filename)}
                           </div>
                           <div className="min-w-0">
                             <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate" title={file.filename}>
-                              {file.filename}
+                              {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
                             </h4>
                             <p className="text-[10px] text-slate-400">
                               {formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}
@@ -2021,28 +2332,28 @@ const Dashboard = () => {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => handlePreviewFile(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Preview file"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadFileDirect(file.storage_path, file.filename)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Download file"
                           >
                             <Download className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleGenerateShareCode(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Generate Share Code"
                           >
                             <Share2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => triggerRenameFile(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Rename file"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -2463,6 +2774,59 @@ const Dashboard = () => {
           </div>
         );
       })()}
+
+      {/* Decrypt Passphrase Modal */}
+      {showDecryptModal && decryptTargetFile && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-sm w-full p-6 shadow-2xl animate-scale-up">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Decrypt Encrypted File</h3>
+            <p className="text-xs text-slate-450 mb-6 truncate" title={decryptTargetFile.filename}>
+              File: {decryptTargetFile.filename.replace('[encrypted]_', '')}
+            </p>
+            
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (decryptActionType === 'download') {
+                  handleDecryptAndDownload(decryptTargetFile.path, decryptTargetFile.filename, decryptPassphrase);
+                } else {
+                  handleDecryptAndPreview(decryptTargetFile, decryptPassphrase);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="label-title">DECRYPTION PASSPHRASE</label>
+                <input
+                  type="password"
+                  placeholder="Enter passphrase used during upload"
+                  value={decryptPassphrase}
+                  onChange={(e) => setDecryptPassphrase(e.target.value)}
+                  className="input-field"
+                  required
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDecryptModal(false)}
+                  className="btn-secondary py-2 px-4 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary py-2 px-4 text-xs font-bold"
+                >
+                  Decrypt & Proceed
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* 4. Active Uploads progress overlay banner */}
       {showUploadProgressCard && (
