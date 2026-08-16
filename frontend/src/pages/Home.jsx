@@ -45,9 +45,10 @@ const Home = () => {
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [feedbackSending, setFeedbackSending] = useState(false);
 
-  const handleRetrieveCode = async (e) => {
-    e.preventDefault();
-    if (!shareCode || shareCode.trim().length !== 6) {
+  const handleRetrieveCode = async (e, customCode = null) => {
+    if (e) e.preventDefault();
+    const codeToUse = customCode || shareCode;
+    if (!codeToUse || codeToUse.trim().length !== 6) {
       showToast('Please enter a 6-character sharing code.', 'warning');
       return;
     }
@@ -56,7 +57,7 @@ const Home = () => {
     setRetrievedFile(null);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/api/share/${shareCode.trim()}`);
+      const res = await fetch(`${apiUrl}/api/share/${codeToUse.trim()}`);
       const data = await res.json();
       
       if (!res.ok) {
@@ -143,6 +144,18 @@ const Home = () => {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    if (codeParam && codeParam.trim().length === 6) {
+      const code = codeParam.trim().toUpperCase();
+      setShareCode(code);
+      // Wait for components to mount and scroll down
+      setTimeout(() => {
+        scrollToSection('retrieve-section');
+        handleRetrieveCode(null, code);
+      }, 600);
+    }
+
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
     };

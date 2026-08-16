@@ -2258,48 +2258,76 @@ const Dashboard = () => {
       )}
 
       {/* 3. Sharing Code Result modal */}
-      {showShareModal && shareCodeData && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="glass-card max-w-sm w-full p-6 shadow-2xl text-center animate-scale-up">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Temporary Sharing Code</h3>
-            <p className="text-xs text-slate-400 mb-6 truncate" title={shareCodeData.filename}>
-              File: {shareCodeData.filename}
-            </p>
-            
-            <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-5 px-6 mb-4 relative overflow-hidden">
-              <div className="text-3xl font-black font-display tracking-[8px] text-brand-primary uppercase select-all">
-                {shareCodeData.code}
+      {showShareModal && shareCodeData && (() => {
+        const shareUrl = `${window.location.origin}/?code=${shareCodeData.code}`;
+        return (
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+            <div className="glass-card max-w-sm w-full p-6 shadow-2xl text-center animate-scale-up">
+              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Temporary Sharing Code</h3>
+              <p className="text-xs text-slate-400 mb-4 truncate" title={shareCodeData.filename}>
+                File: {shareCodeData.filename}
+              </p>
+              
+              <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl py-4 px-6 mb-3 relative overflow-hidden">
+                <div className="text-3xl font-black font-display tracking-[8px] text-brand-primary uppercase select-all">
+                  {shareCodeData.code}
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-400 mb-4 flex items-center justify-center gap-1.5">
+                <span>Code expires in:</span>
+                <span className="font-mono font-bold text-slate-600 dark:text-slate-200">
+                  {Math.floor(shareTimeLeft / 60)}m {shareTimeLeft % 60}s
+                </span>
+              </div>
+
+              {/* QR Code Section */}
+              <div className="mb-5 flex flex-col items-center gap-2">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Scan to Download</span>
+                <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-md">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
+                    alt="QR Code"
+                    className="w-[140px] h-[140px] block rounded-lg bg-white"
+                    loading="lazy"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareCodeData.code)
+                        .then(() => showToast('Share code copied!', 'success'))
+                        .catch(() => showToast('Copy failed.', 'danger'));
+                    }}
+                    className="flex-1 btn-secondary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    Copy Code
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl)
+                        .then(() => showToast('Direct link copied!', 'success'))
+                        .catch(() => showToast('Copy failed.', 'danger'));
+                    }}
+                    className="flex-1 btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    Copy Link
+                  </button>
+                </div>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="w-full bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
-
-            <div className="text-[11px] text-slate-400 mb-6 flex items-center justify-center gap-1.5">
-              <span>Code expires in:</span>
-              <span className="font-mono font-bold text-slate-600 dark:text-slate-200">
-                {Math.floor(shareTimeLeft / 60)}m {shareTimeLeft % 60}s
-              </span>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(shareCodeData.code)
-                    .then(() => showToast('Share code copied!', 'success'))
-                    .catch(() => showToast('Copy failed.', 'danger'));
-                }}
-                className="flex-1 btn-primary py-2.5 text-xs font-bold"
-              >
-                Copy Code
-              </button>
-              <button
-                onClick={() => setShowShareModal(false)}
-                className="btn-secondary py-2.5 px-4 text-xs font-bold"
-              >
-                Close
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 4. Active Uploads progress overlay banner */}
       {showUploadProgressCard && (
