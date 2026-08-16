@@ -112,6 +112,13 @@ const Register = () => {
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Registration failed.', 'danger');
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.reset(widgetIdRef.current);
+        } catch (resetErr) {
+          console.warn('Turnstile reset error:', resetErr);
+        }
+      }
     } finally {
       setLoading(false);
     }

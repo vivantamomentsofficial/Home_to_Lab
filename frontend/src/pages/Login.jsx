@@ -157,6 +157,13 @@ const Login = () => {
       } else {
         showToast(err.message || 'Incorrect email or password.', 'danger');
       }
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.reset(widgetIdRef.current);
+        } catch (resetErr) {
+          console.warn('Turnstile reset error:', resetErr);
+        }
+      }
     } finally {
       setLoading(false);
     }

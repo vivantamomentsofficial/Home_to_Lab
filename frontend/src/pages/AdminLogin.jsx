@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -16,6 +16,61 @@ const AdminLogin = () => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // 1 = Password, 2 = OTP
   const [otp, setOtp] = useState('');
+
+  const turnstileRef = useRef(null);
+  const widgetIdRef = useRef(null);
+
+  // Cloudflare Turnstile state
+  useEffect(() => {
+    let timer;
+    if (window.turnstile && turnstileRef.current) {
+      try {
+        if (widgetIdRef.current !== null) {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
+        }
+        if (turnstileRef.current.children.length === 0) {
+          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+            sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+            theme: theme === 'dark' ? 'dark' : 'light',
+          });
+        }
+      } catch (err) {
+        console.warn('Turnstile render error:', err);
+      }
+    } else {
+      timer = setInterval(() => {
+        if (window.turnstile && turnstileRef.current) {
+          clearInterval(timer);
+          try {
+            if (widgetIdRef.current !== null) {
+              window.turnstile.remove(widgetIdRef.current);
+              widgetIdRef.current = null;
+            }
+            if (turnstileRef.current.children.length === 0) {
+              widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+                theme: theme === 'dark' ? 'dark' : 'light',
+              });
+            }
+          } catch (err) {
+            console.warn('Turnstile render error:', err);
+          }
+        }
+      }, 100);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
+        } catch (err) {
+          console.warn('Turnstile cleanup error:', err);
+        }
+      }
+    };
+  }, [theme, step]);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -48,11 +103,18 @@ const AdminLogin = () => {
         return;
       }
 
+      const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
+                           (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+      if (!captchaToken) {
+        showToast('Please complete the Captcha check.', 'warning');
+        return;
+      }
+
       setLoading(true);
       try {
         // Direct Admin account authentication
         const email = 'homtolab@gmail.com';
-        await login(email, password);
+        await login(email, password, captchaToken);
         showToast('Super Admin authenticated successfully!', 'success');
         navigate('/admin');
       } catch (err) {
@@ -155,6 +217,13 @@ const AdminLogin = () => {
                   autoFocus
                 />
               </div>
+
+              {/* Cloudflare Turnstile CAPTCHA Widget */}
+              <div 
+                ref={turnstileRef}
+                className="cf-turnstile flex justify-center mb-4" 
+                data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
+              ></div>
 
               <div className="flex gap-2">
                 <button

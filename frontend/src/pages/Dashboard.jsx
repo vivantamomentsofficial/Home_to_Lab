@@ -131,6 +131,17 @@ const Dashboard = () => {
   const [activeUploads, setActiveUploads] = useState({});
   const [showUploadProgressCard, setShowUploadProgressCard] = useState(false);
 
+  // Active downloader files queue
+  const [activeDownloads, setActiveDownloads] = useState({});
+  const [showDownloadProgressCard, setShowDownloadProgressCard] = useState(false);
+
+  // Create text file states
+  const [showCreateTxtModal, setShowCreateTxtModal] = useState(false);
+  const [newTxtName, setNewTxtName] = useState('');
+  const [newTxtContent, setNewTxtContent] = useState('');
+  const [newTxtEncrypt, setNewTxtEncrypt] = useState(false);
+  const [newTxtPassphrase, setNewTxtPassphrase] = useState('');
+
   // Modals / Overlays triggers
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({ title: '', message: '', action: null });
@@ -961,6 +972,89 @@ const Dashboard = () => {
     }
   }, [activeUploads]);
 
+  const cancelDownload = (downloadId) => {
+    const download = activeDownloads[downloadId];
+    if (download && download.controller) {
+      download.controller.abort();
+      setActiveDownloads((prev) => {
+        if (!prev[downloadId]) return prev;
+        return {
+          ...prev,
+          [downloadId]: {
+            ...prev[downloadId],
+            status: 'cancelled'
+          }
+        };
+      });
+    }
+  };
+
+  const dismissDownloadItem = (downloadId) => {
+    setActiveDownloads((prev) => {
+      const updated = { ...prev };
+      delete updated[downloadId];
+      return updated;
+    });
+  };
+
+  useEffect(() => {
+    if (Object.keys(activeDownloads).length === 0) {
+      setShowDownloadProgressCard(false);
+    }
+  }, [activeDownloads]);
+
+  const handleOpenCreateTxtModal = () => {
+    setNewTxtName('');
+    setNewTxtContent('');
+    setNewTxtEncrypt(false);
+    setNewTxtPassphrase('');
+    setShowCreateTxtModal(true);
+  };
+
+  const handleCreateTxtSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!newTxtName.trim()) {
+      showToast('Please enter a file name.', 'warning');
+      return;
+    }
+
+    let finalName = newTxtName.trim();
+    if (!finalName.toLowerCase().endsWith('.txt')) {
+      finalName += '.txt';
+    }
+
+    const passphrase = newTxtEncrypt ? newTxtPassphrase : '';
+
+    showToast('Creating text file...', 'info');
+    setShowCreateTxtModal(false);
+
+    try {
+      const blob = new Blob([newTxtContent], { type: 'text/plain' });
+      const fileObj = new File([blob], finalName, { type: 'text/plain' });
+
+      const uploadId = 'up_' + Math.random().toString(36).substring(2, 9);
+      setShowUploadProgressCard(true);
+
+      setActiveUploads((prev) => ({
+        ...prev,
+        [uploadId]: {
+          name: finalName,
+          size: fileObj.size,
+          progress: 0,
+          status: 'ready',
+          controller: null,
+          fileObj: fileObj
+        }
+      }));
+
+      startUploadingFile(uploadId, fileObj, passphrase);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to create text file: ' + err.message, 'danger');
+    }
+  };
+
   // ==========================================
   // VAULT EXPLORER ACTIONS
   // ==========================================
@@ -1188,15 +1282,62 @@ const Dashboard = () => {
   };
 
   const handleDecryptAndDownload = async (path, filename, passphrase) => {
+    const downloadId = 'dn_' + Math.random().toString(36).substring(2, 9);
+    const controller = new AbortController();
+    
+    setShowDownloadProgressCard(true);
+    setActiveDownloads((prev) => ({
+      ...prev,
+      [downloadId]: {
+        name: filename,
+        progress: 0,
+        status: 'downloading',
+        controller
+      }
+    }));
+
     try {
       showToast('Downloading encrypted file...', 'info');
       const signedUrl = await createSignedDownloadUrl(supabase, path, 300);
       
-      const res = await fetch(signedUrl);
+      const res = await fetch(signedUrl, { signal: controller.signal });
       if (!res.ok) throw new Error("Failed to fetch file content.");
-      const combinedBuffer = await res.arrayBuffer();
       
-      const decryptedBuffer = await decryptFileBuffer(combinedBuffer, passphrase);
+      const reader = res.body.getReader();
+      const contentLength = +res.headers.get('Content-Length');
+      
+      let receivedLength = 0;
+      let chunks = [];
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        if (contentLength) {
+          const percent = Math.round((receivedLength / contentLength) * 100);
+          setActiveDownloads((prev) => {
+            if (!prev[downloadId]) return prev;
+            return {
+              ...prev,
+              [downloadId]: {
+                ...prev[downloadId],
+                progress: percent
+              }
+            };
+          });
+        }
+      }
+
+      let chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
+      for (let chunk of chunks) {
+        chunksAll.set(chunk, position);
+        position += chunk.length;
+      }
+
+      const decryptedBuffer = await decryptFileBuffer(chunksAll.buffer, passphrase);
       const cleanFilename = filename.replace('[encrypted]_', '');
       
       const blob = new Blob([decryptedBuffer], { type: 'application/octet-stream' });
@@ -1207,25 +1348,99 @@ const Dashboard = () => {
       a.click();
       
       URL.revokeObjectURL(url);
+
+      setActiveDownloads((prev) => {
+        if (!prev[downloadId]) return prev;
+        return {
+          ...prev,
+          [downloadId]: {
+            ...prev[downloadId],
+            status: 'completed',
+            progress: 100
+          }
+        };
+      });
+
       showToast('File decrypted and downloaded!', 'success');
       setShowDecryptModal(false);
     } catch (err) {
       console.error(err);
-      showToast('Decryption failed: ' + err.message, 'danger');
+      if (err.name === 'AbortError') {
+        showToast('Download cancelled.', 'warning');
+      } else {
+        setActiveDownloads((prev) => {
+          if (!prev[downloadId]) return prev;
+          return {
+            ...prev,
+            [downloadId]: {
+              ...prev[downloadId],
+              status: 'failed'
+            }
+          };
+        });
+        showToast('Decryption failed: ' + err.message, 'danger');
+      }
     }
   };
 
   const handleDecryptAndPreview = async (file, passphrase) => {
+    const downloadId = 'dn_' + Math.random().toString(36).substring(2, 9);
+    const controller = new AbortController();
+    
+    setShowDownloadProgressCard(true);
+    setActiveDownloads((prev) => ({
+      ...prev,
+      [downloadId]: {
+        name: `Preview: ${file.filename.replace('[encrypted]_', '')}`,
+        progress: 0,
+        status: 'downloading',
+        controller
+      }
+    }));
+
     try {
       showToast('Retrieving and decrypting file...', 'info');
       const category = getFileCategory(file.filename, 'application/octet-stream');
       const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 300);
       
-      const res = await fetch(signedUrl);
+      const res = await fetch(signedUrl, { signal: controller.signal });
       if (!res.ok) throw new Error("Failed to fetch file content.");
-      const combinedBuffer = await res.arrayBuffer();
       
-      const decryptedBuffer = await decryptFileBuffer(combinedBuffer, passphrase);
+      const reader = res.body.getReader();
+      const contentLength = +res.headers.get('Content-Length');
+      
+      let receivedLength = 0;
+      let chunks = [];
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        if (contentLength) {
+          const percent = Math.round((receivedLength / contentLength) * 100);
+          setActiveDownloads((prev) => {
+            if (!prev[downloadId]) return prev;
+            return {
+              ...prev,
+              [downloadId]: {
+                ...prev[downloadId],
+                progress: percent
+              }
+            };
+          });
+        }
+      }
+
+      let chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
+      for (let chunk of chunks) {
+        chunksAll.set(chunk, position);
+        position += chunk.length;
+      }
+
+      const decryptedBuffer = await decryptFileBuffer(chunksAll.buffer, passphrase);
       const cleanName = file.filename.replace('[encrypted]_', '');
 
       if (category === 'image') {
@@ -1247,10 +1462,35 @@ const Dashboard = () => {
         showToast('Preview is not supported for this file type.', 'warning');
       }
       
+      setActiveDownloads((prev) => {
+        if (!prev[downloadId]) return prev;
+        return {
+          ...prev,
+          [downloadId]: {
+            ...prev[downloadId],
+            status: 'completed',
+            progress: 100
+          }
+        };
+      });
       setShowDecryptModal(false);
     } catch (err) {
       console.error(err);
-      showToast('Decryption failed: ' + err.message, 'danger');
+      if (err.name === 'AbortError') {
+        showToast('Preview download cancelled.', 'warning');
+      } else {
+        setActiveDownloads((prev) => {
+          if (!prev[downloadId]) return prev;
+          return {
+            ...prev,
+            [downloadId]: {
+              ...prev[downloadId],
+              status: 'failed'
+            }
+          };
+        });
+        showToast('Preview decryption failed: ' + err.message, 'danger');
+      }
     }
   };
 
@@ -1321,6 +1561,20 @@ const Dashboard = () => {
       return;
     }
 
+    const downloadId = 'dn_' + Math.random().toString(36).substring(2, 9);
+    const controller = new AbortController();
+    
+    setShowDownloadProgressCard(true);
+    setActiveDownloads((prev) => ({
+      ...prev,
+      [downloadId]: {
+        name: filename,
+        progress: 0,
+        status: 'downloading',
+        controller
+      }
+    }));
+
     try {
       showToast('Creating download URL...', 'info');
       const { data, error } = await supabase.storage
@@ -1328,13 +1582,84 @@ const Dashboard = () => {
         .createSignedUrl(path, 60);
 
       if (error) throw error;
+      
+      const res = await fetch(data.signedUrl, { signal: controller.signal });
+      if (!res.ok) throw new Error("Failed to fetch file content.");
+      
+      const reader = res.body.getReader();
+      const contentLength = +res.headers.get('Content-Length');
+      
+      let receivedLength = 0;
+      let chunks = [];
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        receivedLength += value.length;
+        
+        if (contentLength) {
+          const percent = Math.round((receivedLength / contentLength) * 100);
+          setActiveDownloads((prev) => {
+            if (!prev[downloadId]) return prev;
+            return {
+              ...prev,
+              [downloadId]: {
+                ...prev[downloadId],
+                progress: percent
+              }
+            };
+          });
+        }
+      }
+
+      let chunksAll = new Uint8Array(receivedLength);
+      let position = 0;
+      for (let chunk of chunks) {
+        chunksAll.set(chunk, position);
+        position += chunk.length;
+      }
+
+      const blob = new Blob([chunksAll], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      
       const a = document.createElement('a');
-      a.href = data.signedUrl;
+      a.href = url;
       a.download = filename;
       a.click();
+      
+      URL.revokeObjectURL(url);
+      
+      setActiveDownloads((prev) => {
+        if (!prev[downloadId]) return prev;
+        return {
+          ...prev,
+          [downloadId]: {
+            ...prev[downloadId],
+            status: 'completed',
+            progress: 100
+          }
+        };
+      });
+      
+      showToast(`Downloaded "${filename}" successfully!`, 'success');
     } catch (err) {
       console.error(err);
-      showToast('Download failed.', 'danger');
+      if (err.name === 'AbortError') {
+        showToast('Download cancelled.', 'warning');
+      } else {
+        setActiveDownloads((prev) => {
+          if (!prev[downloadId]) return prev;
+          return {
+            ...prev,
+            [downloadId]: {
+              ...prev[downloadId],
+              status: 'failed'
+            }
+          };
+        });
+        showToast('Download failed.', 'danger');
+      }
     }
   };
 
@@ -2060,6 +2385,9 @@ const Dashboard = () => {
                 <button onClick={handleCreateFolder} className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5">
                   <Plus className="w-4 h-4" /> New Folder
                 </button>
+                <button onClick={handleOpenCreateTxtModal} className="btn-primary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
+                  <Plus className="w-4 h-4" /> Create TXT File
+                </button>
               </div>
               
               <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -2329,31 +2657,32 @@ const Dashboard = () => {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
+                        {/* Desktop inline action buttons */}
+                        <div className="hidden md:flex items-center gap-1.5 shrink-0">
                           <button
                             onClick={() => handlePreviewFile(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Preview file"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDownloadFileDirect(file.storage_path, file.filename)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Download file"
                           >
                             <Download className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleGenerateShareCode(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Generate Share Code"
                           >
                             <Share2 className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => triggerRenameFile(file)}
-                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Rename file"
                           >
                             <Edit3 className="w-4 h-4" />
@@ -2365,6 +2694,65 @@ const Dashboard = () => {
                           >
                             <Trash className="w-4 h-4" />
                           </button>
+                        </div>
+
+                        {/* Mobile dropdown actions menu */}
+                        <div className="md:hidden relative shrink-0">
+                          <button
+                            onClick={() => setActiveMenuId(activeMenuId === file.id ? null : file.id)}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </button>
+                          {activeMenuId === file.id && (
+                            <div className="absolute right-0 top-8 w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1 z-35">
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  handlePreviewFile(file);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
+                              >
+                                <Eye className="w-3.5 h-3.5" /> Preview
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  handleDownloadFileDirect(file.storage_path, file.filename);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
+                              >
+                                <Download className="w-3.5 h-3.5" /> Download
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  handleGenerateShareCode(file);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
+                              >
+                                <Share2 className="w-3.5 h-3.5" /> Share Code
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  triggerRenameFile(file);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Rename
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  handleDeleteFile(file.id, file.storage_path, file.filename);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2"
+                              >
+                                <Trash className="w-3.5 h-3.5" /> Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -2898,6 +3286,69 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* 4b. Active Downloads progress overlay banner */}
+      {showDownloadProgressCard && (
+        <div className="fixed bottom-5 right-5 z-40 max-w-sm w-full pointer-events-none">
+          <div className="pointer-events-auto glass-card p-4 shadow-xl border-slate-200 dark:border-slate-800 max-h-[300px] overflow-y-auto custom-scrollbar flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Downloads Queue</h3>
+            
+            <div className="flex flex-col gap-3.5">
+              {Object.entries(activeDownloads).map(([id, download]) => (
+                <div key={id} className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200 truncate flex-1" title={download.name}>
+                      {download.name}
+                    </span>
+                    <span className="text-[10px] text-slate-400 shrink-0 capitalize">
+                      {download.status === 'completed' && <span className="text-green-500 font-bold">Done</span>}
+                      {download.status === 'failed' && <span className="text-red-500 font-bold">Failed</span>}
+                      {download.status === 'cancelled' && <span className="text-slate-400 font-bold">Aborted</span>}
+                      {download.status === 'downloading' && `${download.progress}%`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          download.status === 'failed' ? 'bg-red-500' :
+                          download.status === 'cancelled' ? 'bg-slate-400' :
+                          'bg-brand-primary'
+                        }`}
+                        style={{ width: `${download.progress}%` }}
+                      ></div>
+                    </div>
+
+                    <div className="shrink-0 flex gap-1">
+                      {download.status === 'downloading' && (
+                        <button
+                          onClick={() => cancelDownload(id)}
+                          className="text-slate-400 hover:text-red-500 p-0.5 rounded cursor-pointer"
+                          title="Abort Download"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {(download.status === 'failed' || download.status === 'cancelled') && (
+                        <>
+                          <button
+                            onClick={() => dismissDownloadItem(id)}
+                            className="text-slate-400 hover:text-slate-650 dark:hover:text-slate-350 p-0.5 rounded cursor-pointer"
+                            title="Dismiss"
+                          >
+                            <Trash className="w-3.5 h-3.5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 5. Image Lightbox preview modal */}
       {previewImage && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 p-4">
@@ -2998,6 +3449,87 @@ const Dashboard = () => {
                 Save to Server
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Create TXT File Modal */}
+      {showCreateTxtModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-lg w-full p-6 shadow-2xl animate-scale-up">
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Create New Text File</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+              Create a custom plain text (.txt) file directly in the current folder.
+            </p>
+            
+            <form onSubmit={handleCreateTxtSubmit} className="space-y-4">
+              <div>
+                <label className="label-title">FILE NAME</label>
+                <input
+                  type="text"
+                  placeholder="e.g. notes.txt"
+                  value={newTxtName}
+                  onChange={(e) => setNewTxtName(e.target.value)}
+                  className="input-field"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label className="label-title">CONTENT</label>
+                <textarea
+                  placeholder="Type or paste your text data here..."
+                  value={newTxtContent}
+                  onChange={(e) => setNewTxtContent(e.target.value)}
+                  className="input-field h-40 font-mono text-xs resize-none"
+                  required
+                />
+              </div>
+              
+              {/* Optional Encryption checkbox */}
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="txt-enable-encryption"
+                  checked={newTxtEncrypt}
+                  onChange={(e) => setNewTxtEncrypt(e.target.checked)}
+                  className="w-4 h-4 text-brand-primary border-slate-350 rounded focus:ring-brand-primary cursor-pointer"
+                />
+                <label htmlFor="txt-enable-encryption" className="text-xs font-bold text-slate-700 dark:text-slate-350 cursor-pointer select-none">
+                  Encrypt Text File (AES-GCM)
+                </label>
+              </div>
+              
+              {newTxtEncrypt && (
+                <div>
+                  <label className="label-title">ENCRYPTION PASSPHRASE</label>
+                  <input
+                    type="password"
+                    placeholder="Passphrase to encrypt"
+                    value={newTxtPassphrase}
+                    onChange={(e) => setNewTxtPassphrase(e.target.value)}
+                    className="input-field"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateTxtModal(false)}
+                  className="btn-secondary py-2 px-4 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary py-2 px-4 text-xs font-bold"
+                >
+                  Create & Save
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
