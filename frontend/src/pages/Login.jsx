@@ -23,6 +23,7 @@ const Login = () => {
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
   const [showMailtoFallback, setShowMailtoFallback] = useState(false);
+  const [suspensionError, setSuspensionError] = useState(null);
 
   // New password input states during recovery
   const [isRecovering, setIsRecovering] = useState(false);
@@ -96,11 +97,13 @@ const Login = () => {
     }
   }, [user, navigate]);
 
-  // Capture timeout reason
+  // Capture timeout/suspension reason
   useEffect(() => {
     const reason = searchParams.get('reason');
     if (reason === 'timeout') {
       showToast('You have been logged out due to inactivity.', 'warning');
+    } else if (reason === 'suspended') {
+      setSuspensionError('Your account has been suspended by the administrator.');
     }
   }, [searchParams, showToast]);
 
@@ -149,7 +152,11 @@ const Login = () => {
       }
     } catch (err) {
       console.error(err);
-      showToast(err.message || 'Incorrect email or password.', 'danger');
+      if (err.message?.includes('suspended')) {
+        setSuspensionError(err.message);
+      } else {
+        showToast(err.message || 'Incorrect email or password.', 'danger');
+      }
     } finally {
       setLoading(false);
     }
@@ -240,7 +247,41 @@ const Login = () => {
           </Link>
         </div>
 
-        {isRecovering ? (
+        {suspensionError ? (
+          // Account Suspended Warning Card
+          <div className="text-center animate-scale-up">
+            <div className="flex justify-center mb-4">
+              <div className="p-3.5 bg-red-100 dark:bg-red-950/30 text-red-500 rounded-full">
+                <ShieldAlert className="w-10 h-10 stroke-[2.5]" />
+              </div>
+            </div>
+            <h2 className="text-xl font-bold font-display text-slate-800 dark:text-white mb-3">
+              Account Suspended
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
+              {suspensionError} You no longer have access to CloudVault. 
+              If you believe this is a mistake or wish to request reactivation, please contact support.
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <a
+                href={`mailto:homtolab@gmail.com?subject=Reactivation Request for Suspended Account (${encodeURIComponent(email || 'User')})&body=Hello Admin,%0A%0AMy CloudVault account (${encodeURIComponent(email || 'User')}) has been suspended by the administrator.%0A%0AI would like to request reactivation.%0A%0AThank you!`}
+                className="w-full btn-danger h-12 flex justify-center items-center font-bold text-sm"
+              >
+                Contact Support via Email
+              </a>
+              <button
+                onClick={() => {
+                  setSuspensionError(null);
+                  setEmail('');
+                  setPassword('');
+                }}
+                className="w-full btn-secondary h-12 text-sm cursor-pointer"
+              >
+                Back to Sign In
+              </button>
+            </div>
+          </div>
+        ) : isRecovering ? (
           // Update Password Card (triggered by PASSWORD_RECOVERY event)
           <div>
             <h2 className="text-xl font-bold font-display text-center text-slate-800 dark:text-white mb-2">

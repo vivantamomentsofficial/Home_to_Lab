@@ -52,6 +52,7 @@ const Dashboard = () => {
   // Profile fields state
   const [fullName, setFullName] = useState('');
   const [college, setCollege] = useState('');
+  const [isProfileLocked, setIsProfileLocked] = useState(false);
   const [storageLimit, setStorageLimit] = useState(100 * 1024 * 1024); // 100MB
   const [usedStorage, setUsedStorage] = useState(0);
   const [uploadLocked, setUploadLocked] = useState(false);
@@ -136,11 +137,14 @@ const Dashboard = () => {
         if (data.is_suspended) {
           showToast('Your account has been suspended by the administrator.', 'danger');
           await logout();
-          navigate('/login');
+          navigate('/login?reason=suspended');
           return;
         }
         setFullName(data.full_name || '');
         setCollege(data.college || '');
+        if (data.full_name && data.college) {
+          setIsProfileLocked(true);
+        }
         setStorageLimit(data.storage_limit || 100 * 1024 * 1024);
         setUploadLocked(!!data.upload_locked);
         setClipboardLocked(!!data.clipboard_locked);
@@ -332,7 +336,7 @@ const Dashboard = () => {
     showToast('Uploading avatar...', 'info');
     try {
       const ext = file.name.split('.').pop();
-      const avatarPath = `avatars/${user.id}/avatar_${Date.now()}.${ext}`;
+      const avatarPath = `uploads/${user.id}/avatar_${Date.now()}.${ext}`;
 
       // Upload file to Supabase storage 'vault'
       const { error: uploadError } = await supabase.storage
@@ -1995,6 +1999,7 @@ const Dashboard = () => {
                     onChange={(e) => setFullName(e.target.value)}
                     className="input-field"
                     required
+                    disabled={isProfileLocked}
                   />
                 </div>
                 <div>
@@ -2004,11 +2009,26 @@ const Dashboard = () => {
                     value={college}
                     onChange={(e) => setCollege(e.target.value)}
                     className="input-field"
+                    disabled={isProfileLocked}
                   />
                 </div>
-                <button type="submit" className="w-full btn-primary py-2.5 text-sm">
-                  Save Name
-                </button>
+                {isProfileLocked ? (
+                  <div className="text-center pt-2">
+                    <p className="text-[11px] text-slate-550 dark:text-slate-400 mb-3 leading-relaxed">
+                      Display name and college can only be changed by requesting the administrator.
+                    </p>
+                    <a
+                      href={`mailto:homtolab@gmail.com?subject=Profile Change Request for ${encodeURIComponent(user?.email)}&body=Hello Admin,%0A%0AI would like to request a change to my profile details.%0A%0ACurrent Name: ${encodeURIComponent(fullName)}%0ACurrent College: ${encodeURIComponent(college)}%0A%0ANew Name: %0ANew College: %0A%0AThank you!`}
+                      className="w-full btn-secondary py-2 text-xs flex items-center justify-center gap-1 border border-brand-primary/10 text-brand-primary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-brand-primary-hover"
+                    >
+                      Request Profile Change
+                    </a>
+                  </div>
+                ) : (
+                  <button type="submit" className="w-full btn-primary py-2.5 text-sm">
+                    Save Name
+                  </button>
+                )}
               </form>
             </div>
 

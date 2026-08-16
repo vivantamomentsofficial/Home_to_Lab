@@ -137,6 +137,27 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error) throw error;
+
+    // Check if account is suspended before fully setting session
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('is_suspended')
+        .eq('id', data.user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn('Could not check suspension status on login:', profileError);
+      } else if (profileData && profileData.is_suspended) {
+        await supabase.auth.signOut();
+        throw new Error('Your account has been suspended by the administrator. Please contact homtolab@gmail.com.');
+      }
+    } catch (profileErr) {
+      if (profileErr.message?.includes('suspended')) {
+        throw profileErr;
+      }
+    }
+
     setSession(data.session);
     setUser(data.session?.user || null);
     return data;
