@@ -2,13 +2,22 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useInactivityLogout } from './hooks/useInactivityLogout';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Admin from './pages/Admin';
-import AdminLogin from './pages/AdminLogin';
 import { Settings, HelpCircle, ShieldAlert } from 'lucide-react';
+
+// Lazy load pages for code splitting
+const Home = React.lazy(() => import('./pages/Home'));
+const Login = React.lazy(() => import('./pages/Login'));
+const Register = React.lazy(() => import('./pages/Register'));
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Admin = React.lazy(() => import('./pages/Admin'));
+const AdminLogin = React.lazy(() => import('./pages/AdminLogin'));
+
+const LoadingFallback = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark">
+    <div className="w-12 h-12 rounded-full border-4 border-brand-primary border-t-transparent animate-spin"></div>
+    <p className="mt-4 text-sm font-medium text-slate-500">Loading page content...</p>
+  </div>
+);
 
 // Route Guard to verify general user authentication
 const ProtectedRoute = ({ children }) => {
@@ -143,29 +152,31 @@ const AppContent = () => {
   }
 
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <Admin />
-          </AdminRoute>
-        }
-      />
-      <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <React.Suspense fallback={<LoadingFallback />}>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <Admin />
+            </AdminRoute>
+          }
+        />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </React.Suspense>
   );
 };
 

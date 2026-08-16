@@ -224,6 +224,10 @@ DROP POLICY IF EXISTS "Allow admin to view all login logs" ON public.login_logs;
 CREATE POLICY "Allow admin to view all login logs" ON public.login_logs
     FOR SELECT TO authenticated USING (public.is_admin());
 
+DROP POLICY IF EXISTS "Allow users to view their own login logs" ON public.login_logs;
+CREATE POLICY "Allow users to view their own login logs" ON public.login_logs
+    FOR SELECT TO authenticated USING (auth.uid() = user_id);
+
 
 -- =========================================================================
 -- 3. STORAGE SETUP & STORAGE POLICIES

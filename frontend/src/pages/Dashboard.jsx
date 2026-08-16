@@ -3,6 +3,25 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
+
+// Import modular API services
+import { 
+  fetchFilesAndFolders, 
+  calculateUsedStorage, 
+  createSignedDownloadUrl, 
+  insertFileRecord, 
+  uploadFileToStorage 
+} from '../services/fileService';
+
+import { 
+  fetchNotesFromDb, 
+  deleteNoteRecord 
+} from '../services/noteService';
+
+import { 
+  fetchProfileDetailsFromDb, 
+  fetchLoginLogsFromDb 
+} from '../services/profileService';
 import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
@@ -121,6 +140,10 @@ const Dashboard = () => {
   const [shareTimeLeft, setShareTimeLeft] = useState(0);
   const shareTimerRef = useRef(null);
 
+  // Session monitor state
+  const [loginLogs, setLoginLogs] = useState([]);
+  const [logsLoading, setLogsLoading] = useState(false);
+
   // File Previews Lightbox
   const [previewImage, setPreviewImage] = useState(null);
   const [previewText, setPreviewText] = useState(null);
@@ -136,11 +159,7 @@ const Dashboard = () => {
   const fetchProfileDetails = async () => {
     if (!supabase || !user) return;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, college, storage_limit, upload_locked, clipboard_locked, download_locked, is_suspended, avatar_url')
-        .eq('id', user.id)
-        .single();
+      const data = await fetchProfileDetailsFromDb(supabase, user.id);
       
       if (data) {
         if (data.is_suspended) {
@@ -161,11 +180,9 @@ const Dashboard = () => {
 
         // Resolve avatar image URL using a signed URL if set
         if (data.avatar_url) {
-          const { data: signedData, error: signedError } = await supabase.storage
-            .from('vault')
-            .createSignedUrl(data.avatar_url, 3600);
-          if (signedData) {
-            setAvatarUrl(signedData.signedUrl);
+          const signedUrl = await createSignedDownloadUrl(supabase, data.avatar_url, 3600);
+          if (signedUrl) {
+            setAvatarUrl(signedUrl);
           }
         }
       }
@@ -197,15 +214,8 @@ const Dashboard = () => {
   const fetchStorageStats = async () => {
     if (!supabase || !user) return;
     try {
-      const { data, error } = await supabase
-        .from('files')
-        .select('size')
-        .eq('user_id', user.id);
-
-      if (data) {
-        const total = data.reduce((sum, f) => sum + parseInt(f.size || 0), 0);
-        setUsedStorage(total);
-      }
+      const total = await calculateUsedStorage(supabase, user.id);
+      setUsedStorage(total);
     } catch (err) {
       console.error(err);
     }
@@ -215,25 +225,9 @@ const Dashboard = () => {
     if (!supabase || !user) return;
     setVaultLoading(true);
     try {
-      // Fetch Folders
-      const { data: folderData, error: folderErr } = await supabase
-        .from('folders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name', { ascending: true });
-
-      if (folderErr) throw folderErr;
-      setFolders(folderData || []);
-
-      // Fetch Files
-      const { data: fileData, error: fileErr } = await supabase
-        .from('files')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (fileErr) throw fileErr;
-      setFiles(fileData || []);
+      const { folders, files } = await fetchFilesAndFolders(supabase, user.id);
+      setFolders(folders);
+      setFiles(files);
     } catch (err) {
       console.error(err);
       showToast('Failed to load files from storage database.', 'danger');
@@ -246,14 +240,8 @@ const Dashboard = () => {
     if (!supabase || !user) return;
     setNotesLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setNotes(data || []);
+      const data = await fetchNotesFromDb(supabase, user.id);
+      setNotes(data);
     } catch (err) {
       console.error(err);
       showToast('Failed to retrieve snippets.', 'danger');
@@ -261,6 +249,7 @@ const Dashboard = () => {
       setNotesLoading(false);
     }
   };
+
 
   const fetchUpgradeRequestStatus = async () => {
     if (!supabase || !user) return;
@@ -288,8 +277,10 @@ const Dashboard = () => {
       fetchProfileDetails();
       fetchStorageStats();
       fetchUpgradeRequestStatus();
+      fetchUserLoginLogs();
     }
-  }, [user, supabase]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Tab change trigger loading
   useEffect(() => {
@@ -301,6 +292,9 @@ const Dashboard = () => {
     }
     if (activeTab === 'overview') {
       fetchStorageStats();
+    }
+    if (activeTab === 'settings') {
+      fetchUserLoginLogs();
     }
   }, [activeTab]);
 
@@ -556,12 +550,7 @@ const Dashboard = () => {
       message: 'Are you sure you want to permanently delete this text snippet? This cannot be undone.',
       action: async () => {
         try {
-          const { error } = await supabase
-            .from('notes')
-            .delete()
-            .eq('id', id);
-
-          if (error) throw error;
+          await deleteNoteRecord(supabase, id);
           showToast('Snippet deleted.', 'success');
           fetchNotes();
         } catch (err) {
@@ -571,6 +560,97 @@ const Dashboard = () => {
       }
     });
     setShowConfirmModal(true);
+  };
+
+  // Fetch login logs for session monitoring
+  const fetchUserLoginLogs = async () => {
+    if (!supabase || !user) return;
+    setLogsLoading(true);
+    try {
+      const logs = await fetchLoginLogsFromDb(supabase, user.id, 10);
+      setLoginLogs(logs);
+    } catch (err) {
+      console.warn('Failed to fetch user login logs:', err);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
+
+  // Sign out all other sessions/devices
+  const handleSignOutOthers = async () => {
+    if (!supabase) return;
+    setConfirmModalData({
+      title: 'Sign Out Other Sessions',
+      message: 'Are you sure you want to sign out all other devices and active sessions? You will remain signed in only on this browser.',
+      confirmText: 'Sign Out Others',
+      cancelText: 'Cancel',
+      action: async () => {
+        try {
+          const { error } = await supabase.auth.signOut({ scope: 'others' });
+          if (error) throw error;
+          showToast('Successfully signed out all other devices!', 'success');
+          setTimeout(fetchUserLoginLogs, 1000);
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to sign out other devices: ' + err.message, 'danger');
+        }
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Share text notes directly by converting them to virtual text files
+  const handleShareNote = async (note) => {
+    if (downloadLocked) {
+      showToast('Sharing privileges have been revoked by the administrator.', 'danger');
+      return;
+    }
+    showToast('Preparing note for sharing...', 'info');
+    try {
+      const sanitizedTitle = note.title.replace(/[^a-zA-Z0-9_-]/g, '_') || 'note';
+      const filename = `${sanitizedTitle}_snippet.txt`;
+      const storagePath = `uploads/${user.id}/${filename}`;
+
+      // Convert note text to file blob
+      const blob = new Blob([note.content], { type: 'text/plain' });
+      const fileObj = new File([blob], filename, { type: 'text/plain' });
+
+      // Upload text file to storage
+      await uploadFileToStorage(supabase, storagePath, fileObj);
+
+      // Check if file record already exists in database
+      let fileRecord;
+      const { data: existingFiles, error: checkError } = await supabase
+        .from('files')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('storage_path', storagePath);
+
+      if (checkError) throw checkError;
+
+      if (existingFiles && existingFiles.length > 0) {
+        fileRecord = existingFiles[0];
+      } else {
+        // Insert record into files table
+        fileRecord = await insertFileRecord(supabase, {
+          user_id: user.id,
+          filename: filename,
+          storage_path: storagePath,
+          file_type: 'text',
+          size: blob.size
+        });
+      }
+
+      // Generate the sharing code for this file record
+      await handleGenerateShareCode(fileRecord);
+      
+      // Refresh vault if active
+      fetchStorageStats();
+      if (activeTab === 'vault') fetchVaultFiles();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to share note: ' + err.message, 'danger');
+    }
   };
 
   const handleCopyNote = (text) => {
@@ -1657,8 +1737,15 @@ const Dashboard = () => {
                         </span>
                         <div className="flex gap-1">
                           <button
+                            onClick={() => handleShareNote(note)}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
+                            title="Share note with 6-digit code"
+                          >
+                            <Share2 className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleCopyNote(note.content)}
-                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors"
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
                             title="Copy snippet"
                           >
                             <Clipboard className="w-4 h-4" />
@@ -1997,6 +2084,54 @@ const Dashboard = () => {
                   <option value="15">15 Minutes</option>
                   <option value="30">30 Minutes</option>
                 </select>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
+              <div className="flex justify-between items-center gap-4 mb-1">
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Active Sessions & Logins</h3>
+                <button
+                  type="button"
+                  onClick={handleSignOutOthers}
+                  className="btn-primary py-1.5 px-3 text-[10px] font-bold shrink-0 cursor-pointer"
+                >
+                  Sign Out Other Devices
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                Verify your recent login activity to ensure your session was not left active on another device.
+              </p>
+              
+              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 rounded-xl overflow-hidden">
+                <div className="max-h-[160px] overflow-y-auto custom-scrollbar">
+                  {logsLoading ? (
+                    <div className="flex justify-center items-center py-6">
+                      <div className="w-5 h-5 rounded-full border-2 border-brand-primary border-t-transparent animate-spin"></div>
+                    </div>
+                  ) : loginLogs.length === 0 ? (
+                    <div className="text-center py-6 text-slate-400 text-xs">
+                      No login logs available.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-150 dark:divide-slate-800/80">
+                      {loginLogs.map((log) => (
+                        <div key={log.id} className="flex justify-between items-center py-2.5 px-4 text-xs">
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              IP: {log.ip_address || 'Unknown'}
+                            </span>
+                            <span className="text-[10px] text-slate-400">
+                              {log.email}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(log.login_time).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
