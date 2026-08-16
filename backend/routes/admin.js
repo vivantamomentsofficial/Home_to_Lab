@@ -163,6 +163,32 @@ router.get('/logs', async (req, res) => {
   }
 });
 
+// DELETE /api/admin/logs - Clear all login logs audit trail (with backup download requested by UI)
+router.delete('/logs', async (req, res) => {
+  try {
+    const supabase = req.supabase;
+    
+    // Attempt RPC clear (security definer bypasses RLS if created)
+    const { error: rpcError } = await supabase.rpc('admin_clear_login_logs');
+    
+    if (rpcError) {
+      console.warn('RPC clear failed, falling back to direct delete:', rpcError.message);
+      // Fallback: direct delete query (requires delete policy to be run or RLS bypass)
+      const { error: deleteError } = await supabase
+        .from('login_logs')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000');
+        
+      if (deleteError) throw deleteError;
+    }
+    
+    return res.json({ success: true, message: 'Login logs cleared successfully.' });
+  } catch (err) {
+    console.error('Failed to clear login logs:', err);
+    return res.status(500).json({ error: 'Failed to clear logs: ' + err.message });
+  }
+});
+
 // GET /api/admin/requests - Fetch pending storage upgrade requests
 router.get('/requests', async (req, res) => {
   try {
@@ -278,14 +304,15 @@ router.delete('/snippets/:id', async (req, res) => {
   }
 });
 
-// POST /api/admin/users/:id/lock - Toggle user feature locks (upload, clipboard, suspension)
+// POST /api/admin/users/:id/lock - Toggle user feature locks (upload, clipboard, suspension, download)
 router.post('/users/:id/lock', async (req, res) => {
   const { id } = req.params;
-  const { upload_locked, clipboard_locked, is_suspended } = req.body;
+  const { upload_locked, clipboard_locked, download_locked, is_suspended } = req.body;
 
   const updates = {};
   if (upload_locked !== undefined) updates.upload_locked = !!upload_locked;
   if (clipboard_locked !== undefined) updates.clipboard_locked = !!clipboard_locked;
+  if (download_locked !== undefined) updates.download_locked = !!download_locked;
   if (is_suspended !== undefined) updates.is_suspended = !!is_suspended;
 
   if (Object.keys(updates).length === 0) {

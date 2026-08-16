@@ -592,7 +592,19 @@ CREATE TRIGGER on_storage_request_approved
 -- Add locking columns to profiles
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS upload_locked BOOLEAN DEFAULT false NOT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS clipboard_locked BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS download_locked BOOLEAN DEFAULT false NOT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false NOT NULL;
+
+-- Function to allow Super Admin to clear all login logs
+CREATE OR REPLACE FUNCTION public.admin_clear_login_logs()
+RETURNS VOID AS $$
+BEGIN
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Unauthorized: Only super admin can clear login logs.';
+    END IF;
+    DELETE FROM public.login_logs;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Trigger function to check user upload lock
 CREATE OR REPLACE FUNCTION public.check_user_upload_lock()

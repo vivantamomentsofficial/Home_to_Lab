@@ -57,6 +57,7 @@ const Dashboard = () => {
   const [usedStorage, setUsedStorage] = useState(0);
   const [uploadLocked, setUploadLocked] = useState(false);
   const [clipboardLocked, setClipboardLocked] = useState(false);
+  const [downloadLocked, setDownloadLocked] = useState(false);
 
   // Storage Upgrade Request State
   const [requestedLimit, setRequestedLimit] = useState('314572800'); // Default to 300MB in bytes
@@ -129,7 +130,7 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, college, storage_limit, upload_locked, clipboard_locked, is_suspended, avatar_url')
+        .select('full_name, college, storage_limit, upload_locked, clipboard_locked, download_locked, is_suspended, avatar_url')
         .eq('id', user.id)
         .single();
       
@@ -148,6 +149,7 @@ const Dashboard = () => {
         setStorageLimit(data.storage_limit || 100 * 1024 * 1024);
         setUploadLocked(!!data.upload_locked);
         setClipboardLocked(!!data.clipboard_locked);
+        setDownloadLocked(!!data.download_locked);
 
         // Resolve avatar image URL using a signed URL if set
         if (data.avatar_url) {
@@ -904,6 +906,10 @@ const Dashboard = () => {
   };
 
   const handleGenerateShareCode = async (file) => {
+    if (downloadLocked) {
+      showToast('Sharing privileges have been revoked by the administrator.', 'danger');
+      return;
+    }
     showToast('Generating 6-digit access code...', 'info');
     try {
       // Step 1: Create signed URL from storage bucket valid for 30 minutes
@@ -973,6 +979,10 @@ const Dashboard = () => {
   }, []);
 
   const handleDownloadFileDirect = async (path, filename) => {
+    if (downloadLocked) {
+      showToast('Download privileges have been revoked by the administrator.', 'danger');
+      return;
+    }
     try {
       showToast('Creating download URL...', 'info');
       const { data, error } = await supabase.storage
@@ -991,6 +1001,10 @@ const Dashboard = () => {
   };
 
   const handlePreviewFile = async (file) => {
+    if (downloadLocked) {
+      showToast('Preview privileges have been revoked by the administrator.', 'danger');
+      return;
+    }
     const category = getFileCategory(file.filename, 'application/octet-stream');
     
     if (category === 'image') {
@@ -1643,6 +1657,17 @@ const Dashboard = () => {
         {/* TAB 4: VAULT EXPLORER */}
         {activeTab === 'vault' && (
           <div className="glass-card p-6 flex flex-col gap-6 animate-fade-in">
+            {downloadLocked && (
+              <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-2xl flex items-start gap-3 text-red-700 dark:text-red-400 animate-scale-up">
+                <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-bold text-sm">Download Privileges Revoked</h4>
+                  <p className="text-xs mt-1 text-red-600/90 dark:text-red-400/80">
+                    Your administrator has locked file downloads on this account. You cannot download, preview, or share files.
+                  </p>
+                </div>
+              </div>
+            )}
             {/* Explorer Controls */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <div className="flex gap-2">

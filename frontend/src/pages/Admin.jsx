@@ -5,7 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import {
   ShieldAlert, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
-  Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu
+  Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu, Trash2
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -149,6 +149,60 @@ const Admin = () => {
     } finally {
       setLogsLoading(false);
     }
+  };
+
+  const handleClearLogs = () => {
+    setConfirmData({
+      title: 'Clear Login Audits',
+      message: 'This will compile all current login audit records into an Excel-compatible CSV download, and permanently delete all logs from the database. Are you sure you want to proceed?',
+      action: async () => {
+        try {
+          // 1. Generate CSV content
+          const headers = ['Email', 'Login Time', 'IP Address'];
+          const rows = logs.map(l => [l.email, l.login_time, l.ip_address || 'N/A']);
+          
+          const formatCsvCell = (val) => {
+            const str = String(val);
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+              return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+          };
+          
+          const csvLines = [
+            headers.join(','),
+            ...rows.map(row => row.map(formatCsvCell).join(','))
+          ];
+          
+          const csvContent = "\uFEFF" + csvLines.join('\n'); // Add BOM for Excel UTF-8 support
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          
+          const link = document.createElement("a");
+          link.setAttribute("href", url);
+          link.setAttribute("download", `login_audits_clear_backup_${Date.now()}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          // 2. Request backend to clear logs
+          const res = await fetch(`${getApiUrl()}/api/admin/logs`, {
+            method: 'DELETE',
+            headers: getHeaders(),
+          });
+          
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Failed to clear logs.');
+          
+          showToast('Login audits backed up and cleared successfully!', 'success');
+          fetchLogs(); // Reload logs state
+        } catch (err) {
+          console.error(err);
+          showToast(err.message || 'Failed to clear login logs.', 'danger');
+        }
+      }
+    });
+    setShowConfirmModal(true);
   };
 
   // 4. Fetch pending storage upgrade requests
@@ -952,7 +1006,12 @@ const Admin = () => {
                                 Clip Locked
                               </span>
                             )}
-                            {!userItem.is_suspended && !userItem.upload_locked && !userItem.clipboard_locked && (
+                            {userItem.download_locked && (
+                              <span className="px-2 py-0.5 bg-purple-100 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-purple-200/50 dark:border-purple-900/30">
+                                Retrieve Locked
+                              </span>
+                            )}
+                            {!userItem.is_suspended && !userItem.upload_locked && !userItem.clipboard_locked && !userItem.download_locked && (
                               <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-emerald-200/50 dark:border-emerald-900/30">
                                 Active
                               </span>
@@ -1087,33 +1146,40 @@ const Admin = () => {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-slate-700 dark:text-slate-300">
                     {getFilteredSnippets().map((snippet) => (
                       <tr key={snippet.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                        <td className="py-3.5 pr-4">
-                          <div className="font-semibold text-slate-900 dark:text-white">{snippet.userName}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">{snippet.userEmail}</div>
+                        <td className="py-3.5 pr-4 flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-display font-semibold text-[11px] uppercase">
+                            {snippet.userName ? snippet.userName.substring(0, 2) : 'CL'}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-900 dark:text-white">{snippet.userName || 'Guest User'}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">{snippet.userEmail}</div>
+                          </div>
                         </td>
                         <td className="py-3.5 px-4 font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]" title={snippet.title}>
                           {snippet.title}
                         </td>
-                        <td className="py-3.5 px-4 text-slate-400 font-mono text-[10px] truncate max-w-[150px] whitespace-pre-wrap break-all" title={snippet.content}>
-                          {snippet.content}
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-1 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800/50 rounded-lg text-slate-600 dark:text-slate-400 font-mono select-all truncate block max-w-[200px]" title={snippet.content}>
+                            {snippet.content}
+                          </span>
                         </td>
                         <td className="py-3.5 pl-4 text-right">
                           <div className="flex justify-end gap-1.5">
                             <button
                               onClick={() => setPreviewText({ title: snippet.title, content: snippet.content })}
-                              className="btn-secondary py-1.5 px-2.5 text-[10px] flex items-center gap-1"
+                              className="btn-secondary hover:bg-slate-50 dark:hover:bg-slate-800/80 py-1.5 px-2.5 text-[10px] flex items-center gap-1 cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5" /> View
                             </button>
                             <button
                               onClick={() => handleCopySnippetText(snippet.content)}
-                              className="btn-secondary py-1.5 px-2.5 text-[10px] flex items-center gap-1"
+                              className="btn-secondary hover:bg-slate-50 dark:hover:bg-slate-800/80 py-1.5 px-2.5 text-[10px] flex items-center gap-1 cursor-pointer"
                             >
                               Copy
                             </button>
                             <button
                               onClick={() => handleDeleteSnippetDirect(snippet.id)}
-                              className="btn-danger py-1.5 px-2.5 text-[10px] flex items-center gap-1"
+                              className="btn-danger bg-red-500 hover:bg-red-650 py-1.5 px-2.5 text-[10px] flex items-center gap-1 cursor-pointer"
                             >
                               <Trash className="w-3.5 h-3.5" /> Delete
                             </button>
@@ -1131,7 +1197,17 @@ const Admin = () => {
         {/* SECTION 5: LOGIN SESSION LOGS AUDITS */}
         {activeSection === 'logs' && (
           <div className="glass-card p-6 flex flex-col gap-4 animate-fade-in max-w-2xl">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white">Security Audits: User Logins (Recent 50)</h3>
+            <div className="flex justify-between items-center gap-4">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-white">Security Audits: User Logins (Recent 50)</h3>
+              {logs.length > 0 && (
+                <button
+                  onClick={handleClearLogs}
+                  className="btn-danger bg-red-600 hover:bg-red-750 text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer shadow-red-500/10 border-0 outline-none"
+                >
+                  <Trash2 className="w-4 h-4" /> Clear Logs
+                </button>
+              )}
+            </div>
 
             {logsLoading ? (
               <div className="flex justify-center items-center py-20">
@@ -1271,16 +1347,16 @@ const Admin = () => {
             </div>
 
             {/* Admin Feature Locking Controls */}
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex flex-col gap-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider font-display">Account Constraint Privileges</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex flex-col gap-3">
+              <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-display">Account Constraint Privileges</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   type="button"
                   onClick={() => handleToggleLock('upload_locked', targetUser.upload_locked)}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     targetUser.upload_locked
-                      ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100/50'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100/50'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   <UploadCloud className="w-4 h-4" /> {targetUser.upload_locked ? 'Unlock Uploads' : 'Lock Uploads'}
@@ -1289,10 +1365,10 @@ const Admin = () => {
                 <button
                   type="button"
                   onClick={() => handleToggleLock('clipboard_locked', targetUser.clipboard_locked)}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     targetUser.clipboard_locked
-                      ? 'bg-red-50 border-red-200 text-red-600 hover:bg-red-100/50'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100/50'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   <Clipboard className="w-4 h-4" /> {targetUser.clipboard_locked ? 'Unlock Clipboard' : 'Lock Clipboard'}
@@ -1300,11 +1376,23 @@ const Admin = () => {
 
                 <button
                   type="button"
+                  onClick={() => handleToggleLock('download_locked', targetUser.download_locked)}
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    targetUser.download_locked
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100/50'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Download className="w-4 h-4" /> {targetUser.download_locked ? 'Unlock Retrieve' : 'Lock Retrieve'}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => handleToggleLock('is_suspended', targetUser.is_suspended)}
-                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 ${
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                     targetUser.is_suspended
-                      ? 'bg-red-600 border-red-600 text-white hover:bg-red-700'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-red-650 border-red-650 text-white hover:bg-red-700'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
                   }`}
                 >
                   <ShieldAlert className="w-4 h-4" /> {targetUser.is_suspended ? 'Activate Account' : 'Suspend Account'}
