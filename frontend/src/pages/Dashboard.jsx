@@ -420,6 +420,7 @@ const Dashboard = () => {
         .upload(avatarPath, file, {
           cacheControl: '3600',
           upsert: true,
+          contentType: file.type || 'image/*',
         });
 
       if (uploadError) throw uploadError;
@@ -668,7 +669,9 @@ const Dashboard = () => {
       const fileObj = new File([blob], filename, { type: 'text/plain' });
 
       // Upload text file to storage
-      await uploadFileToStorage(supabase, storagePath, fileObj);
+      await uploadFileToStorage(supabase, storagePath, fileObj, {
+        contentType: 'text/plain'
+      });
 
       // Check if file record already exists in database
       let fileRecord;
@@ -732,7 +735,9 @@ const Dashboard = () => {
       // Upload text file to storage
       const { error: uploadError } = await supabase.storage
         .from('vault')
-        .upload(storagePath, fileObj);
+        .upload(storagePath, fileObj, {
+          contentType: 'text/plain'
+        });
 
       if (uploadError) throw uploadError;
 
@@ -872,6 +877,7 @@ const Dashboard = () => {
         .upload(storagePath, fileToUpload, {
           cacheControl: '3600',
           upsert: false,
+          contentType: fileToUpload.type || 'application/octet-stream',
           signal: controller.signal,
           onUploadProgress: (progressEvent) => {
             const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
@@ -2064,7 +2070,7 @@ const Dashboard = () => {
             {/* User Nav Avatar */}
             <div 
               onClick={() => setActiveTab('profile')}
-              className="w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-display font-semibold text-brand-primary text-sm uppercase cursor-pointer hover:bg-brand-primary/25 transition-all duration-200 shrink-0 overflow-hidden"
+              className="hidden lg:flex w-10 h-10 rounded-full bg-brand-primary/10 border border-brand-primary/20 items-center justify-center font-display font-semibold text-brand-primary text-sm uppercase cursor-pointer hover:bg-brand-primary/25 transition-all duration-200 shrink-0 overflow-hidden"
               title="View Profile"
             >
               {avatarUrl ? (

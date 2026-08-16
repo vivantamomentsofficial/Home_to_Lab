@@ -582,8 +582,9 @@ const Admin = () => {
         .upload(path, behalfFile, {
           cacheControl: '3600',
           upsert: false,
+          contentType: behalfFile.type || 'application/octet-stream',
           onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
+            const percent = Math.round((progress.loaded / (progress.total || behalfFile.size || 1)) * 100);
             setBehalfUploadProgress(percent);
           }
         });
