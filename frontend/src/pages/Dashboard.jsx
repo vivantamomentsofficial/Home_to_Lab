@@ -174,6 +174,26 @@ const Dashboard = () => {
     }
   };
 
+  const handleLogoutClick = () => {
+    setConfirmModalData({
+      title: 'Na Kare Janab Na kare',
+      message: 'Are you sure you want to sign out of your CloudVault session? Any unsaved clipboard drafts or active file selections will be closed.',
+      confirmText: 'Logout',
+      cancelText: 'Back',
+      action: async () => {
+        try {
+          await logout();
+          navigate('/');
+          setIsDrawerOpen(false);
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to logout.', 'danger');
+        }
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
   const fetchStorageStats = async () => {
     if (!supabase || !user) return;
     try {
@@ -1315,11 +1335,7 @@ const Dashboard = () => {
             </div>
           </div>
           <button
-            onClick={() => {
-              logout();
-              navigate('/');
-              setIsDrawerOpen(false);
-            }}
+            onClick={handleLogoutClick}
             className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
             title="Log Out"
           >
@@ -2185,7 +2201,7 @@ const Dashboard = () => {
                 onClick={() => setShowConfirmModal(false)}
                 className="btn-secondary py-2 px-4 text-xs font-bold"
               >
-                Cancel
+                {confirmModalData.cancelText || 'Cancel'}
               </button>
               <button
                 onClick={() => {
@@ -2194,7 +2210,7 @@ const Dashboard = () => {
                 }}
                 className="btn-danger py-2 px-4 text-xs font-bold"
               >
-                Proceed
+                {confirmModalData.confirmText || 'Proceed'}
               </button>
             </div>
           </div>
