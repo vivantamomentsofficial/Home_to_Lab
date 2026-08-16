@@ -258,15 +258,15 @@ const Home = () => {
       <section className="flex flex-col items-center justify-center pt-32 pb-16 px-6 lg:px-[8%] text-center z-10">
         <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-semibold tracking-wider uppercase mb-6 animate-fade-in">
           <Sparkles className="w-3.5 h-3.5" />
-          Built for College Students & Lab Users
+          Secure Transient Storage & Clipboard Bridge
         </div>
 
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold font-display max-w-3xl leading-tight mb-6 bg-gradient-to-r from-slate-900 via-brand-primary to-sky-500 dark:from-white dark:via-brand-primary-light dark:to-cyan-400 bg-clip-text text-transparent">
           Home to Lab, Instantly.
         </h1>
 
-        <p className="text-lg text-slate-600 dark:text-slate-400 max-w-xl leading-relaxed mb-8">
-          Home to Lab (CloudVault) allows you to upload files or paste notes from home and access them on any library or college computer instantly without plugging in USBs or risking your logins on unsecure PCs.
+        <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed mb-8">
+          Upload assignment files or sync clipboard snippets securely from home and retrieve them instantly on any public library or college computer lab terminal—no USB drives or unsecure browser logins required.
         </p>
 
         <div className="flex gap-4 mb-12">
@@ -451,7 +451,7 @@ const Home = () => {
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Security Built-In</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Private vault stored behind Supabase Row Level Security. Only you can access your own files.</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Private vault secured with Enterprise Row-Level Security policies. Only you can access your own files.</p>
             </div>
           </div>
           <div className="glass-card p-6 flex gap-4">
@@ -508,7 +508,7 @@ const Home = () => {
             {[
               {
                 q: 'How secure is CloudVault?',
-                a: 'All your files and snippets are protected by Supabase Row-Level Security (RLS) policies. Only your authenticated user account can access, download, or edit your private vault items. Lab computer logins are completely isolated.'
+                a: 'All your files and snippets are protected by secure database Row-Level Security (RLS) policies. Only your authenticated user account can access, download, or edit your private vault items. Lab computer logins are completely isolated.'
               },
               {
                 q: 'Does it save sessions on shared lab PCs?',
@@ -545,30 +545,44 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Developer Bio & Feedback Form Section */}
+      {/* Platform Security Standard & Feedback Section */}
       <section id="developer-feedback" className="py-20 px-6 lg:px-[8%] bg-white dark:bg-slate-900/10 border-t border-brand-border-light dark:border-brand-border-dark z-10">
         <div className="max-w-4xl mx-auto flex flex-col gap-10">
           <div className="text-center">
-            <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-xs font-bold rounded-full uppercase tracking-wider">About Project</span>
-            <h2 className="text-3xl font-bold font-display text-slate-800 dark:text-white mt-4">Developer & Contact</h2>
-            <p className="text-slate-500 mt-2 text-sm">Get in touch to suggest new features, report bugs, or collaborate on CloudVault.</p>
+            <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-xs font-bold rounded-full uppercase tracking-wider">Security & Feedback</span>
+            <h2 className="text-3xl font-bold font-display text-slate-800 dark:text-white mt-4">Security Standards & Feedback</h2>
+            <p className="text-slate-500 mt-2 text-sm">Submit your suggestions, report issues, or contact system assistance below.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            {/* Developer Card */}
+            {/* Platform Security Standard Card */}
             <div className="glass-card p-6 flex flex-col gap-5 border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full bg-brand-primary text-white flex items-center justify-center font-display font-extrabold text-lg uppercase shrink-0">
-                  AP
+                <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-11 w-11 flex items-center justify-center">
+                  <Shield className="w-5.5 h-5.5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-800 dark:text-white text-base">Aayush Parekh</h3>
-                  <p className="text-xs text-slate-400 font-medium">Lead Developer & Creator</p>
+                  <h3 className="font-bold text-slate-800 dark:text-white text-base">Security & Service Standards</h3>
+                  <p className="text-xs text-slate-400 font-medium">Transient & Encrypted Data Bridge</p>
                 </div>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Hi! I'm Aayush, a developer focused on building utilities that make academic life productive. I created CloudVault to bridge the gap between personal laptops and computer lab PCs without relying on unsecure USB drives or browser logins.
+                CloudVault operates on a zero-trust model. The application acts as a temporary bridge for public terminals: files and notes are cached temporarily and disappear automatically upon code expiration or session logout.
               </p>
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                  <strong>Zero-Knowledge:</strong> Option to encrypt files client-side.
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                  <strong>Automated Cleanups:</strong> Unused records purge daily.
+                </div>
+                <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span>
+                  <strong>Session Wiping:</strong> Active cookies clear on window close.
+                </div>
+              </div>
             </div>
 
             {/* Feedback Form Card */}
@@ -632,7 +646,7 @@ const Home = () => {
                 <button
                   type="submit"
                   disabled={feedbackSending}
-                  className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+                  className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Send className="w-3.5 h-3.5" /> {feedbackSending ? 'Sending...' : 'Submit Message'}
                 </button>
@@ -649,15 +663,7 @@ const Home = () => {
           <span className="font-display font-semibold text-slate-800 dark:text-slate-400">CloudVault</span>
         </div>
         <div>
-          &copy; 2026 CloudVault. Built for academic productivity. Developed by{' '}
-          <a
-            href="https://aayushparekhportfolio.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-brand-primary hover:underline font-bold"
-          >
-            Aayush Parekh
-          </a>
+          &copy; 2026 CloudVault. Secure and transient file transfer bridge. All rights reserved.
         </div>
       </footer>
 
