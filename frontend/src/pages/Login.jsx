@@ -22,6 +22,7 @@ const Login = () => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [showMailtoFallback, setShowMailtoFallback] = useState(false);
 
   // New password input states during recovery
   const [isRecovering, setIsRecovering] = useState(false);
@@ -30,26 +31,59 @@ const Login = () => {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   const turnstileRef = useRef(null);
+  const widgetIdRef = useRef(null);
 
   // Cloudflare Turnstile state
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (window.turnstile && turnstileRef.current) {
-        clearInterval(timer);
-        try {
-          if (turnstileRef.current.children.length === 0) {
-            window.turnstile.render(turnstileRef.current, {
-              sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-              theme: theme === 'dark' ? 'dark' : 'light',
-            });
+    let timer;
+    if (window.turnstile && turnstileRef.current) {
+      try {
+        if (widgetIdRef.current !== null) {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
+        }
+        if (turnstileRef.current.children.length === 0) {
+          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+            sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+            theme: theme === 'dark' ? 'dark' : 'light',
+          });
+        }
+      } catch (err) {
+        console.warn('Turnstile render error:', err);
+      }
+    } else {
+      timer = setInterval(() => {
+        if (window.turnstile && turnstileRef.current) {
+          clearInterval(timer);
+          try {
+            if (widgetIdRef.current !== null) {
+              window.turnstile.remove(widgetIdRef.current);
+              widgetIdRef.current = null;
+            }
+            if (turnstileRef.current.children.length === 0) {
+              widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+                theme: theme === 'dark' ? 'dark' : 'light',
+              });
+            }
+          } catch (err) {
+            console.warn('Turnstile render error:', err);
           }
+        }
+      }, 100);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (err) {
-          console.warn('Turnstile render error:', err);
+          console.warn('Turnstile cleanup error:', err);
         }
       }
-    }, 100);
-    return () => clearInterval(timer);
-  }, [theme]);
+    };
+  }, [theme, isForgotPassword, isRecovering]);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -130,6 +164,7 @@ const Login = () => {
     }
 
     setResetLoading(true);
+    setShowMailtoFallback(false);
     try {
       const redirectTo = `${window.location.origin}/login`;
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
@@ -141,7 +176,13 @@ const Login = () => {
       setIsForgotPassword(false);
     } catch (err) {
       console.error(err);
-      showToast(err.message || 'Failed to send recovery email.', 'danger');
+      const isSmtpError = err.status === 500 || err.message?.includes('recovery email') || err.message?.includes('SMTP');
+      if (isSmtpError) {
+        setShowMailtoFallback(true);
+        showToast('SMTP Server failure. You can use the Admin fallback link below to request manual recovery.', 'danger');
+      } else {
+        showToast(err.message || 'Failed to send recovery email.', 'danger');
+      }
     } finally {
       setResetLoading(false);
     }
@@ -288,6 +329,24 @@ const Login = () => {
                 )}
               </button>
             </form>
+
+            {showMailtoFallback && (
+              <div className="mt-4 p-3.5 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl flex flex-col gap-2.5">
+                <div className="flex gap-2">
+                  <ShieldAlert className="w-4.5 h-4.5 text-red-500 shrink-0 mt-0.5" />
+                  <div className="text-xs text-red-750 dark:text-red-400 leading-relaxed">
+                    <strong className="block mb-0.5">Email Delivery Error</strong>
+                    The Supabase mail server is currently misconfigured or has run out of its email quotas (500 SMTP Error). Please request a manual account recovery from the administrator.
+                  </div>
+                </div>
+                <a
+                  href={`mailto:homtolab@gmail.com?subject=CloudVault Password Recovery Support for ${encodeURIComponent(resetEmail)}&body=Hello Admin,%0A%0AI tried resetting my CloudVault password using the forgot password form, but I received a 500 SMTP error indicating that Supabase is unable to send emails.%0A%0AMy registered email: ${encodeURIComponent(resetEmail)}%0A%0APlease help reset my password.%0A%0AThanks!`}
+                  className="w-full text-center py-2 bg-red-500 hover:bg-red-650 text-white rounded-lg font-semibold text-xs transition-colors shadow-sm"
+                >
+                  Request Manual Recovery via Mail
+                </a>
+              </div>
+            )}
           </div>
         ) : (
           // Normal Login Form

@@ -48,7 +48,7 @@ const Home = () => {
   const handleRetrieveCode = async (e) => {
     e.preventDefault();
     if (!shareCode || shareCode.trim().length !== 6) {
-      showToast('Please enter a 6-digit sharing code.', 'warning');
+      showToast('Please enter a 6-character sharing code.', 'warning');
       return;
     }
 
@@ -274,16 +274,16 @@ const Home = () => {
             <h2 className="text-base font-bold text-slate-800 dark:text-white">Retrieve Shared File</h2>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-            Enter a 6-digit temporary share code to download a file instantly.
+            Enter a 6-character temporary share code to download a file instantly.
           </p>
 
           <form onSubmit={handleRetrieveCode} className="flex gap-2.5">
             <input
               type="text"
               maxLength={6}
-              placeholder="000000"
+              placeholder="XXXXXX"
               value={shareCode}
-              onChange={(e) => setShareCode(e.target.value.replace(/[^0-9]/g, ''))}
+              onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
               className="w-36 text-center font-bold tracking-[4px] text-lg uppercase h-12 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:border-brand-primary rounded-xl outline-none"
               required
             />

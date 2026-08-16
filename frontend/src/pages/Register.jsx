@@ -31,25 +31,50 @@ const Register = () => {
   }, [user, navigate]);
 
   const turnstileRef = useRef(null);
+  const widgetIdRef = useRef(null);
 
   // Cloudflare Turnstile state
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (window.turnstile && turnstileRef.current) {
-        clearInterval(timer);
-        try {
-          if (turnstileRef.current.children.length === 0) {
-            window.turnstile.render(turnstileRef.current, {
-              sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-              theme: theme === 'dark' ? 'dark' : 'light',
-            });
+    let timer;
+    if (window.turnstile && turnstileRef.current) {
+      try {
+        if (turnstileRef.current.children.length === 0) {
+          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+            sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+            theme: theme === 'dark' ? 'dark' : 'light',
+          });
+        }
+      } catch (err) {
+        console.warn('Turnstile render error:', err);
+      }
+    } else {
+      timer = setInterval(() => {
+        if (window.turnstile && turnstileRef.current) {
+          clearInterval(timer);
+          try {
+            if (turnstileRef.current.children.length === 0) {
+              widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+                sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+                theme: theme === 'dark' ? 'dark' : 'light',
+              });
+            }
+          } catch (err) {
+            console.warn('Turnstile render error:', err);
           }
+        }
+      }, 100);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.remove(widgetIdRef.current);
+          widgetIdRef.current = null;
         } catch (err) {
-          console.warn('Turnstile render error:', err);
+          console.warn('Turnstile cleanup error:', err);
         }
       }
-    }, 100);
-    return () => clearInterval(timer);
+    };
   }, [theme]);
 
   const handleSubmit = async (e) => {

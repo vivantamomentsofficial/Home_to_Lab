@@ -10,7 +10,7 @@ router.get('/:code', async (req, res) => {
   const { code } = req.params;
 
   if (!code || code.length !== 6) {
-    return res.status(400).json({ error: 'Invalid share code format. Must be 6 digits.' });
+    return res.status(400).json({ error: 'Invalid share code format. Must be 6 characters.' });
   }
 
   try {

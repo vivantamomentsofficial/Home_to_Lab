@@ -7,7 +7,7 @@ import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield, Camera
+  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -47,6 +47,7 @@ const Dashboard = () => {
 
   // Active workspace tab: 'overview' | 'upload' | 'clipboard' | 'vault' | 'settings' | 'profile'
   const [activeTab, setActiveTab] = useState('overview');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Profile fields state
   const [fullName, setFullName] = useState('');
@@ -1105,23 +1106,80 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300">
       
-      {/* Sidebar navigation */}
-      <aside className="w-full lg:w-64 bg-white dark:bg-slate-900 border-r border-brand-border-light dark:border-brand-border-dark flex flex-col p-5 z-20 shrink-0">
-        <div className="flex items-center gap-2.5 mb-8">
-          <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
-          <span className="font-display font-black text-xl text-slate-800 dark:text-white">
-            CloudVault
-          </span>
-          {user?.email === 'homtolab@gmail.com' && (
-            <span className="px-1.5 py-0.5 bg-brand-primary/10 text-[9px] font-bold text-brand-primary rounded tracking-wider uppercase">
-              Admin
+      {/* Mobile Top bar */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-brand-border-light dark:border-brand-border-dark z-30 shadow-xs sticky top-0">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 bg-slate-50 dark:bg-slate-850 rounded-xl text-slate-600 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+          <div className="flex items-center gap-1.5">
+            <Shield className="w-5.5 h-5.5 text-brand-primary stroke-[2.5]" />
+            <span className="font-display font-black text-lg text-slate-850 dark:text-white">
+              CloudVault
             </span>
-          )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={toggleTheme}
+            className="p-2 bg-slate-50 dark:bg-slate-850 rounded-xl text-slate-500 hover:text-brand-primary dark:text-slate-400 transition-colors cursor-pointer"
+            title="Toggle theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4.5 h-4.5" /> : <Moon className="w-4.5 h-4.5" />}
+          </button>
+          
+          <div 
+            onClick={() => {
+              setActiveTab('profile');
+              setIsDrawerOpen(false);
+            }}
+            className="w-8.5 h-8.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-display font-semibold text-brand-primary text-xs uppercase cursor-pointer overflow-hidden"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Sidebar navigation */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-brand-border-light dark:border-brand-border-dark flex flex-col p-5 z-50 shrink-0 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
+          isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 lg:opacity-100'
+        }`}
+      >
+        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
+            <span className="font-display font-black text-xl text-slate-800 dark:text-white">
+              CloudVault
+            </span>
+            {user?.email === 'homtolab@gmail.com' && (
+              <span className="px-1.5 py-0.5 bg-brand-primary/10 text-[9px] font-bold text-brand-primary rounded tracking-wider uppercase">
+                Admin
+              </span>
+            )}
+          </div>
+          <button
+            onClick={() => setIsDrawerOpen(false)}
+            className="lg:hidden p-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-850 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            <X className="w-4.5 h-4.5" />
+          </button>
         </div>
 
         <nav className="flex-1 flex flex-col gap-1.5">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => {
+              setActiveTab('overview');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'overview'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1132,7 +1190,10 @@ const Dashboard = () => {
           </button>
           
           <button
-            onClick={() => setActiveTab('upload')}
+            onClick={() => {
+              setActiveTab('upload');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'upload'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1143,7 +1204,10 @@ const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('clipboard')}
+            onClick={() => {
+              setActiveTab('clipboard');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'clipboard'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1154,7 +1218,10 @@ const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('vault')}
+            onClick={() => {
+              setActiveTab('vault');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'vault'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1165,7 +1232,10 @@ const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('settings')}
+            onClick={() => {
+              setActiveTab('settings');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'settings'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1176,7 +1246,10 @@ const Dashboard = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('profile')}
+            onClick={() => {
+              setActiveTab('profile');
+              setIsDrawerOpen(false);
+            }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'profile'
                 ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
@@ -1192,6 +1265,7 @@ const Dashboard = () => {
               <Link
                 to="/admin"
                 className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/10 rounded-xl text-sm font-semibold transition-all"
+                onClick={() => setIsDrawerOpen(false)}
               >
                 <ShieldCheck className="w-4 h-4" /> Admin Panel
               </Link>
@@ -1218,14 +1292,23 @@ const Dashboard = () => {
             onClick={() => {
               logout();
               navigate('/');
+              setIsDrawerOpen(false);
             }}
-            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
             title="Log Out"
           >
             <LogOut className="w-4.5 h-4.5" />
           </button>
         </div>
       </aside>
+
+      {/* Mobile Drawer Backdrop */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden"
+          onClick={() => setIsDrawerOpen(false)}
+        ></div>
+      )}
 
       {/* Main dashboard content body */}
       <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
