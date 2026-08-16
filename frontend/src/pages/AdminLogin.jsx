@@ -14,6 +14,8 @@ const AdminLogin = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState(1); // 1 = Password, 2 = OTP
+  const [otp, setOtp] = useState('');
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -29,23 +31,38 @@ const AdminLogin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!password.trim()) {
-      showToast('Please enter the administrative credentials.', 'warning');
+
+    if (step === 1) {
+      if (!password.trim()) {
+        showToast('Please enter the administrative credentials.', 'warning');
+        return;
+      }
+      setStep(2);
+      showToast('Please enter the administrator OTP to proceed.', 'info');
       return;
     }
 
-    setLoading(true);
-    try {
-      // Direct Admin account authentication
-      const email = 'homtolab@gmail.com';
-      await login(email, password);
-      showToast('Super Admin authenticated successfully!', 'success');
-      navigate('/admin');
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || 'Incorrect administrative password.', 'danger');
-    } finally {
-      setLoading(false);
+    if (step === 2) {
+      if (otp !== '1127') {
+        showToast('Invalid administrative OTP code.', 'danger');
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // Direct Admin account authentication
+        const email = 'homtolab@gmail.com';
+        await login(email, password);
+        showToast('Super Admin authenticated successfully!', 'success');
+        navigate('/admin');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Incorrect administrative password.', 'danger');
+        setStep(1); // Reset to password step if auth fails
+        setOtp('');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -87,46 +104,85 @@ const AdminLogin = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           
+          {step === 1 ? (
+            /* Step 1: Password Input */
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="label-title mb-0">ADMIN PASSWORD</label>
+                </div>
+                <div className="relative">
+                  <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field pl-10 pr-10 py-3 text-xs"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-650 absolute right-3 top-2.5"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
 
-          {/* Password Input */}
-          <div>
-            <div className="flex justify-between items-center mb-1.5">
-              <label className="label-title mb-0">ADMIN PASSWORD</label>
-            </div>
-            <div className="relative">
-              <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input-field pl-10 pr-10 py-3 text-xs"
-                required
-              />
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 absolute right-3 top-2.5"
+                type="submit"
+                disabled={loading}
+                className="w-full btn-primary bg-red-600 hover:bg-red-700 shadow-red-500/10 py-3 text-xs font-bold flex items-center justify-center gap-1.5 mt-6 cursor-pointer"
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                Continue
               </button>
             </div>
-          </div>
+          ) : (
+            /* Step 2: OTP Input */
+            <div className="space-y-4 animate-scale-up">
+              <div>
+                <label className="label-title">ADMINISTRATIVE OTP</label>
+                <input
+                  type="password"
+                  maxLength={4}
+                  placeholder="••••"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="input-field text-center font-bold tracking-[10px] text-lg h-12"
+                  required
+                  autoFocus
+                />
+              </div>
 
-          {/* Submit Action */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full btn-primary bg-red-600 hover:bg-red-700 shadow-red-500/10 py-3 text-xs font-bold flex items-center justify-center gap-1.5 mt-6"
-          >
-            {loading ? (
-              <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-            ) : (
-              <>
-                <Shield className="w-4.5 h-4.5" /> Authenticate Admin
-              </>
-            )}
-          </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep(1);
+                    setOtp('');
+                  }}
+                  className="flex-1 btn-secondary py-3 text-xs font-bold cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-2 btn-primary bg-red-650 hover:bg-red-700 py-3 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {loading ? (
+                    <div className="w-4.5 h-4.5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                  ) : (
+                    <>
+                      <Shield className="w-4.5 h-4.5" /> Log In
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
         </form>
 

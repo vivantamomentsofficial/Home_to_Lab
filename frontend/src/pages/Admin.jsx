@@ -682,17 +682,17 @@ const Admin = () => {
 
       {/* Sidebar navigation */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-64 bg-slate-900 text-slate-100 flex flex-col p-5 z-40 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
+        className={`fixed lg:static inset-y-0 left-0 w-64 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-slate-100 flex flex-col p-5 z-40 border-r border-slate-800 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
           isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 opacity-0'
         }`}
       >
         <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8">
           <div className="flex items-center gap-2.5">
-            <Shield className="w-7 h-7 text-brand-primary-light stroke-[2.5]" />
+            <Shield className="w-7 h-7 text-red-500 stroke-[2.5]" />
             <span className="font-display font-black text-xl text-white">
               CloudVault
             </span>
-            <span className="px-2 py-0.5 bg-brand-primary/20 text-[9px] font-bold text-brand-primary-light rounded tracking-wider uppercase border border-brand-primary/40">
+            <span className="px-2 py-0.5 bg-red-500/10 text-[9px] font-bold text-red-400 rounded tracking-wider uppercase border border-red-500/20">
               Admin
             </span>
           </div>
@@ -712,7 +712,7 @@ const Admin = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'overview'
-                ? 'bg-brand-primary text-white shadow-md'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-md shadow-red-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
             }`}
           >
@@ -726,7 +726,7 @@ const Admin = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'users'
-                ? 'bg-brand-primary text-white shadow-md'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-md shadow-red-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
             }`}
           >
@@ -740,7 +740,7 @@ const Admin = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'requests'
-                ? 'bg-brand-primary text-white shadow-md'
+                ? 'bg-gradient-to-r from-red-600 to-rose-655 text-white shadow-md shadow-red-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
             }`}
           >
@@ -754,7 +754,7 @@ const Admin = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'snippets'
-                ? 'bg-brand-primary text-white shadow-md'
+                ? 'bg-gradient-to-r from-red-600 to-rose-655 text-white shadow-md shadow-red-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
             }`}
           >
@@ -768,7 +768,7 @@ const Admin = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeSection === 'logs'
-                ? 'bg-brand-primary text-white shadow-md'
+                ? 'bg-gradient-to-r from-red-600 to-rose-655 text-white shadow-md shadow-red-500/10'
                 : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
             }`}
           >
@@ -840,7 +840,7 @@ const Admin = () => {
                     </h3>
                     <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">Total Users</p>
                   </div>
-                  <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl">
+                  <div className="p-3 bg-red-500/10 text-red-500 rounded-xl">
                     <Users className="w-6 h-6" />
                   </div>
                 </div>
@@ -876,7 +876,7 @@ const Admin = () => {
                     </h3>
                     <p className="text-xs font-semibold text-slate-400 mt-1 uppercase tracking-wider">Logins (24h)</p>
                   </div>
-                  <div className="p-3 bg-sky-500/10 text-sky-500 rounded-xl">
+                  <div className="p-3 bg-indigo-500/10 text-indigo-500 rounded-xl">
                     <Activity className="w-6 h-6" />
                   </div>
                 </div>
@@ -917,6 +917,7 @@ const Admin = () => {
                     <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-400 font-semibold tracking-wider">
                       <th className="pb-3 pr-4 font-bold uppercase">User Name</th>
                       <th className="pb-3 px-4 font-bold uppercase">Email Address</th>
+                      <th className="pb-3 px-4 font-bold uppercase">Status</th>
                       <th className="pb-3 px-4 font-bold uppercase">Joined Date</th>
                       <th className="pb-3 pl-4 font-bold uppercase text-right">Actions</th>
                     </tr>
@@ -925,7 +926,7 @@ const Admin = () => {
                     {getFilteredUsers().map((userItem) => (
                       <tr key={userItem.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
                         <td className="py-3 pr-4 font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-brand-primary/10 flex items-center justify-center font-display font-semibold text-brand-primary text-[10px] uppercase">
+                          <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center font-display font-semibold text-red-500 text-[10px] uppercase">
                             {userItem.full_name ? userItem.full_name.substring(0, 2) : 'U'}
                           </div>
                           <div>
@@ -934,6 +935,30 @@ const Admin = () => {
                           </div>
                         </td>
                         <td className="py-3 px-4 font-mono select-all">{userItem.email}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex flex-wrap gap-1">
+                            {userItem.is_suspended && (
+                              <span className="px-2 py-0.5 bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-red-200/50 dark:border-red-900/30">
+                                Suspended
+                              </span>
+                            )}
+                            {userItem.upload_locked && (
+                              <span className="px-2 py-0.5 bg-amber-100 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-amber-200/50 dark:border-amber-900/30">
+                                Upload Locked
+                              </span>
+                            )}
+                            {userItem.clipboard_locked && (
+                              <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-950/40 text-yellow-600 dark:text-yellow-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-yellow-200/50 dark:border-yellow-900/30">
+                                Clip Locked
+                              </span>
+                            )}
+                            {!userItem.is_suspended && !userItem.upload_locked && !userItem.clipboard_locked && (
+                              <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-emerald-200/50 dark:border-emerald-900/30">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-3 px-4 text-slate-400">
                           {new Date(userItem.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
                         </td>
@@ -941,13 +966,13 @@ const Admin = () => {
                           <div className="flex justify-end gap-1.5">
                             <button
                               onClick={() => handleOpenUserManagement(userItem)}
-                              className="btn-secondary py-1.5 px-3 text-[10px] flex items-center gap-1.5"
+                              className="btn-secondary hover:bg-slate-50 dark:hover:bg-slate-800/80 py-1.5 px-3 text-[10px] flex items-center gap-1.5 cursor-pointer"
                             >
                               <Eye className="w-3.5 h-3.5" /> View Data
                             </button>
                             <button
                               onClick={() => handleDeleteUserDirect(userItem.id, userItem.email)}
-                              className="btn-danger py-1.5 px-3 text-[10px] flex items-center gap-1.5"
+                              className="btn-danger bg-red-500 hover:bg-red-650 py-1.5 px-3 text-[10px] flex items-center gap-1.5 cursor-pointer"
                             >
                               <Trash className="w-3.5 h-3.5" /> Purge
                             </button>
