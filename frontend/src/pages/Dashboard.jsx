@@ -3545,7 +3545,7 @@ const Dashboard = () => {
 
       {/* 4. Active Uploads progress overlay banner */}
       {showUploadProgressCard && (
-        <div className="fixed bottom-5 left-5 z-40 max-w-sm w-full pointer-events-none">
+        <div className="fixed bottom-5 lg:left-72 left-5 z-40 max-w-sm w-full pointer-events-none">
           <div className="pointer-events-auto glass-card p-4 shadow-xl border-slate-200 dark:border-slate-800 max-h-[300px] overflow-y-auto custom-scrollbar flex flex-col gap-3">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Uploads Queue</h3>
             
