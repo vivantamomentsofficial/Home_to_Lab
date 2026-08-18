@@ -160,38 +160,9 @@ const Admin = () => {
   const handleClearLogs = () => {
     setConfirmData({
       title: 'Clear Login Audits',
-      message: 'This will compile all current login audit records into an Excel-compatible CSV download, and permanently delete all logs from the database. Are you sure you want to proceed?',
+      message: 'Are you sure you want to permanently clear all login audit trails from the database? This action cannot be undone.',
       action: async () => {
         try {
-          // 1. Generate CSV content
-          const headers = ['Email', 'Login Time', 'IP Address'];
-          const rows = logs.map(l => [l.email, l.login_time, l.ip_address || 'N/A']);
-          
-          const formatCsvCell = (val) => {
-            const str = String(val);
-            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-              return `"${str.replace(/"/g, '""')}"`;
-            }
-            return str;
-          };
-          
-          const csvLines = [
-            headers.join(','),
-            ...rows.map(row => row.map(formatCsvCell).join(','))
-          ];
-          
-          const csvContent = "\uFEFF" + csvLines.join('\n'); // Add BOM for Excel UTF-8 support
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          
-          const link = document.createElement("a");
-          link.setAttribute("href", url);
-          link.setAttribute("download", `login_audits_clear_backup_${Date.now()}.csv`);
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          // 2. Request backend to clear logs
           const res = await fetch(`${getApiUrl()}/api/admin/logs`, {
             method: 'DELETE',
             headers: getHeaders(),
@@ -200,7 +171,7 @@ const Admin = () => {
           const data = await res.json();
           if (!res.ok) throw new Error(data.error || 'Failed to clear logs.');
           
-          showToast('Login audits backed up and cleared successfully!', 'success');
+          showToast('Login audits cleared successfully!', 'success');
           fetchLogs(); // Reload logs state
         } catch (err) {
           console.error(err);
@@ -209,6 +180,42 @@ const Admin = () => {
       }
     });
     setShowConfirmModal(true);
+  };
+
+  const handleDownloadLogs = () => {
+    try {
+      const headers = ['Email', 'Login Time', 'IP Address'];
+      const rows = logs.map(l => [l.email, new Date(l.login_time).toLocaleString(), l.ip_address || 'N/A']);
+      
+      const formatCsvCell = (val) => {
+        const str = String(val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+      
+      const csvLines = [
+        headers.join(','),
+        ...rows.map(row => row.map(formatCsvCell).join(','))
+      ];
+      
+      const csvContent = "\uFEFF" + csvLines.join('\n'); // Add BOM for Excel UTF-8 support
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `login_audits_report_${Date.now()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Audit log report downloaded successfully!', 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to generate Excel/CSV report.', 'danger');
+    }
   };
 
   // 4. Fetch pending storage upgrade requests
@@ -370,7 +377,7 @@ const Admin = () => {
   const handleOpenUserManagement = async (userProfile) => {
     setTargetUser(userProfile);
     setEditNameInput(userProfile.full_name || 'Anonymous User');
-    setEditStorageLimit(userProfile.storage_limit.toString());
+    setEditStorageLimit((userProfile.storage_limit || 104857600).toString());
     setBehalfNoteTitle('');
     setBehalfNoteContent('');
     setBehalfFile(null);
@@ -1285,12 +1292,20 @@ const Admin = () => {
             <div className="flex justify-between items-center gap-4">
               <h3 className="text-sm font-bold text-slate-800 dark:text-white">Security Audits: User Logins (Recent 50)</h3>
               {logs.length > 0 && (
-                <button
-                  onClick={handleClearLogs}
-                  className="btn-danger bg-red-600 hover:bg-red-750 text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer shadow-red-500/10 border-0 outline-none"
-                >
-                  <Trash2 className="w-4 h-4" /> Clear Logs
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleDownloadLogs}
+                    className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/80"
+                  >
+                    <Download className="w-4 h-4" /> Excel Download
+                  </button>
+                  <button
+                    onClick={handleClearLogs}
+                    className="btn-danger bg-red-600 hover:bg-red-750 text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer shadow-red-500/10 border-0 outline-none"
+                  >
+                    <Trash2 className="w-4 h-4" /> Clear Logs
+                  </button>
+                </div>
               )}
             </div>
 
