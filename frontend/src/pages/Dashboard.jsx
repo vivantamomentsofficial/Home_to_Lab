@@ -28,7 +28,7 @@ import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Bell, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu
+  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -171,6 +171,22 @@ const Dashboard = () => {
   const [decryptActionType, setDecryptActionType] = useState('download'); // 'download' | 'preview'
   const [selectedFileIds, setSelectedFileIds] = useState([]);
 
+  // Share options configuration state
+  const [showShareOptionsModal, setShowShareOptionsModal] = useState(false);
+  const [shareOptionsFile, setShareOptionsFile] = useState(null);
+  const [selectedShareExpiry, setSelectedShareExpiry] = useState(1800);
+  const [shareSelfDestruct, setShareSelfDestruct] = useState(false);
+
+  // Audio voice memo recorder states
+  const [showRecordModal, setShowRecordModal] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordDuration, setRecordDuration] = useState(0);
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const mediaRecorderRef = useRef(null);
+  const recordTimerRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   // File Previews Lightbox
   const [previewImage, setPreviewImage] = useState(null);
   const [previewText, setPreviewText] = useState(null);
@@ -247,6 +263,106 @@ const Dashboard = () => {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const getStorageBreakdown = () => {
+    let imageSize = 0;
+    let codeSize = 0;
+    let docSize = 0;
+    let textSize = 0;
+    let audioSize = 0;
+    let otherSize = 0;
+    
+    files.forEach(f => {
+      const size = f.size || 0;
+      if (f.file_type === 'image') imageSize += size;
+      else if (f.file_type === 'code') codeSize += size;
+      else if (f.file_type === 'document') docSize += size;
+      else if (f.file_type === 'text') textSize += size;
+      else if (f.file_type === 'audio') audioSize += size;
+      else otherSize += size;
+    });
+    
+    return [
+      { name: 'Images', value: imageSize, color: '#3b82f6' },
+      { name: 'Code', value: codeSize, color: '#10b981' },
+      { name: 'Documents', value: docSize, color: '#a855f7' },
+      { name: 'Text', value: textSize, color: '#f59e0b' },
+      { name: 'Audio', value: audioSize, color: '#ec4899' },
+      { name: 'Other', value: otherSize, color: '#64748b' }
+    ];
+  };
+
+  const renderStorageChart = () => {
+    const breakdown = getStorageBreakdown();
+    const total = breakdown.reduce((acc, curr) => acc + curr.value, 0);
+    const radius = 40;
+    const strokeWidth = 10;
+    const circumference = 2 * Math.PI * radius; // 251.32
+    
+    let accumulatedCircumference = 0;
+    
+    return (
+      <div className="flex flex-col sm:flex-row items-center gap-6 p-4">
+        {/* SVG Circle Chart */}
+        <div className="relative w-28 h-28 flex items-center justify-center shrink-0">
+          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+            {/* Background Circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r={radius}
+              className="stroke-slate-100 dark:stroke-slate-800/40"
+              strokeWidth={strokeWidth}
+              fill="transparent"
+            />
+            {total > 0 && breakdown.map((item) => {
+              const percentage = item.value / total;
+              const strokeLength = percentage * circumference;
+              const dashOffset = accumulatedCircumference;
+              accumulatedCircumference += strokeLength;
+              
+              if (item.value === 0) return null;
+              
+              return (
+                <circle
+                  key={item.name}
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  stroke={item.color}
+                  strokeWidth={strokeWidth}
+                  strokeDasharray={`${strokeLength} ${circumference}`}
+                  strokeDashoffset={-dashOffset}
+                  strokeLinecap="round"
+                  fill="transparent"
+                  className="transition-all duration-500"
+                />
+              );
+            })}
+          </svg>
+          <div className="absolute flex flex-col items-center justify-center text-center">
+            <span className="text-base font-black text-slate-800 dark:text-white leading-none">
+              {Math.round((usedStorage / storageLimit) * 100)}%
+            </span>
+            <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Used</span>
+          </div>
+        </div>
+
+        {/* Legend Grid */}
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full text-xs">
+          {breakdown.map((item) => (
+            <div key={item.name} className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
+              <div className="flex flex-col min-w-0">
+                <span className="font-semibold text-slate-700 dark:text-slate-350 truncate">{item.name}</span>
+                <span className="text-[9px] text-slate-400 font-mono">{formatBytes(item.value)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   };
 
   const fetchVaultFiles = async () => {
@@ -1214,17 +1330,26 @@ const Dashboard = () => {
     }
   };
 
-  const handleGenerateShareCode = async (file) => {
+  const handleGenerateShareCode = (file) => {
     if (downloadLocked) {
       showToast('Sharing privileges have been revoked by the administrator.', 'danger');
       return;
     }
+    setShareOptionsFile(file);
+    setSelectedShareExpiry(1800); // 30 minutes in seconds
+    setShareSelfDestruct(false);
+    setShowShareOptionsModal(true);
+  };
+
+  const executeGenerateShareCode = async () => {
+    if (!shareOptionsFile) return;
+    setShowShareOptionsModal(false);
     showToast('Generating 6-digit access code...', 'info');
     try {
-      // Step 1: Create signed URL from storage bucket valid for 30 minutes
+      // Step 1: Create signed URL from storage bucket valid for selected duration
       const { data, error: signedError } = await supabase.storage
         .from('vault')
-        .createSignedUrl(file.storage_path, 1800); // 30 mins
+        .createSignedUrl(shareOptionsFile.storage_path, selectedShareExpiry);
 
       if (signedError) throw signedError;
 
@@ -1246,21 +1371,26 @@ const Dashboard = () => {
       }
 
       // Step 3: Insert record into share_codes table
-      const expiry = new Date(Date.now() + 30 * 60 * 1000);
+      const expiry = new Date(Date.now() + selectedShareExpiry * 1000);
       const { error: dbError } = await supabase
         .from('share_codes')
         .insert({
           code: shareCode,
-          file_id: file.id,
+          file_id: shareOptionsFile.id,
           signed_url: data.signedUrl,
-          expires_at: expiry.toISOString()
+          expires_at: expiry.toISOString(),
+          self_destruct: shareSelfDestruct
         });
 
       if (dbError) throw dbError;
 
       // Launch share details modal
-      setShareCodeData({ code: shareCode, filename: file.filename });
-      setShareTimeLeft(1800); // 30 minutes in seconds
+      setShareCodeData({ 
+        code: shareCode, 
+        filename: shareOptionsFile.filename,
+        self_destruct: shareSelfDestruct 
+      });
+      setShareTimeLeft(selectedShareExpiry);
       setShowShareModal(true);
 
       // Set countdown interval
@@ -1279,6 +1409,125 @@ const Dashboard = () => {
       console.error(err);
       showToast('Failed to generate sharing code: ' + err.message, 'danger');
     }
+  };
+
+  const handleBatchDelete = () => {
+    if (operationsLocked) {
+      showToast('File and folder modifications are locked by the administrator.', 'warning');
+      return;
+    }
+
+    setConfirmModalData({
+      title: 'Batch Delete Files',
+      message: `Are you sure you want to permanently delete the ${selectedFileIds.length} selected files? This action cannot be undone.`,
+      action: async () => {
+        try {
+          showToast('Deleting selected files...', 'info');
+          const selectedFiles = files.filter(f => selectedFileIds.includes(f.id));
+          
+          // 1. Delete from Supabase Storage
+          const paths = selectedFiles.map(f => f.storage_path);
+          const { error: storageErr } = await supabase.storage
+            .from('vault')
+            .remove(paths);
+            
+          if (storageErr) throw storageErr;
+          
+          // 2. Delete from Database
+          const { error: dbErr } = await supabase
+            .from('files')
+            .delete()
+            .in('id', selectedFileIds);
+            
+          if (dbErr) throw dbErr;
+          
+          showToast('Selected files deleted successfully!', 'success');
+          setSelectedFileIds([]);
+          fetchVaultFiles();
+        } catch (err) {
+          console.error(err);
+          showToast('Failed to delete selected files: ' + err.message, 'danger');
+        }
+      }
+    });
+    setShowConfirmModal(true);
+  };
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunksRef.current = [];
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          audioChunksRef.current.push(e.data);
+        }
+      };
+      
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setAudioBlob(blob);
+        setAudioUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach(t => t.stop());
+      };
+      
+      setIsRecording(true);
+      setRecordDuration(0);
+      setAudioBlob(null);
+      setAudioUrl(null);
+      mediaRecorder.start();
+      
+      recordTimerRef.current = setInterval(() => {
+        setRecordDuration((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to access microphone: ' + err.message, 'danger');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+    }
+  };
+
+  const handleUploadVoiceMemo = () => {
+    if (!audioBlob) return;
+    
+    const filename = `voice_memo_${Date.now()}.webm`;
+    const audioFile = new window.File([audioBlob], filename, { type: 'audio/webm' });
+    
+    setShowRecordModal(false);
+    showToast('Uploading voice memo...', 'info');
+    
+    const uploadId = 'up_' + Math.random().toString(36).substring(2, 9);
+    setShowUploadProgressCard(true);
+    setActiveUploads((prev) => ({
+      ...prev,
+      [uploadId]: {
+        name: filename,
+        size: audioFile.size,
+        progress: 0,
+        status: 'ready',
+        controller: null,
+        fileObj: audioFile
+      }
+    }));
+    
+    startUploadingFile(uploadId, audioFile, '');
+  };
+
+  const handleCloseRecordModal = () => {
+    stopRecording();
+    setShowRecordModal(false);
+    setAudioBlob(null);
+    if (audioUrl) URL.revokeObjectURL(audioUrl);
+    setAudioUrl(null);
   };
 
   useEffect(() => {
@@ -2057,6 +2306,24 @@ const Dashboard = () => {
       {/* Main dashboard content body */}
       <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
         
+        {activeAlert && (
+          <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 p-4 rounded-2xl flex items-center justify-between gap-4 text-xs text-red-650 dark:text-red-400 animate-fade-in shadow-xs">
+            <div className="flex items-center gap-3">
+              <Bell className="w-5 h-5 text-red-500 animate-bounce shrink-0" />
+              <div>
+                <span className="font-extrabold uppercase text-[9px] bg-red-500/10 px-1.5 py-0.5 rounded mr-2">System Notice</span>
+                <span className="font-bold">{activeAlert.title}:</span> {activeAlert.message}
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveAlert(null)}
+              className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg text-red-400 hover:text-red-600 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Top bar header */}
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 dark:border-slate-800/50 pb-4">
           <div>
@@ -2119,17 +2386,7 @@ const Dashboard = () => {
                 </span>
               </div>
               
-              {/* Progress bar track */}
-              <div className="w-full h-3.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand-primary rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((usedStorage / storageLimit) * 100, 100)}%` }}
-                ></div>
-              </div>
-
-              <div className="text-xs text-slate-400">
-                You are currently using {Math.round((usedStorage / storageLimit) * 100)}% of your student quota. Want more storage? Upgrade it in your Profile panel.
-              </div>
+              {renderStorageChart()}
             </div>
 
             {/* Quick Stats shortcut */}
@@ -2448,6 +2705,9 @@ const Dashboard = () => {
                 <button onClick={handleOpenCreateTxtModal} className="btn-primary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
                   <Plus className="w-4 h-4" /> Create TXT File
                 </button>
+                <button onClick={() => setShowRecordModal(true)} className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
+                  <Mic className="w-4 h-4 text-brand-primary" /> Record Memo
+                </button>
               </div>
               
               <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -2567,6 +2827,13 @@ const Dashboard = () => {
                         className="btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5" /> Download as ZIP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleBatchDelete}
+                        className="btn-danger bg-red-650 hover:bg-red-750 text-xs py-1.5 px-3 flex items-center gap-1.5 cursor-pointer border-0"
+                      >
+                        <Trash className="w-3.5 h-3.5" /> Delete Selected
                       </button>
                       <button
                         type="button"
@@ -3626,6 +3893,164 @@ const Dashboard = () => {
               >
                 Close
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2.5. Share Options Configuration Modal */}
+      {showShareOptionsModal && shareOptionsFile && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-sm w-full p-6 shadow-2xl animate-scale-up">
+            <div className="flex justify-between items-start gap-4 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Share Options</h3>
+                <p className="text-[11px] text-slate-400 truncate max-w-[240px] mt-0.5" title={shareOptionsFile.filename}>
+                  File: {shareOptionsFile.filename}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowShareOptionsModal(false)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4 mb-6">
+              {/* Expiration Select */}
+              <div className="flex flex-col gap-1.5">
+                <label className="label-title">EXPIRATION DURATION</label>
+                <select
+                  value={selectedShareExpiry}
+                  onChange={(e) => setSelectedShareExpiry(Number(e.target.value))}
+                  className="input-field py-2 text-xs"
+                >
+                  <option value={300}>5 Minutes</option>
+                  <option value={900}>15 Minutes</option>
+                  <option value={1800}>30 Minutes</option>
+                  <option value={3600}>1 Hour</option>
+                  <option value={43200}>12 Hours</option>
+                  <option value={86400}>24 Hours</option>
+                </select>
+              </div>
+
+              {/* Self-Destruct Checkbox */}
+              <label className="flex items-start gap-2.5 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-850/80 rounded-xl cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-850/30 transition-all select-none">
+                <input
+                  type="checkbox"
+                  checked={shareSelfDestruct}
+                  onChange={(e) => setShareSelfDestruct(e.target.checked)}
+                  className="mt-0.5 rounded accent-brand-primary"
+                />
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Burn-After-Reading</span>
+                  <span className="text-[10px] text-slate-400 leading-normal">
+                    Automatically delete the file and access code permanently after the very first download/view.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowShareOptionsModal(false)}
+                className="flex-1 btn-secondary py-2.5 text-xs font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={executeGenerateShareCode}
+                className="flex-1 btn-primary py-2.5 text-xs font-bold cursor-pointer"
+              >
+                Generate Code
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Audio Recorder Modal */}
+      {showRecordModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-sm w-full p-6 shadow-2xl text-center animate-scale-up flex flex-col gap-5">
+            <div className="flex justify-between items-start gap-4">
+              <div className="text-left">
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Record Voice Memo</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Record audio lectures or guidelines and upload directly.
+                </p>
+              </div>
+              <button
+                onClick={handleCloseRecordModal}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Recording Animation / Audio Player */}
+            <div className="flex flex-col items-center justify-center gap-3 py-6 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-850/80 rounded-2xl">
+              {isRecording ? (
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative flex items-center justify-center w-16 h-16">
+                    <div className="absolute inset-0 bg-red-500 rounded-full animate-ping opacity-25"></div>
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-500/25">
+                      <div className="w-4 h-4 bg-white rounded-xs"></div>
+                    </div>
+                  </div>
+                  <div className="text-lg font-black font-mono text-slate-800 dark:text-white">
+                    {Math.floor(recordDuration / 60)}:{(recordDuration % 65 || recordDuration % 60).toString().padStart(2, '0')}
+                  </div>
+                  <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest animate-pulse">Recording...</span>
+                </div>
+              ) : audioUrl ? (
+                <div className="flex flex-col items-center gap-3 w-full px-4">
+                  <audio src={audioUrl} controls className="w-full custom-audio-player h-10 rounded-lg" />
+                  <span className="text-[10px] font-semibold text-green-500 uppercase tracking-widest">Memo Recorded!</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 py-4">
+                  <div className="w-12 h-12 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
+                    <Mic className="w-5 h-5 text-brand-primary" />
+                  </div>
+                  <span className="text-[10px] text-slate-400">Microphone ready to capture</span>
+                </div>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="flex gap-2">
+              {isRecording ? (
+                <button
+                  type="button"
+                  onClick={stopRecording}
+                  className="w-full btn-danger bg-red-600 hover:bg-red-750 py-2.5 text-xs font-bold cursor-pointer border-0"
+                >
+                  Stop Recording
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={startRecording}
+                    className="flex-1 btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {audioUrl ? 'Record Again' : 'Start Recording'}
+                  </button>
+                  {audioBlob && (
+                    <button
+                      type="button"
+                      onClick={handleUploadVoiceMemo}
+                      className="flex-1 btn-success bg-green-600 hover:bg-green-750 text-white py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 border-0 cursor-pointer"
+                    >
+                      Upload Memo
+                    </button>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>

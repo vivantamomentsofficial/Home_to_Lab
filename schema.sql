@@ -729,6 +729,30 @@ DROP POLICY IF EXISTS "Admin can manage global alerts" ON public.global_alerts;
 CREATE POLICY "Admin can manage global alerts" ON public.global_alerts
     FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
+-- =========================================================================
+-- 10. BURN-AFTER-READING (SELF-DESTRUCT) LOGIC
+-- =========================================================================
+
+-- Add self_destruct column to share_codes table
+ALTER TABLE public.share_codes ADD COLUMN IF NOT EXISTS self_destruct BOOLEAN DEFAULT false NOT NULL;
+
+-- RPC to resolve self-destruct share codes securely (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.resolve_self_destruct_share(target_code VARCHAR)
+RETURNS VOID AS $$
+DECLARE
+    target_file_id UUID;
+BEGIN
+    SELECT file_id INTO target_file_id
+    FROM public.share_codes
+    WHERE code = target_code;
+    
+    IF target_file_id IS NOT NULL THEN
+        -- Delete the file record (cascades to delete share_codes too)
+        DELETE FROM public.files WHERE id = target_file_id;
+    END IF;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 
 
 

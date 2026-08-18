@@ -20,7 +20,7 @@ router.get('/:code', async (req, res) => {
     // 1. Fetch share code details where code is active
     const { data: shareCodeData, error: shareCodeError } = await supabase
       .from('share_codes')
-      .select('file_id, signed_url, expires_at')
+      .select('file_id, signed_url, expires_at, self_destruct')
       .eq('code', code)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle();
@@ -50,6 +50,13 @@ router.get('/:code', async (req, res) => {
       return res.status(404).json({ error: 'File associated with this share code no longer exists.' });
     }
 
+    // If it is a self-destruct code, trigger database deletion in background immediately
+    if (shareCodeData.self_destruct) {
+      supabase.rpc('resolve_self_destruct_share', { target_code: code }).then(({ error: rpcErr }) => {
+        if (rpcErr) console.error('Failed to resolve self-destruct share code:', rpcErr.message);
+      });
+    }
+
     // 3. Return combined payload
     return res.json({
       filename: fileData.filename,
@@ -57,6 +64,7 @@ router.get('/:code', async (req, res) => {
       file_type: fileData.file_type,
       signed_url: shareCodeData.signed_url,
       expires_at: shareCodeData.expires_at,
+      self_destruct: shareCodeData.self_destruct
     });
   } catch (err) {
     console.error('Shared code resolution failed:', err);

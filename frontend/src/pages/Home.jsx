@@ -6,7 +6,8 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import {
   Shield, Sparkles, ArrowRight, DownloadCloud, Download, Plus, Folder, ClipboardCopy, LogOut,
-  FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Sun, Moon, Menu
+  FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Sun, Moon, Menu,
+  AlertTriangle
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -685,6 +686,15 @@ const Home = () => {
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mb-5">
               The temporary share code is valid. You can now download the file.
             </p>
+
+            {retrievedFile.self_destruct && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/30 rounded-xl text-[11px] text-red-600 dark:text-red-400 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold">Burn-After-Reading:</span> This file share is set to self-destruct. Once you download it, refresh, or close this window, it will be deleted permanently.
+                </div>
+              </div>
+            )}
 
             <div className="border border-slate-100 dark:border-slate-850/80 rounded-xl p-3.5 mb-5 flex flex-col gap-2.5 text-xs text-slate-600 dark:text-slate-400">
               <div className="flex justify-between items-center gap-2">
