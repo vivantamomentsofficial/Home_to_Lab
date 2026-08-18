@@ -598,6 +598,7 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS upload_locked BOOLEAN DEFAU
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS clipboard_locked BOOLEAN DEFAULT false NOT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS download_locked BOOLEAN DEFAULT false NOT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS operations_locked BOOLEAN DEFAULT false NOT NULL;
 
 -- Function to allow Super Admin to clear all login logs
 CREATE OR REPLACE FUNCTION public.admin_clear_login_logs()
@@ -643,6 +644,47 @@ CREATE TRIGGER check_clipboard_lock_before_insert
     BEFORE INSERT ON public.notes
     FOR EACH ROW
     EXECUTE FUNCTION public.check_user_clipboard_lock();
+
+-- Trigger function to check user operations lock (for rename, delete, folder creations)
+CREATE OR REPLACE FUNCTION public.check_user_operations_lock()
+RETURNS TRIGGER AS $$
+DECLARE
+    target_user_id UUID;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        target_user_id := OLD.user_id;
+    ELSE
+        target_user_id := NEW.user_id;
+    END IF;
+
+    IF (SELECT operations_locked FROM public.profiles WHERE id = target_user_id) = true THEN
+        RAISE EXCEPTION 'File, folder, and snippet modifications have been locked for this account by the administrator.';
+    END IF;
+
+    RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger on public.files (lock updates and deletes)
+DROP TRIGGER IF EXISTS check_operations_lock_before_update_delete ON public.files;
+CREATE TRIGGER check_operations_lock_before_update_delete
+    BEFORE UPDATE OR DELETE ON public.files
+    FOR EACH ROW
+    EXECUTE FUNCTION public.check_user_operations_lock();
+
+-- Trigger on public.folders (lock folder insert, update, deletes)
+DROP TRIGGER IF EXISTS check_operations_lock_before_folder_mod ON public.folders;
+CREATE TRIGGER check_operations_lock_before_folder_mod
+    BEFORE INSERT OR UPDATE OR DELETE ON public.folders
+    FOR EACH ROW
+    EXECUTE FUNCTION public.check_user_operations_lock();
+
+-- Trigger on public.notes (lock note updates and deletes)
+DROP TRIGGER IF EXISTS check_operations_lock_before_note_mod ON public.notes;
+CREATE TRIGGER check_operations_lock_before_note_mod
+    BEFORE UPDATE OR DELETE ON public.notes
+    FOR EACH ROW
+    EXECUTE FUNCTION public.check_user_operations_lock();
 
 
 -- =========================================================================

@@ -177,12 +177,20 @@ const Login = () => {
       return;
     }
 
+    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
+                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+    if (!captchaToken) {
+      showToast('Please complete the Captcha check.', 'warning');
+      return;
+    }
+
     setResetLoading(true);
     setShowMailtoFallback(false);
     try {
       const redirectTo = `${window.location.origin}/login`;
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo,
+        captchaToken,
       });
 
       if (error) throw error;
@@ -199,6 +207,13 @@ const Login = () => {
       }
     } finally {
       setResetLoading(false);
+      if (window.turnstile && widgetIdRef.current !== null) {
+        try {
+          window.turnstile.reset(widgetIdRef.current);
+        } catch (resetErr) {
+          console.warn('Turnstile reset error:', resetErr);
+        }
+      }
     }
   };
 
@@ -365,6 +380,14 @@ const Login = () => {
                   />
                 </div>
               </div>
+
+              {/* Cloudflare Turnstile CAPTCHA Widget */}
+              <div 
+                ref={turnstileRef}
+                className="cf-turnstile flex justify-center mb-4" 
+                data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
+              ></div>
+
               <button
                 type="submit"
                 disabled={resetLoading}

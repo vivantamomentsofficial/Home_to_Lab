@@ -87,6 +87,7 @@ const Dashboard = () => {
   const [uploadLocked, setUploadLocked] = useState(false);
   const [clipboardLocked, setClipboardLocked] = useState(false);
   const [downloadLocked, setDownloadLocked] = useState(false);
+  const [operationsLocked, setOperationsLocked] = useState(false);
 
   // Storage Upgrade Request State
   const [requestedLimit, setRequestedLimit] = useState('314572800'); // Default to 300MB in bytes
@@ -203,6 +204,7 @@ const Dashboard = () => {
         setUploadLocked(!!data.upload_locked);
         setClipboardLocked(!!data.clipboard_locked);
         setDownloadLocked(!!data.download_locked);
+        setOperationsLocked(!!data.operations_locked);
 
         // Resolve avatar image URL using a signed URL if set
         if (data.avatar_url) {
@@ -598,6 +600,10 @@ const Dashboard = () => {
   };
 
   const handleDeleteNote = (id) => {
+    if (operationsLocked) {
+      showToast('Snippet modifications are locked by the administrator.', 'warning');
+      return;
+    }
     setConfirmModalData({
       title: 'Delete Clipboard Snippet',
       message: 'Are you sure you want to permanently delete this text snippet? This cannot be undone.',
@@ -878,7 +884,6 @@ const Dashboard = () => {
           cacheControl: '3600',
           upsert: false,
           contentType: fileToUpload.type || 'application/octet-stream',
-          signal: controller.signal,
           onUploadProgress: (progressEvent) => {
             const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
             setActiveUploads((prev) => {
@@ -1040,6 +1045,10 @@ const Dashboard = () => {
   }, [activeDownloads]);
 
   const handleOpenCreateTxtModal = () => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
     setNewTxtName('');
     setNewTxtContent('');
     setNewTxtEncrypt(false);
@@ -1095,6 +1104,10 @@ const Dashboard = () => {
   // VAULT EXPLORER ACTIONS
   // ==========================================
   const handleCreateFolder = async () => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
     const name = prompt('Enter a name for the new folder:');
     if (!name || !name.trim()) return;
 
@@ -1116,6 +1129,10 @@ const Dashboard = () => {
   };
 
   const moveFileToFolder = async (fileId, destFolderId) => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
     try {
       const { error } = await supabase
         .from('files')
@@ -1132,6 +1149,10 @@ const Dashboard = () => {
   };
 
   const handleDeleteFile = (id, path, filename) => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
     setConfirmModalData({
       title: 'Delete Vault File',
       message: `Are you sure you want to permanently delete "${filename}"? All storage allocations will clear and this cannot be undone.`,
@@ -1164,6 +1185,10 @@ const Dashboard = () => {
   };
 
   const triggerRenameFile = (file) => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
     setRenameFileTarget(file);
     setRenameInputValue(file.filename);
     setShowRenameModal(true);
@@ -2399,6 +2424,17 @@ const Dashboard = () => {
                   <h4 className="font-bold text-sm">Download Privileges Revoked</h4>
                   <p className="text-xs mt-1 text-red-600/90 dark:text-red-400/80">
                     Your administrator has locked file downloads on this account. You cannot download, preview, or share files.
+                  </p>
+                </div>
+              </div>
+            )}
+            {operationsLocked && (
+              <div className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/50 rounded-2xl flex items-start gap-3 text-orange-700 dark:text-orange-400 animate-scale-up">
+                <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <h4 className="font-bold text-sm text-orange-850 dark:text-orange-400">Operations Privileges Revoked</h4>
+                  <p className="text-xs mt-1 text-orange-600/90 dark:text-orange-400/85">
+                    Your administrator has locked file and folder modifications on this account. You cannot rename, move, delete, or create files/folders.
                   </p>
                 </div>
               </div>

@@ -304,16 +304,17 @@ router.delete('/snippets/:id', async (req, res) => {
   }
 });
 
-// POST /api/admin/users/:id/lock - Toggle user feature locks (upload, clipboard, suspension, download)
+// POST /api/admin/users/:id/lock - Toggle user feature locks (upload, clipboard, suspension, download, operations)
 router.post('/users/:id/lock', async (req, res) => {
   const { id } = req.params;
-  const { upload_locked, clipboard_locked, download_locked, is_suspended } = req.body;
+  const { upload_locked, clipboard_locked, download_locked, is_suspended, operations_locked } = req.body;
 
   const updates = {};
   if (upload_locked !== undefined) updates.upload_locked = !!upload_locked;
   if (clipboard_locked !== undefined) updates.clipboard_locked = !!clipboard_locked;
   if (download_locked !== undefined) updates.download_locked = !!download_locked;
   if (is_suspended !== undefined) updates.is_suspended = !!is_suspended;
+  if (operations_locked !== undefined) updates.operations_locked = !!operations_locked;
 
   if (Object.keys(updates).length === 0) {
     return res.status(400).json({ error: 'No lock parameters specified.' });

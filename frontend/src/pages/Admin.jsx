@@ -1091,7 +1091,12 @@ const Admin = () => {
                                 Retrieve Locked
                               </span>
                             )}
-                            {!userItem.is_suspended && !userItem.upload_locked && !userItem.clipboard_locked && !userItem.download_locked && (
+                            {userItem.operations_locked && (
+                              <span className="px-2 py-0.5 bg-orange-100 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-orange-200/50 dark:border-orange-900/30">
+                                Ops Locked
+                              </span>
+                            )}
+                            {!userItem.is_suspended && !userItem.upload_locked && !userItem.clipboard_locked && !userItem.download_locked && !userItem.operations_locked && (
                               <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 text-[9px] font-extrabold rounded-full uppercase tracking-wider border border-emerald-200/50 dark:border-emerald-900/30">
                                 Active
                               </span>
@@ -1510,7 +1515,7 @@ const Admin = () => {
             {/* Admin Feature Locking Controls */}
             <div className="bg-slate-50 dark:bg-slate-900/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800/80 flex flex-col gap-3">
               <h3 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider font-display">Account Constraint Privileges</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 <button
                   type="button"
                   onClick={() => handleToggleLock('upload_locked', targetUser.upload_locked)}
@@ -1545,6 +1550,18 @@ const Admin = () => {
                   }`}
                 >
                   <Download className="w-4 h-4" /> {targetUser.download_locked ? 'Unlock Retrieve' : 'Lock Retrieve'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleLock('operations_locked', targetUser.operations_locked)}
+                  className={`py-2.5 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    targetUser.operations_locked
+                      ? 'bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100/50'
+                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <Folder className="w-4 h-4" /> {targetUser.operations_locked ? 'Unlock Operations' : 'Lock Operations'}
                 </button>
 
                 <button
