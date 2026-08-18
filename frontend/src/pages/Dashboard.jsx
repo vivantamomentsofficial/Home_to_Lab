@@ -672,7 +672,7 @@ const Dashboard = () => {
 
       // Convert note text to file blob
       const blob = new Blob([note.content], { type: 'text/plain' });
-      const fileObj = new File([blob], filename, { type: 'text/plain' });
+      const fileObj = new window.File([blob], filename, { type: 'text/plain' });
 
       // Upload text file to storage
       await uploadFileToStorage(supabase, storagePath, fileObj, {
@@ -736,7 +736,7 @@ const Dashboard = () => {
 
       // Convert text to file blob
       const blob = new Blob([quickPasteText], { type: 'text/plain' });
-      const fileObj = new File([blob], filename, { type: 'text/plain' });
+      const fileObj = new window.File([blob], filename, { type: 'text/plain' });
 
       // Upload text file to storage
       const { error: uploadError } = await supabase.storage
@@ -872,7 +872,7 @@ const Dashboard = () => {
         const arrayBuffer = await file.arrayBuffer();
         const encryptedBuffer = await encryptFileBuffer(arrayBuffer, passphrase);
         fileNameToSave = `[encrypted]_${file.name}`;
-        fileToUpload = new File([encryptedBuffer], fileNameToSave, { type: 'application/octet-stream' });
+        fileToUpload = new window.File([encryptedBuffer], fileNameToSave, { type: 'application/octet-stream' });
       }
 
       const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
@@ -1076,7 +1076,7 @@ const Dashboard = () => {
 
     try {
       const blob = new Blob([newTxtContent], { type: 'text/plain' });
-      const fileObj = new File([blob], finalName, { type: 'text/plain' });
+      const fileObj = new window.File([blob], finalName, { type: 'text/plain' });
 
       const uploadId = 'up_' + Math.random().toString(36).substring(2, 9);
       setShowUploadProgressCard(true);
@@ -1323,7 +1323,7 @@ const Dashboard = () => {
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
+                const compressedFile = new window.File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
                   type: 'image/jpeg',
                   lastModified: Date.now(),
                 });
