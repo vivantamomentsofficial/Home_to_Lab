@@ -1,7 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 
-const supabaseUrl = process.env.SUPABASE_URL || 'https://gxccllaqtdiuvnrialta.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('[CRITICAL] Missing SUPABASE_URL or SUPABASE_ANON_KEY in auth middleware.');
+}
+
 
 // Middleware to extract and verify JWT token using Supabase Auth getUser API
 const requireAuth = async (req, res, next) => {

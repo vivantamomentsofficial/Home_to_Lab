@@ -126,9 +126,41 @@ const Login = () => {
     };
   }, [supabase]);
 
+  // Failed attempts and lockout state
+  const [lockoutTimeLeft, setLockoutTimeLeft] = useState(() => {
+    const lockedUntil = localStorage.getItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL');
+    if (lockedUntil) {
+      const remaining = Math.max(0, Math.floor((parseInt(lockedUntil, 10) - Date.now()) / 1000));
+      return remaining;
+    }
+    return 0;
+  });
+
+  useEffect(() => {
+    if (lockoutTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setLockoutTimeLeft((prev) => {
+        if (prev <= 1) {
+          localStorage.removeItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL');
+          localStorage.removeItem('CLOUDVAULT_FAILED_LOGIN_ATTEMPTS');
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [lockoutTimeLeft]);
+
   // Main login submission
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (lockoutTimeLeft > 0) {
+      showToast(`Account login is temporarily locked for security. Please try again in ${lockoutTimeLeft}s.`, 'warning');
+      return;
+    }
+
     if (!email || !password) {
       showToast('Please enter both email and password.', 'warning');
       return;
@@ -144,6 +176,10 @@ const Login = () => {
     setLoading(true);
     try {
       await login(email, password, captchaToken, rememberMe);
+      // Reset failed attempts on success
+      localStorage.removeItem('CLOUDVAULT_FAILED_LOGIN_ATTEMPTS');
+      localStorage.removeItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL');
+
       showToast('Welcome back to CloudVault!', 'success');
       if (email.trim().toLowerCase() === 'homtolab@gmail.com') {
         navigate('/admin');
@@ -155,7 +191,19 @@ const Login = () => {
       if (err.message?.includes('suspended')) {
         setSuspensionError(err.message);
       } else {
-        showToast(err.message || 'Incorrect email or password.', 'danger');
+        // Track consecutive failed login attempts
+        const currentFailed = parseInt(localStorage.getItem('CLOUDVAULT_FAILED_LOGIN_ATTEMPTS') || '0', 10) + 1;
+        localStorage.setItem('CLOUDVAULT_FAILED_LOGIN_ATTEMPTS', currentFailed.toString());
+
+        if (currentFailed >= 5) {
+          const lockDurationMs = 5 * 60 * 1000; // 5 minutes
+          const lockExpiry = Date.now() + lockDurationMs;
+          localStorage.setItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL', lockExpiry.toString());
+          setLockoutTimeLeft(300);
+          showToast('Security Alert: Too many failed login attempts. Access is locked for 5 minutes.', 'danger');
+        } else {
+          showToast(`${err.message || 'Incorrect email or password.'} (${5 - currentFailed} attempts remaining)`, 'danger');
+        }
       }
       if (window.turnstile && widgetIdRef.current !== null) {
         try {
@@ -168,6 +216,7 @@ const Login = () => {
       setLoading(false);
     }
   };
+
 
   // Forgot password handler
   const handleForgotPasswordSubmit = async (e) => {
@@ -494,11 +543,15 @@ const Login = () => {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full btn-primary h-12 flex justify-center items-center mt-6"
+                disabled={loading || lockoutTimeLeft > 0}
+                className={`w-full btn-primary h-12 flex justify-center items-center mt-6 ${
+                  lockoutTimeLeft > 0 ? 'opacity-60 cursor-not-allowed bg-slate-600 hover:bg-slate-600' : ''
+                }`}
               >
                 {loading ? (
                   <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                ) : lockoutTimeLeft > 0 ? (
+                  `Locked (${lockoutTimeLeft}s)`
                 ) : (
                   'Sign In'
                 )}

@@ -20,7 +20,7 @@ const formatBytes = (bytes, decimals = 2) => {
 };
 
 const Home = () => {
-  const { user } = useAuth();
+  const { user, supabase } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -48,8 +48,8 @@ const Home = () => {
 
   const handleRetrieveCode = async (e, customCode = null) => {
     if (e) e.preventDefault();
-    const codeToUse = customCode || shareCode;
-    if (!codeToUse || codeToUse.trim().length !== 6) {
+    const codeToUse = (customCode || shareCode).trim().toUpperCase();
+    if (!codeToUse || codeToUse.length !== 6) {
       showToast('Please enter a 6-character sharing code.', 'warning');
       return;
     }
@@ -57,19 +57,44 @@ const Home = () => {
     setLoading(true);
     setRetrievedFile(null);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${apiUrl}/api/share/${codeToUse.trim()}`);
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to retrieve file details.');
+      let fileData = null;
+
+      // 1. Try Backend API endpoint first (with rate-limiting)
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${apiUrl}/api/share/${codeToUse}`);
+        if (res.ok) {
+          fileData = await res.json();
+        } else if (res.status === 429) {
+          throw new Error('Rate limit exceeded: Too many lookup attempts. Please wait a moment.');
+        }
+      } catch (apiErr) {
+        if (apiErr.message.includes('Rate limit')) throw apiErr;
+        console.warn('Backend share API request failed, checking Supabase RPC fallback:', apiErr);
       }
 
-      setRetrievedFile(data);
+      // 2. Direct Supabase SECURITY DEFINER RPC fallback if backend is unavailable
+      if (!fileData && supabase) {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('get_shared_file_by_code', {
+          p_code: codeToUse
+        });
+
+        if (rpcErr) {
+          console.error('RPC Error:', rpcErr);
+        } else if (rpcData && rpcData.length > 0) {
+          fileData = rpcData[0];
+        }
+      }
+
+      if (!fileData) {
+        throw new Error('Sharing code not found, expired, or already consumed.');
+      }
+
+      setRetrievedFile(fileData);
       setShowRetrieveModal(true);
       
       // Calculate remaining expiration time
-      const expiryTime = new Date(data.expires_at);
+      const expiryTime = new Date(fileData.expires_at);
       const remainingSeconds = Math.max(0, Math.floor((expiryTime - new Date()) / 1000));
       setShareTimeLeft(remainingSeconds);
 

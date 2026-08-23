@@ -7,30 +7,46 @@ const path = require('path');
 const shareRouter = require('./routes/share');
 const adminRouter = require('./routes/admin');
 
+// Fail fast if required environment variables are missing
+if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+  console.error('[CRITICAL] Missing required SUPABASE_URL or SUPABASE_ANON_KEY environment variables.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS setup: Allow connections from local dev port 5173 or Vercel origins
+// CORS setup: Strict whitelist without wildcard subdomains
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000',
   'http://127.0.0.1:5173',
   'https://hometolab.vercel.app',
   'https://hometolab.com',
+  'https://www.hometolab.com',
   'https://home-to-lab.vercel.app',
 ];
+
+if (process.env.FRONTEND_URL) {
+  allowedOrigins.push(process.env.FRONTEND_URL.replace(/\/$/, ''));
+}
+
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, server-to-server)
+      // Allow requests with no origin (like server-to-server, mobile apps, curl)
       if (!origin) return callback(null, true);
       
-      const isAllowed = allowedOrigins.some((o) => origin.startsWith(o)) || origin.endsWith('.vercel.app');
-      if (isAllowed || process.env.NODE_ENV !== 'production') {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
+      
+      if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        return callback(null, true);
+      }
+
       return callback(new Error('Blocked by CORS policy.'));
     },
-    credentials: true,
   })
 );
 
@@ -38,13 +54,17 @@ app.use(
 app.use(morgan('dev'));
 app.use(express.json());
 
-// Serving Supabase Configuration Variables (Secure Fallback Proxy)
+// Serving Supabase Configuration Variables (Secure Proxy without hardcoded fallbacks)
 app.get('/api/config', (req, res) => {
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    return res.status(500).json({ error: 'Supabase configuration is missing from server environment.' });
+  }
   res.json({
-    supabaseUrl: process.env.SUPABASE_URL || 'https://gxccllaqtdiuvnrialta.supabase.co',
-    supabaseAnonKey: process.env.SUPABASE_ANON_KEY || 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny',
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   });
 });
+
 
 // Mounting Router Modules
 app.use('/api/share', shareRouter);

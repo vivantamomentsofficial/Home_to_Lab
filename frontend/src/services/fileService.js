@@ -49,7 +49,39 @@ export const createFolderInDb = async (supabase, userId, name) => {
 };
 
 /**
- * Delete a file record from the database.
+ * Soft delete a file (move to trash).
+ */
+export const softDeleteFileInDb = async (supabase, fileId) => {
+  if (!supabase) throw new Error('Supabase client not initialized.');
+
+  const { data, error } = await supabase
+    .from('files')
+    .update({ is_deleted: true, deleted_at: new Date().toISOString() })
+    .eq('id', fileId)
+    .select();
+
+  if (error) throw error;
+  return data?.[0];
+};
+
+/**
+ * Restore a soft-deleted file from trash.
+ */
+export const restoreFileInDb = async (supabase, fileId) => {
+  if (!supabase) throw new Error('Supabase client not initialized.');
+
+  const { data, error } = await supabase
+    .from('files')
+    .update({ is_deleted: false, deleted_at: null })
+    .eq('id', fileId)
+    .select();
+
+  if (error) throw error;
+  return data?.[0];
+};
+
+/**
+ * Permanently delete a file record from the database.
  */
 export const deleteFileRecordFromDb = async (supabase, fileId) => {
   if (!supabase) throw new Error('Supabase client not initialized.');
@@ -61,6 +93,7 @@ export const deleteFileRecordFromDb = async (supabase, fileId) => {
 
   if (error) throw error;
 };
+
 
 /**
  * Delete an object from Supabase Storage.

@@ -325,9 +325,11 @@ router.post('/users/:id/lock', async (req, res) => {
     const { error } = await supabase
       .from('profiles')
       .update(updates)
-      .eq('id', id);
-
     if (error) throw error;
+
+    // Log admin lock action
+    await logAudit(supabase, req.user, 'TOGGLE_USER_LOCKS', 'user', id, updates);
+
     return res.json({ success: true, message: 'User locks updated successfully.', updates });
   } catch (err) {
     console.error('Failed to update user locks:', err);
@@ -335,4 +337,39 @@ router.post('/users/:id/lock', async (req, res) => {
   }
 });
 
+// GET /api/admin/audit-logs - Retrieve admin actions audit trail
+router.get('/audit-logs', async (req, res) => {
+  try {
+    const supabase = req.supabase;
+    const { data, error } = await supabase
+      .from('admin_audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (error) throw error;
+    return res.json(data || []);
+  } catch (err) {
+    console.error('Failed to load audit logs:', err);
+    return res.status(500).json({ error: 'Failed to fetch audit logs.' });
+  }
+});
+
+// Internal audit logger helper
+async function logAudit(supabase, adminUser, action, targetType, targetId, details = {}) {
+  try {
+    await supabase.from('admin_audit_logs').insert({
+      admin_id: adminUser?.id || null,
+      admin_email: adminUser?.email || 'homtolab@gmail.com',
+      action,
+      target_type: targetType,
+      target_id: targetId,
+      details,
+    });
+  } catch (err) {
+    console.warn('Audit logging non-fatal error:', err.message);
+  }
+}
+
 module.exports = router;
+

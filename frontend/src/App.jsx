@@ -3,8 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useInactivityLogout } from './hooks/useInactivityLogout';
 import { Settings, HelpCircle, ShieldAlert } from 'lucide-react';
+import PWAInstallBanner from './components/PWAInstallBanner';
 
 // Lazy load pages for code splitting
+
 const Home = React.lazy(() => import('./pages/Home'));
 const Login = React.lazy(() => import('./pages/Login'));
 const Register = React.lazy(() => import('./pages/Register'));
@@ -152,33 +154,37 @@ const AppContent = () => {
   }
 
   return (
-    <React.Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <Admin />
-            </AdminRoute>
-          }
-        />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </React.Suspense>
+    <>
+      <React.Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <Admin />
+              </AdminRoute>
+            }
+          />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </React.Suspense>
+      <PWAInstallBanner />
+    </>
   );
 };
+
 
 const App = () => {
   return (

@@ -10,12 +10,18 @@ import {
   calculateUsedStorage, 
   createSignedDownloadUrl, 
   insertFileRecord, 
-  uploadFileToStorage 
+  uploadFileToStorage,
+  softDeleteFileInDb,
+  restoreFileInDb,
+  deleteFileRecordFromDb,
+  deleteFileFromStorage
 } from '../services/fileService';
 
 import { 
   fetchNotesFromDb, 
-  deleteNoteRecord 
+  deleteNoteRecord,
+  softDeleteNoteRecord,
+  restoreNoteRecord
 } from '../services/noteService';
 
 import { 
@@ -23,13 +29,19 @@ import {
   fetchLoginLogsFromDb 
 } from '../services/profileService';
 
-import { encryptFileBuffer, decryptFileBuffer } from '../utils/cryptoHelper';
+import { encryptFileBuffer, decryptFileBuffer, encryptText, decryptText } from '../utils/cryptoHelper';
+import { checkBlockedExtension } from '../utils/fileSecurity';
+import QRCodeModal from '../components/QRCodeModal';
+import StorageDonutChart from '../components/StorageDonutChart';
+import GlobalAnnouncementBanner from '../components/GlobalAnnouncementBanner';
+
 import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Bell, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic
+  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic, QrCode, RotateCcw, Lock, Unlock, Play
 } from 'lucide-react';
+
 
 const formatBytes = (bytes, decimals = 2) => {
   if (bytes === 0) return '0 Bytes';
@@ -40,18 +52,24 @@ const formatBytes = (bytes, decimals = 2) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const getFileCategory = (filename, mimeType) => {
+const getFileCategory = (filename = '', mimeType = '') => {
   const ext = filename.split('.').pop().toLowerCase();
   const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
   if (imageExts.includes(ext) || mimeType.startsWith('image/')) return 'image';
+
+  const videoExts = ['mp4', 'webm', 'mov', 'mkv', 'avi', 'm4v'];
+  if (videoExts.includes(ext) || mimeType.startsWith('video/')) return 'video';
+
+  const audioExts = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'];
+  if (audioExts.includes(ext) || mimeType.startsWith('audio/')) return 'audio';
   
   const docExts = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp'];
   if (docExts.includes(ext)) return 'document';
   
-  const codeExts = ['java', 'py', 'html', 'css', 'js', 'json', 'xml', 'cpp', 'c', 'sh', 'sql', 'php', 'ts', 'jsx', 'tsx'];
+  const codeExts = ['java', 'py', 'html', 'css', 'js', 'json', 'xml', 'cpp', 'c', 'sh', 'sql', 'php', 'ts', 'jsx', 'tsx', 'rs', 'go', 'yaml', 'yml'];
   if (codeExts.includes(ext)) return 'code';
   
-  const txtExts = ['txt', 'md', 'csv', 'log'];
+  const txtExts = ['txt', 'md', 'csv', 'log', 'env'];
   if (txtExts.includes(ext) || mimeType.startsWith('text/')) return 'text';
   
   const zipExts = ['zip', 'rar', 'tar', 'gz', '7z'];
@@ -187,9 +205,22 @@ const Dashboard = () => {
   const recordTimerRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // File Previews Lightbox
+  // File Previews Lightbox (Unified multi-format media preview)
   const [previewImage, setPreviewImage] = useState(null);
   const [previewText, setPreviewText] = useState(null);
+  const [previewMedia, setPreviewMedia] = useState(null); // { type: 'image'|'video'|'audio'|'pdf'|'text', title: string, url?: string, content?: string }
+
+  // QR Code Modal State
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrModalData, setQrModalData] = useState({ code: '', filename: '', url: '' });
+
+  // Encrypted Note States
+  const [noteEncrypt, setNoteEncrypt] = useState(false);
+  const [notePassphrase, setNotePassphrase] = useState('');
+  const [showNoteDecryptModal, setShowNoteDecryptModal] = useState(false);
+  const [targetNoteToDecrypt, setTargetNoteToDecrypt] = useState(null);
+  const [noteDecryptPassphrase, setNoteDecryptPassphrase] = useState('');
+  const [decryptedNotesMap, setDecryptedNotesMap] = useState({}); // { [noteId]: decryptedContent }
 
   // Quick Paste CTRL+SHIFT+V modal
   const [showQuickPaste, setShowQuickPaste] = useState(false);
@@ -197,6 +228,7 @@ const Dashboard = () => {
 
   // Dropdown menu state per file card
   const [activeMenuId, setActiveMenuId] = useState(null);
+
 
   // 1. Fetch User Profile Info & Dashboard data
   const fetchProfileDetails = async () => {
@@ -676,11 +708,27 @@ const Dashboard = () => {
     }
 
     try {
+      let finalContent = noteContent;
+      let isEncrypted = false;
+
+      if (noteEncrypt) {
+        if (!notePassphrase.trim()) {
+          showToast('Passphrase is required to encrypt note snippet.', 'warning');
+          return;
+        }
+        finalContent = await encryptText(noteContent, notePassphrase);
+        isEncrypted = true;
+      }
+
       if (noteId) {
         // Update Snippet
         const { error } = await supabase
           .from('notes')
-          .update({ title: noteTitle.trim(), content: noteContent })
+          .update({ 
+            title: noteTitle.trim(), 
+            content: finalContent,
+            is_encrypted: isEncrypted
+          })
           .eq('id', noteId);
         
         if (error) throw error;
@@ -692,41 +740,69 @@ const Dashboard = () => {
           .insert({
             user_id: user.id,
             title: noteTitle.trim(),
-            content: noteContent
+            content: finalContent,
+            is_encrypted: isEncrypted,
+            is_deleted: false
           });
 
         if (error) throw error;
-        showToast('Snippet saved successfully!', 'success');
+        showToast(isEncrypted ? 'Encrypted snippet saved securely!' : 'Snippet saved successfully!', 'success');
       }
 
       setNoteId('');
       setNoteTitle('');
       setNoteContent('');
+      setNoteEncrypt(false);
+      setNotePassphrase('');
       fetchNotes();
     } catch (err) {
       console.error(err);
-      showToast('Failed to save snippet.', 'danger');
+      showToast('Failed to save snippet: ' + err.message, 'danger');
     }
   };
 
   const handleEditNote = (note) => {
     setNoteId(note.id);
     setNoteTitle(note.title);
-    setNoteContent(note.content);
+    setNoteContent(decryptedNotesMap[note.id] || note.content);
   };
 
-  const handleDeleteNote = (id) => {
+  const handleMoveNoteToTrash = async (id) => {
     if (operationsLocked) {
       showToast('Snippet modifications are locked by the administrator.', 'warning');
       return;
     }
+    try {
+      await softDeleteNoteRecord(supabase, id);
+      showToast('Moved note snippet to Trash.', 'info');
+      fetchNotes();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to move snippet to trash.', 'danger');
+    }
+  };
+
+  const handleRestoreNote = async (id) => {
+    try {
+      await restoreNoteRecord(supabase, id);
+      showToast('Restored note snippet successfully!', 'success');
+      fetchNotes();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to restore snippet.', 'danger');
+    }
+  };
+
+  const handlePermanentDeleteNote = (id) => {
     setConfirmModalData({
-      title: 'Delete Clipboard Snippet',
-      message: 'Are you sure you want to permanently delete this text snippet? This cannot be undone.',
+      title: 'Permanently Delete Snippet',
+      message: 'Are you sure you want to permanently purge this text snippet from database? This cannot be undone.',
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel',
       action: async () => {
         try {
           await deleteNoteRecord(supabase, id);
-          showToast('Snippet deleted.', 'success');
+          showToast('Snippet permanently deleted.', 'success');
           fetchNotes();
         } catch (err) {
           console.error(err);
@@ -736,6 +812,33 @@ const Dashboard = () => {
     });
     setShowConfirmModal(true);
   };
+
+  const handleDecryptNoteClick = (note) => {
+    setTargetNoteToDecrypt(note);
+    setNoteDecryptPassphrase('');
+    setShowNoteDecryptModal(true);
+  };
+
+  const handleExecuteNoteDecryption = async (e) => {
+    e.preventDefault();
+    if (!targetNoteToDecrypt || !noteDecryptPassphrase) return;
+
+    try {
+      const decrypted = await decryptText(targetNoteToDecrypt.content, noteDecryptPassphrase);
+      setDecryptedNotesMap((prev) => ({
+        ...prev,
+        [targetNoteToDecrypt.id]: decrypted
+      }));
+      showToast('Note snippet decrypted successfully!', 'success');
+      setShowNoteDecryptModal(false);
+      setTargetNoteToDecrypt(null);
+      setNoteDecryptPassphrase('');
+    } catch (err) {
+      console.error(err);
+      showToast('Decryption failed. Please check your passphrase.', 'danger');
+    }
+  };
+
 
   // Fetch login logs for session monitoring
   const fetchUserLoginLogs = async () => {
@@ -922,6 +1025,13 @@ const Dashboard = () => {
 
     for (const file of itemsArray) {
       let processedFile = file;
+
+      // Security: Block dangerous executable file extensions (.exe, .bat, .sh, etc.)
+      const blockedCheck = checkBlockedExtension(processedFile.name);
+      if (blockedCheck.isBlocked) {
+        showToast(`Security Alert: Upload blocked for "${processedFile.name}" (Forbidden file extension: ${blockedCheck.extension}).`, 'danger');
+        continue;
+      }
 
       // Local Image Compression
       if (file.type?.startsWith('image/')) {
@@ -1344,49 +1454,89 @@ const Dashboard = () => {
   const executeGenerateShareCode = async () => {
     if (!shareOptionsFile) return;
     setShowShareOptionsModal(false);
-    showToast('Generating 6-digit access code...', 'info');
+    showToast('Generating secure access code...', 'info');
     try {
-      // Step 1: Create signed URL from storage bucket valid for selected duration
-      const { data, error: signedError } = await supabase.storage
-        .from('vault')
-        .createSignedUrl(shareOptionsFile.storage_path, selectedShareExpiry);
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      let generatedCode = '';
+      let signedUrl = '';
 
-      if (signedError) throw signedError;
-
-      // Step 2: Generate unique 6-digit alphanumeric code
-      let codeExists = true;
-      let shareCode = '';
-      while (codeExists) {
-        shareCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-        // Check database collision
-        const { data: collisionData } = await supabase
-          .from('share_codes')
-          .select('id')
-          .eq('code', shareCode)
-          .gt('expires_at', new Date().toISOString());
-        
-        if (!collisionData || collisionData.length === 0) {
-          codeExists = false;
+      // Try server-side cryptographically secure share generator endpoint first
+      let serverSuccess = false;
+      if (session?.access_token) {
+        try {
+          const res = await fetch(`${apiUrl}/api/share/generate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              file_id: shareOptionsFile.id,
+              expiry_seconds: selectedShareExpiry,
+              self_destruct: shareSelfDestruct
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            generatedCode = data.code;
+            signedUrl = data.signed_url;
+            serverSuccess = true;
+          }
+        } catch (apiErr) {
+          console.warn('Backend share generation failed, falling back to client crypto:', apiErr);
         }
       }
 
-      // Step 3: Insert record into share_codes table
-      const expiry = new Date(Date.now() + selectedShareExpiry * 1000);
-      const { error: dbError } = await supabase
-        .from('share_codes')
-        .insert({
-          code: shareCode,
-          file_id: shareOptionsFile.id,
-          signed_url: data.signedUrl,
-          expires_at: expiry.toISOString(),
-          self_destruct: shareSelfDestruct
-        });
+      // Secure client fallback using window.crypto.getRandomValues if server endpoint is offline
+      if (!serverSuccess) {
+        // Step 1: Create signed URL from storage bucket valid for selected duration
+        const { data: signedData, error: signedError } = await supabase.storage
+          .from('vault')
+          .createSignedUrl(shareOptionsFile.storage_path, selectedShareExpiry);
 
-      if (dbError) throw dbError;
+        if (signedError) throw signedError;
+        signedUrl = signedData.signedUrl;
+
+        // Step 2: Generate unique 6-digit alphanumeric code using Web Crypto API
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+        let codeExists = true;
+        let shareCode = '';
+        while (codeExists) {
+          const randomBytes = new Uint8Array(6);
+          window.crypto.getRandomValues(randomBytes);
+          shareCode = Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
+
+          // Check database collision
+          const { data: collisionData } = await supabase
+            .from('share_codes')
+            .select('id')
+            .eq('code', shareCode)
+            .gt('expires_at', new Date().toISOString());
+          
+          if (!collisionData || collisionData.length === 0) {
+            codeExists = false;
+          }
+        }
+
+        // Step 3: Insert record into share_codes table
+        const expiry = new Date(Date.now() + selectedShareExpiry * 1000);
+        const { error: dbError } = await supabase
+          .from('share_codes')
+          .insert({
+            code: shareCode,
+            file_id: shareOptionsFile.id,
+            signed_url: signedUrl,
+            expires_at: expiry.toISOString(),
+            self_destruct: shareSelfDestruct
+          });
+
+        if (dbError) throw dbError;
+        generatedCode = shareCode;
+      }
 
       // Launch share details modal
       setShareCodeData({ 
-        code: shareCode, 
+        code: generatedCode, 
         filename: shareOptionsFile.filename,
         self_destruct: shareSelfDestruct 
       });
@@ -2027,6 +2177,18 @@ const Dashboard = () => {
         showToast('Failed to retrieve text content.', 'danger');
       }
     } 
+    else if (category === 'video' || category === 'audio') {
+      try {
+        showToast(`Preparing ${category} player...`, 'info');
+        const { data, error } = await supabase.storage
+          .from('vault')
+          .createSignedUrl(file.storage_path, 600);
+        if (error) throw error;
+        setPreviewMedia({ type: category, title: file.filename, url: data.signedUrl });
+      } catch (e) {
+        showToast(`Failed to load ${category} preview.`, 'danger');
+      }
+    }
     else {
       showToast('Preview is not supported for this file type.', 'warning');
     }
@@ -2067,8 +2229,8 @@ const Dashboard = () => {
     return filtered;
   };
 
-  const getFilteredNotes = () => {
-    let filtered = [...notes];
+  const getFilteredNotes = (showDeleted = false) => {
+    let filtered = notes.filter(n => !!n.is_deleted === showDeleted);
 
     if (noteSearch.trim()) {
       const q = noteSearch.toLowerCase();
@@ -2558,6 +2720,30 @@ const Dashboard = () => {
                     ></textarea>
                   </div>
                   
+                  {/* Encryption toggle */}
+                  <div className="flex flex-col gap-2 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/80 rounded-xl">
+                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={noteEncrypt}
+                        onChange={(e) => setNoteEncrypt(e.target.checked)}
+                        className="w-4 h-4 rounded accent-brand-primary cursor-pointer"
+                      />
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-brand-primary" /> Encrypt Snippet (AES-GCM)
+                      </span>
+                    </label>
+                    {noteEncrypt && (
+                      <input
+                        type="password"
+                        placeholder="Encryption passphrase"
+                        value={notePassphrase}
+                        onChange={(e) => setNotePassphrase(e.target.value)}
+                        className="input-field py-1.5 text-xs"
+                      />
+                    )}
+                  </div>
+
                   <div className="flex gap-2">
                     <button type="submit" className="flex-1 btn-primary py-2.5 text-sm">
                       Save Snippet
@@ -2569,6 +2755,8 @@ const Dashboard = () => {
                           setNoteId('');
                           setNoteTitle('');
                           setNoteContent('');
+                          setNoteEncrypt(false);
+                          setNotePassphrase('');
                         }}
                         className="btn-secondary py-2.5 px-4 text-sm"
                       >
@@ -2616,16 +2804,31 @@ const Dashboard = () => {
                   No note clippings found. Add one on the left to start!
                 </div>
               ) : (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                  {getFilteredNotes().map((note) => (
-                    <div key={note.id} className="glass-card p-4 hover:shadow-md flex flex-col justify-between border-slate-100 dark:border-slate-800">
+                  {getFilteredNotes(false).map((note) => (
+                    <div key={note.id} className={`glass-card p-4 hover:shadow-md flex flex-col justify-between border-slate-100 dark:border-slate-800 ${note.is_encrypted ? 'border-l-2 border-l-amber-400' : ''}`}>
                       <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          {note.is_encrypted && (
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded">
+                              🔒 Encrypted
+                            </span>
+                          )}
+                        </div>
                         <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate" title={note.title}>
                           {note.title}
                         </h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-4 font-mono whitespace-pre-wrap break-all bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">
-                          {note.content}
-                        </p>
+                        {note.is_encrypted && !decryptedNotesMap[note.id] ? (
+                          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-center gap-2">
+                            <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                            <span className="text-xs text-amber-700 dark:text-amber-400">Content is encrypted — click unlock to read.</span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-4 font-mono whitespace-pre-wrap break-all bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">
+                            {decryptedNotesMap[note.id] || note.content}
+                          </p>
+                        )}
                       </div>
                       
                       <div className="flex justify-between items-center mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
@@ -2633,6 +2836,15 @@ const Dashboard = () => {
                           {new Date(note.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                         <div className="flex gap-1">
+                          {note.is_encrypted && !decryptedNotesMap[note.id] && (
+                            <button
+                              onClick={() => handleDecryptNoteClick(note)}
+                              className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg text-amber-500 hover:text-amber-600 transition-colors cursor-pointer"
+                              title="Decrypt note"
+                            >
+                              <Unlock className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleShareNote(note)}
                             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
@@ -2641,7 +2853,7 @@ const Dashboard = () => {
                             <Share2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleCopyNote(note.content)}
+                            onClick={() => handleCopyNote(decryptedNotesMap[note.id] || note.content)}
                             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
                             title="Copy snippet"
                           >
@@ -2655,9 +2867,9 @@ const Dashboard = () => {
                             <Edit3 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDeleteNote(note.id)}
+                            onClick={() => handleMoveNoteToTrash(note.id)}
                             className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
-                            title="Delete snippet"
+                            title="Move to trash"
                           >
                             <Trash className="w-4 h-4" />
                           </button>
@@ -2666,6 +2878,42 @@ const Dashboard = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Trash bin section */}
+                {getFilteredNotes(true).length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Trash className="w-3.5 h-3.5" /> Trash ({getFilteredNotes(true).length})
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {getFilteredNotes(true).map((note) => (
+                        <div key={note.id} className="glass-card p-3 flex justify-between items-start gap-3 opacity-60 hover:opacity-100 border-dashed border-slate-200 dark:border-slate-700">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 truncate">{note.title}</p>
+                            <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 font-mono">{note.is_encrypted ? '[Encrypted]' : note.content}</p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <button
+                              onClick={() => handleRestoreNote(note.id)}
+                              className="p-1 hover:bg-green-50 dark:hover:bg-green-950/30 rounded-lg text-slate-400 hover:text-green-600 transition-colors"
+                              title="Restore"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={() => handlePermanentDeleteNote(note.id)}
+                              className="p-1 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-slate-400 hover:text-red-500 transition-colors"
+                              title="Delete permanently"
+                            >
+                              <Trash className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>
@@ -4051,6 +4299,121 @@ const Dashboard = () => {
                   )}
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      <QRCodeModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        code={qrModalData.code}
+        filename={qrModalData.filename}
+        directUrl={qrModalData.url}
+      />
+
+      {/* Note Decrypt Passphrase Modal */}
+      {showNoteDecryptModal && targetNoteToDecrypt && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-sm w-full p-6 shadow-2xl animate-scale-up">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-9 h-9 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                <Lock className="w-4.5 h-4.5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Decrypt Note</h3>
+                <p className="text-[11px] text-slate-400 truncate max-w-[220px]" title={targetNoteToDecrypt.title}>
+                  {targetNoteToDecrypt.title}
+                </p>
+              </div>
+            </div>
+            <form onSubmit={handleExecuteNoteDecryption} className="space-y-4">
+              <div>
+                <label className="label-title">DECRYPTION PASSPHRASE</label>
+                <input
+                  type="password"
+                  placeholder="Enter passphrase used during save"
+                  value={noteDecryptPassphrase}
+                  onChange={(e) => setNoteDecryptPassphrase(e.target.value)}
+                  className="input-field"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNoteDecryptModal(false);
+                    setTargetNoteToDecrypt(null);
+                    setNoteDecryptPassphrase('');
+                  }}
+                  className="btn-secondary py-2 px-4 text-xs font-bold"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary py-2 px-4 text-xs font-bold">
+                  Unlock Snippet
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Video / Audio Preview Modal */}
+      {previewMedia && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 p-4">
+          <div className="max-w-2xl w-full flex flex-col gap-3.5 relative animate-scale-up">
+            <div className="flex justify-between items-center text-white">
+              <div className="flex items-center gap-2">
+                <Play className="w-4 h-4 text-brand-primary" />
+                <h3 className="text-sm font-bold truncate pr-6 capitalize">
+                  {previewMedia.type} — {previewMedia.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setPreviewMedia(null)}
+                className="p-1.5 hover:bg-white/10 rounded-lg text-slate-300 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 p-3 flex justify-center items-center">
+              {previewMedia.type === 'video' ? (
+                <video
+                  src={previewMedia.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[65vh] rounded-xl w-full"
+                />
+              ) : (
+                <div className="w-full flex flex-col items-center gap-4 py-8 px-6">
+                  <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center">
+                    <Play className="w-8 h-8 text-brand-primary" />
+                  </div>
+                  <p className="text-sm text-slate-300 font-medium truncate max-w-full" title={previewMedia.title}>
+                    {previewMedia.title}
+                  </p>
+                  <audio
+                    src={previewMedia.url}
+                    controls
+                    autoPlay
+                    className="w-full max-w-md rounded-xl"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setPreviewMedia(null)}
+                className="py-2 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+              >
+                Close Player
+              </button>
             </div>
           </div>
         </div>

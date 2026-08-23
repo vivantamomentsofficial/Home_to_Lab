@@ -97,3 +97,42 @@ export async function decryptFileBuffer(combinedBuffer, passphrase) {
     throw new Error("Incorrect passphrase or corrupted file.");
   }
 }
+
+/**
+ * Encrypt a text string (note/snippet) with a passphrase using AES-GCM 256.
+ * Returns Base64-encoded string: [Salt 16B][IV 12B][Ciphertext].
+ */
+export async function encryptText(plainText, passphrase) {
+  if (!plainText) return '';
+  const enc = new TextEncoder();
+  const dataBuffer = enc.encode(plainText);
+  const encryptedBuffer = await encryptFileBuffer(dataBuffer, passphrase);
+  
+  // Convert ArrayBuffer to Base64
+  let binary = '';
+  const bytes = new Uint8Array(encryptedBuffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return window.btoa(binary);
+}
+
+/**
+ * Decrypt a Base64-encoded encrypted text string with passphrase.
+ * Returns the original plain text.
+ */
+export async function decryptText(base64Ciphertext, passphrase) {
+  if (!base64Ciphertext) return '';
+  const binary = window.atob(base64Ciphertext);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  
+  const decryptedBuffer = await decryptFileBuffer(bytes.buffer, passphrase);
+  const dec = new TextDecoder();
+  return dec.decode(decryptedBuffer);
+}
+
+

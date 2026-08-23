@@ -54,6 +54,16 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Ensure columns exist if the table was created in an older version of the schema
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS college TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS failed_login_attempts INT DEFAULT 0 NOT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS locked_until TIMESTAMP WITH TIME ZONE;
+
+-- Trash / Soft-delete columns for files and notes
+ALTER TABLE public.files ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE public.notes ADD COLUMN IF NOT EXISTS is_encrypted BOOLEAN DEFAULT false NOT NULL;
 
 -- Login logs table (to track user logins for the Admin)
 CREATE TABLE IF NOT EXISTS public.login_logs (
@@ -67,6 +77,17 @@ CREATE TABLE IF NOT EXISTS public.login_logs (
 -- Ensure migration updates
 ALTER TABLE public.login_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
 
+-- Admin Audit Logs table (tracking all high-privilege administrative actions)
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    admin_email TEXT,
+    action TEXT NOT NULL,
+    target_type TEXT,
+    target_id TEXT,
+    details JSONB DEFAULT '{}'::jsonb,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
 
 -- =========================================================================
 -- 2. ROW LEVEL SECURITY (RLS) POLICIES
@@ -78,6 +99,15 @@ ALTER TABLE public.notes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.share_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------
+-- RLS Policies for public.admin_audit_logs
+-- ---------------------------------------------------------
+DROP POLICY IF EXISTS "Admin can manage audit logs" ON public.admin_audit_logs;
+CREATE POLICY "Admin can manage audit logs" ON public.admin_audit_logs
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
 
 -- ---------------------------------------------------------
 -- RLS Policies for public.files
@@ -102,14 +132,8 @@ CREATE POLICY "Users can delete their own files" ON public.files
 DROP POLICY IF EXISTS "Allow public delete on shared files" ON public.files;
 
 
+-- Drop broad public read policy on files (Replaced by get_shared_file_by_code RPC)
 DROP POLICY IF EXISTS "Allow public read on shared files" ON public.files;
-CREATE POLICY "Allow public read on shared files" ON public.files
-    FOR SELECT USING (
-        EXISTS (
-            SELECT 1 FROM public.share_codes
-            WHERE share_codes.file_id = files.id AND expires_at > now()
-        )
-    );
 
 -- =========================================================================
 -- 5.5. HELPER FUNCTION TO CHECK ADMIN STATUS
@@ -187,9 +211,8 @@ CREATE POLICY "Users can delete their own share codes" ON public.share_codes
         )
     );
 
+-- Drop broad public read policy on share codes (Replaced by get_shared_file_by_code RPC)
 DROP POLICY IF EXISTS "Allow public read of active share codes" ON public.share_codes;
-CREATE POLICY "Allow public read of active share codes" ON public.share_codes
-    FOR SELECT USING (expires_at > now());
 
 -- ADMIN ACCESS: Allow Admin full bypass on share codes
 DROP POLICY IF EXISTS "Admin can do everything on share codes" ON public.share_codes;
@@ -360,51 +383,12 @@ CREATE TRIGGER on_auth_user_updated
 
 
 -- =========================================================================
--- 5. SEED SUPER ADMIN
+-- 5. SUPER ADMIN PROVISIONING
 -- =========================================================================
+-- Note: Create the super admin user (homtolab@gmail.com) via your Supabase
+-- Auth Dashboard (Authentication -> Users -> Add User) with a strong password.
+-- The triggers will automatically create the corresponding profile and grant admin rights.
 
--- Delete existing super admin if exists to prevent duplicates (bypassing ON CONFLICT constraint error)
-DELETE FROM auth.users WHERE email = 'homtolab@gmail.com';
-
--- Insert Super Admin into auth.users
-INSERT INTO auth.users (
-    instance_id,
-    id,
-    aud,
-    role,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    recovery_sent_at,
-    last_sign_in_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    created_at,
-    updated_at,
-    confirmation_token,
-    email_change,
-    email_change_token_new,
-    recovery_token
-)
-VALUES (
-    '00000000-0000-0000-0000-000000000000',
-    '77777777-7777-7777-7777-777777777777', -- Static admin UUID
-    'authenticated',
-    'authenticated',
-    'homtolab@gmail.com',
-    crypt('26072008', gen_salt('bf')),
-    now(),
-    NULL,
-    now(),
-    '{"provider": "email", "providers": ["email"]}',
-    '{"full_name": "Super Admin"}',
-    now(),
-    now(),
-    '',
-    '',
-    '',
-    ''
-);
 
 -- Run initial sync of all existing users into the profiles table
 INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
@@ -730,13 +714,70 @@ CREATE POLICY "Admin can manage global alerts" ON public.global_alerts
     FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- =========================================================================
--- 10. BURN-AFTER-READING (SELF-DESTRUCT) LOGIC
+-- 10. SECURE SHARE CODE RETRIEVAL & BURN-AFTER-READING LOGIC
 -- =========================================================================
 
 -- Add self_destruct column to share_codes table
 ALTER TABLE public.share_codes ADD COLUMN IF NOT EXISTS self_destruct BOOLEAN DEFAULT false NOT NULL;
 
--- RPC to resolve self-destruct share codes securely (SECURITY DEFINER)
+-- Parameterized SECURITY DEFINER function to retrieve a specific shared file by exact code safely
+CREATE OR REPLACE FUNCTION public.get_shared_file_by_code(p_code VARCHAR)
+RETURNS TABLE (
+    file_id UUID,
+    filename TEXT,
+    size BIGINT,
+    file_type TEXT,
+    signed_url TEXT,
+    expires_at TIMESTAMP WITH TIME ZONE,
+    self_destruct BOOLEAN
+) 
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    v_share RECORD;
+    v_file RECORD;
+BEGIN
+    -- 1. Look up active unexpired share code matching parameter exactly (case-insensitive)
+    SELECT * INTO v_share 
+    FROM public.share_codes 
+    WHERE UPPER(code) = UPPER(p_code) AND share_codes.expires_at > now();
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    -- 2. Look up associated file metadata
+    SELECT * INTO v_file
+    FROM public.files
+    WHERE id = v_share.file_id;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    -- 3. If marked self-destruct (Burn-after-reading), delete file (cascades to delete share code)
+    IF v_share.self_destruct THEN
+        DELETE FROM public.files WHERE id = v_file.id;
+    END IF;
+
+    -- 4. Return file information and signed URL
+    RETURN QUERY
+    SELECT 
+        v_file.id,
+        v_file.filename,
+        v_file.size,
+        v_file.file_type,
+        v_share.signed_url,
+        v_share.expires_at,
+        v_share.self_destruct;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_shared_file_by_code(VARCHAR) TO anon, authenticated, service_role;
+
+-- Legacy RPC support for backwards compatibility
 CREATE OR REPLACE FUNCTION public.resolve_self_destruct_share(target_code VARCHAR)
 RETURNS VOID AS $$
 DECLARE
@@ -744,14 +785,16 @@ DECLARE
 BEGIN
     SELECT file_id INTO target_file_id
     FROM public.share_codes
-    WHERE code = target_code;
+    WHERE UPPER(code) = UPPER(target_code);
     
     IF target_file_id IS NOT NULL THEN
-        -- Delete the file record (cascades to delete share_codes too)
         DELETE FROM public.files WHERE id = target_file_id;
     END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION public.resolve_self_destruct_share(VARCHAR) TO anon, authenticated, service_role;
+
 
 
 
