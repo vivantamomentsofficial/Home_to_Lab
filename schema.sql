@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS public.login_logs (
 
 -- Ensure migration updates
 ALTER TABLE public.login_logs ADD COLUMN IF NOT EXISTS ip_address TEXT;
+ALTER TABLE public.login_logs ADD COLUMN IF NOT EXISTS user_agent TEXT;
 
 -- Admin Audit Logs table (tracking all high-privilege administrative actions)
 CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
@@ -87,6 +88,13 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
     target_id TEXT,
     details JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- Platform Settings table (storing global system toggles, limits, maintenance status, feature flags)
+CREATE TABLE IF NOT EXISTS public.platform_settings (
+    key TEXT PRIMARY KEY,
+    value JSONB NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- =========================================================================
@@ -484,9 +492,12 @@ CREATE TABLE IF NOT EXISTS public.storage_requests (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     email TEXT NOT NULL,
     requested_limit BIGINT NOT NULL,
+    reason TEXT,
     status TEXT DEFAULT 'pending' NOT NULL, -- 'pending', 'approved', 'rejected'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.storage_requests ADD COLUMN IF NOT EXISTS reason TEXT;
 
 -- Enable RLS on new tables
 ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;

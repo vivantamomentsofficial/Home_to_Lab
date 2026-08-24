@@ -1,7 +1,43 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 @config "../tailwind.config.js";
+
+/* Instagram Sans Font Stack Setup */
+@font-face {
+  font-family: 'Instagram Sans';
+  src: local('Instagram Sans'), local('InstagramSans-Regular'),
+       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Regular.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  src: local('Instagram Sans Medium'), local('InstagramSans-Medium'),
+       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Medium.woff') format('woff');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans';
+  src: local('Instagram Sans Bold'), local('InstagramSans-Bold'),
+       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Instagram Sans Head';
+  src: local('Instagram Sans Head'), local('InstagramSansHead-Bold'),
+       url('https://fonts.cdnfonts.com/s/85669/InstagramSansHead-Bold.woff') format('woff');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
@@ -15,6 +51,7 @@
 
   body {
     @apply bg-brand-bg-light dark:bg-brand-bg-dark text-[#0F172A] dark:text-[#F8FAFC] font-sans antialiased transition-colors duration-300 min-h-screen;
+    font-family: 'Instagram Sans', 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   body::selection {
@@ -23,6 +60,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight font-semibold;
+    font-family: 'Instagram Sans Head', 'Instagram Sans', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
   }
 }
 

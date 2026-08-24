@@ -31,8 +31,8 @@ export default {
         }
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        display: ['Outfit', 'sans-serif'],
+        sans: ['"Instagram Sans"', '"Plus Jakarta Sans"', 'Inter', '-apple-system', 'sans-serif'],
+        display: ['"Instagram Sans Head"', '"Instagram Sans"', 'Outfit', '-apple-system', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.2s ease-out forwards',
