@@ -108,6 +108,18 @@ ALTER TABLE public.share_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------
+-- RLS Policies for public.platform_settings
+-- ---------------------------------------------------------
+DROP POLICY IF EXISTS "Allow public read of platform settings" ON public.platform_settings;
+CREATE POLICY "Allow public read of platform settings" ON public.platform_settings
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Admin can manage platform settings" ON public.platform_settings;
+CREATE POLICY "Admin can manage platform settings" ON public.platform_settings
+    FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- ---------------------------------------------------------
 -- RLS Policies for public.admin_audit_logs
