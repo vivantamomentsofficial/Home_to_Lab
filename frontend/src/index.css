@@ -2,11 +2,10 @@
 @import "tailwindcss";
 @config "../tailwind.config.js";
 
-/* Instagram Sans Font Stack Setup */
+/* Instagram Sans & Clean Font Stack Setup */
 @font-face {
   font-family: 'Instagram Sans';
-  src: local('Instagram Sans'), local('InstagramSans-Regular'),
-       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Regular.woff') format('woff');
+  src: local('Instagram Sans'), local('InstagramSans-Regular');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -14,8 +13,7 @@
 
 @font-face {
   font-family: 'Instagram Sans';
-  src: local('Instagram Sans Medium'), local('InstagramSans-Medium'),
-       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Medium.woff') format('woff');
+  src: local('Instagram Sans Medium'), local('InstagramSans-Medium');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
@@ -23,8 +21,7 @@
 
 @font-face {
   font-family: 'Instagram Sans';
-  src: local('Instagram Sans Bold'), local('InstagramSans-Bold'),
-       url('https://fonts.cdnfonts.com/s/85669/InstagramSans-Bold.woff') format('woff');
+  src: local('Instagram Sans Bold'), local('InstagramSans-Bold');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
@@ -32,8 +29,7 @@
 
 @font-face {
   font-family: 'Instagram Sans Head';
-  src: local('Instagram Sans Head'), local('InstagramSansHead-Bold'),
-       url('https://fonts.cdnfonts.com/s/85669/InstagramSansHead-Bold.woff') format('woff');
+  src: local('Instagram Sans Head'), local('InstagramSansHead-Bold');
   font-weight: 700;
   font-style: normal;
   font-display: swap;

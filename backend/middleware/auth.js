@@ -8,6 +8,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+
 // Middleware to extract and verify JWT token using Supabase Auth getUser API
 const requireAuth = async (req, res, next) => {
   try {
@@ -31,15 +33,32 @@ const requireAuth = async (req, res, next) => {
       },
     });
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // Pass token explicitly to getUser(token) to verify against Supabase Auth API
+    const { data: userData, error } = await supabase.auth.getUser(token);
+    const user = userData?.user;
 
     if (error || !user) {
+      console.warn('[AUTH] Token validation failed:', error?.message || 'No user found');
       return res.status(401).json({ error: 'Invalid or expired authentication token.' });
     }
 
+    // Create admin service client if service key exists for admin operations
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    });
+
     // Attach user information and initialized client instance to the request
     req.user = user;
-    req.supabase = supabase;
+    req.supabase = adminSupabase;
+    req.userSupabase = supabase;
     req.token = token;
 
     // Verify if account is suspended
