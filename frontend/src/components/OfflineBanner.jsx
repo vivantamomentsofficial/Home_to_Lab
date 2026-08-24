@@ -1,10 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, RefreshCw } from 'lucide-react';
+import { WifiOff, Wifi } from 'lucide-react';
 
-/**
- * OfflineBanner — Global popup that appears whenever the device loses network.
- * Shows a non-dismissable overlay when offline, auto-hides when back online.
- */
 const OfflineBanner = () => {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [visible, setVisible] = useState(!navigator.onLine);
@@ -20,7 +16,6 @@ const OfflineBanner = () => {
     const handleOnline = () => {
       setIsOffline(false);
       setJustCameBack(true);
-      // Show "back online" message briefly, then hide
       setTimeout(() => {
         setVisible(false);
         setJustCameBack(false);
@@ -29,7 +24,6 @@ const OfflineBanner = () => {
 
     window.addEventListener('offline', handleOffline);
     window.addEventListener('online', handleOnline);
-
     return () => {
       window.removeEventListener('offline', handleOffline);
       window.removeEventListener('online', handleOnline);
@@ -40,71 +34,62 @@ const OfflineBanner = () => {
 
   return (
     <>
-      {/* Backdrop dimmer when fully offline */}
+      {/* Backdrop dimmer only when fully offline */}
       {isOffline && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[9998] pointer-events-none" />
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-[2px] z-[9998] pointer-events-none" />
       )}
 
-      {/* Popup Banner */}
-      <div
-        className={`fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-[9999] transition-all duration-500 ${
-          visible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'
-        }`}
-      >
-        <div
-          className={`rounded-2xl border shadow-2xl overflow-hidden ${
-            isOffline
-              ? 'bg-gradient-to-br from-red-950 to-slate-900 border-red-700/40'
-              : 'bg-gradient-to-br from-emerald-950 to-slate-900 border-emerald-600/40'
-          }`}
-        >
-          {/* Top color strip */}
+      {/* Banner card */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-sm z-[9999] animate-scale-up">
+        <div className="glass-card shadow-2xl overflow-hidden">
+          
+          {/* Status strip */}
           <div
-            className={`h-0.5 w-full ${
+            className={`h-[3px] w-full ${
               isOffline
-                ? 'bg-gradient-to-r from-red-500 via-orange-500 to-red-500'
-                : 'bg-gradient-to-r from-emerald-400 via-green-400 to-teal-400'
+                ? 'bg-gradient-to-r from-red-400 via-orange-400 to-red-400'
+                : 'bg-gradient-to-r from-brand-primary via-sky-400 to-brand-primary-light'
             }`}
           />
 
           <div className="px-4 py-3.5 flex items-center gap-3.5">
             {/* Icon */}
             <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
                 isOffline
-                  ? 'bg-red-500/20 border border-red-500/30'
-                  : 'bg-emerald-500/20 border border-emerald-500/30'
+                  ? 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20'
+                  : 'bg-brand-primary/10 dark:bg-brand-primary/20 border-brand-primary/20 dark:border-brand-primary/30'
               }`}
             >
               {isOffline ? (
-                <WifiOff className="w-5 h-5 text-red-400" />
+                <WifiOff className="w-4.5 h-4.5 text-red-500 dark:text-red-400" />
               ) : (
-                <RefreshCw className="w-5 h-5 text-emerald-400" />
+                <Wifi className="w-4.5 h-4.5 text-brand-primary dark:text-brand-primary-light" />
               )}
             </div>
 
             {/* Text */}
             <div className="flex-1 min-w-0">
-              <p
-                className={`font-bold text-xs leading-tight ${
-                  isOffline ? 'text-red-300' : 'text-emerald-300'
-                }`}
-              >
+              <p className={`font-display font-bold text-[13px] leading-tight ${
+                isOffline
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-slate-800 dark:text-slate-100'
+              }`}>
                 {isOffline ? 'No Internet Connection' : 'Back Online!'}
               </p>
-              <p className="text-[11px] text-slate-400 mt-0.5 leading-snug">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
                 {isOffline
-                  ? 'Connect to a network to upload, share & sync files.'
-                  : 'Your connection has been restored. Resuming sync...'}
+                  ? 'Connect to a network to upload, share & sync.'
+                  : 'Your connection is restored. Resuming sync...'}
               </p>
             </div>
 
-            {/* Animated dot indicator */}
+            {/* Pulsing indicator */}
             {isOffline && (
               <div className="shrink-0 flex gap-1 items-center">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse [animation-delay:200ms]" />
-                <span className="w-1.5 h-1.5 rounded-full bg-red-300 animate-pulse [animation-delay:400ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse [animation-delay:150ms]" />
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse [animation-delay:300ms]" />
               </div>
             )}
           </div>
