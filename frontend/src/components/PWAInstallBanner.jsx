@@ -1,25 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { DownloadCloud, X } from 'lucide-react';
+import { Download, X, Share, Smartphone } from 'lucide-react';
+
+// Detect iOS Safari
+const isIOS = () =>
+  /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+
+// Detect if already installed as PWA
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
 
 const PWAInstallBanner = () => {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [showBanner, setShowBanner] = useState(false);
+  const [platform, setPlatform] = useState('android'); // 'android' | 'ios'
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      // Check if dismissed previously
-      if (!localStorage.getItem('CLOUDVAULT_PWA_DISMISSED')) {
-        setShowBanner(true);
-      }
-    };
+    // Don't show if already installed or dismissed
+    if (isStandalone()) return;
+    if (localStorage.getItem('CLOUDVAULT_PWA_DISMISSED_V2')) return;
 
-    window.addEventListener('beforeinstallprompt', handler);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handler);
-    };
+    if (isIOS()) {
+      // iOS: show manual instructions banner
+      setPlatform('ios');
+      // Show after 2s delay so user can see the page first
+      const timer = setTimeout(() => setShowBanner(true), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      // Android/Chrome: intercept beforeinstallprompt
+      const handler = (e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+        setPlatform('android');
+        setTimeout(() => setShowBanner(true), 2000);
+      };
+      window.addEventListener('beforeinstallprompt', handler);
+      return () => window.removeEventListener('beforeinstallprompt', handler);
+    }
   }, []);
 
   const handleInstall = async () => {
@@ -34,40 +52,72 @@ const PWAInstallBanner = () => {
 
   const handleDismiss = () => {
     setShowBanner(false);
-    localStorage.setItem('CLOUDVAULT_PWA_DISMISSED', 'true');
+    setDismissed(true);
+    localStorage.setItem('CLOUDVAULT_PWA_DISMISSED_V2', 'true');
   };
 
-  if (!showBanner) return null;
+  if (!showBanner || dismissed) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 left-4 sm:left-auto sm:max-w-md z-40 animate-slide-up">
-      <div className="bg-slate-900 dark:bg-slate-800 text-white p-4 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shrink-0">
-            <DownloadCloud className="w-5 h-5" />
-          </div>
-          <div>
-            <h4 className="font-bold text-xs font-display text-white">Install CloudVault</h4>
-            <p className="text-[11px] text-slate-300">
-              Install the web app for fast offline access & home screen shortcut.
-            </p>
-          </div>
-        </div>
+    <div className="fixed bottom-4 left-3 right-3 sm:left-auto sm:right-4 sm:max-w-sm z-50 animate-slide-up">
+      <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 text-white rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+        
+        {/* Top color accent strip */}
+        <div className="h-0.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            onClick={handleInstall}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shadow-sm"
-          >
-            Install
-          </button>
-          <button
-            onClick={handleDismiss}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
-            title="Dismiss"
-          >
-            <X className="w-4 h-4" />
-          </button>
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-indigo-400/30 flex items-center justify-center shrink-0">
+                <Smartphone className="w-5 h-5 text-indigo-300" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm text-white leading-tight">Install CloudVault</h4>
+                <p className="text-[11px] text-slate-400 leading-snug">
+                  Add to Home Screen for quick access
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDismiss}
+              className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors shrink-0 mt-0.5"
+              aria-label="Dismiss"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Android Install Button */}
+          {platform === 'android' && (
+            <button
+              onClick={handleInstall}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-900/40 active:scale-95"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Add to Home Screen
+            </button>
+          )}
+
+          {/* iOS Manual Instructions */}
+          {platform === 'ios' && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/20 border border-blue-400/30 flex items-center justify-center shrink-0">
+                  <Share className="w-3.5 h-3.5 text-blue-400" />
+                </div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Tap the <span className="font-bold text-white">Share</span> icon in Safari's bottom toolbar
+                </p>
+              </div>
+              <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10">
+                <div className="w-7 h-7 rounded-lg bg-green-500/20 border border-green-400/30 flex items-center justify-center shrink-0 text-green-400 font-bold text-xs">+</div>
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  Scroll down and tap <span className="font-bold text-white">"Add to Home Screen"</span>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

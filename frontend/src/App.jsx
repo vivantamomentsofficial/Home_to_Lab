@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext';
 import { useInactivityLogout } from './hooks/useInactivityLogout';
 import { Settings, HelpCircle, ShieldAlert } from 'lucide-react';
 import PWAInstallBanner from './components/PWAInstallBanner';
+import OfflineBanner from './components/OfflineBanner';
 
 // Lazy load pages for code splitting
 
@@ -181,6 +182,7 @@ const AppContent = () => {
         </Routes>
       </React.Suspense>
       <PWAInstallBanner />
+      <OfflineBanner />
     </>
   );
 };

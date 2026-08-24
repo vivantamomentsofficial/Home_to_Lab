@@ -1,57 +1,79 @@
-const CACHE_NAME = 'cloudvault-v4-cache';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'cloudvault-v5-cache';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/manifest.json',
+  '/fonts/InstagramSans-Regular.woff',
+  '/fonts/InstagramSans-Medium.woff',
+  '/fonts/InstagramSans-Bold.woff',
+  '/fonts/InstagramSansHead-Bold.woff',
+  '/assets/android-chrome-192x192.png',
+  '/assets/android-chrome-512x512.png',
+  '/assets/apple-touch-icon.png',
+  '/assets/favicon.svg',
 ];
 
-// Install service worker and cache base assets
+// ─── Install: Pre-cache all static assets ──────────────────────────
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
-// Activate service worker and clear old caches
+// ─── Activate: Remove old caches ───────────────────────────────────
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
+    caches.keys().then((keys) =>
+      Promise.all(
         keys.map((key) => {
-          if (key !== CACHE_NAME) {
-            return caches.delete(key);
-          }
+          if (key !== CACHE_NAME) return caches.delete(key);
         })
-      );
-    })
+      )
+    )
   );
   self.clients.claim();
 });
 
-// Fetch events strategy: Network first with Cache fallback
+// ─── Fetch: Network-first with cache fallback ──────────────────────
 self.addEventListener('fetch', (e) => {
-  // Only cache GET requests
   if (e.request.method !== 'GET') return;
 
-  // Skip cross-origin or Supabase API requests to prevent caching issues
   const url = new URL(e.request.url);
-  if (url.origin !== self.location.origin) return;
+
+  // Skip Supabase, Render backend, Cloudflare - never cache these
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org'];
+  if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(
     fetch(e.request)
-      .then((res) => {
-        // Clone response and cache it
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(e.request, resClone);
-        });
-        return res;
+      .then((networkRes) => {
+        // Clone and cache successful response
+        if (networkRes && networkRes.status === 200) {
+          const resClone = networkRes.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(e.request, resClone);
+          });
+        }
+        return networkRes;
       })
       .catch(() => {
-        // Fallback to cache if network is offline
-        return caches.match(e.request);
+        // Offline fallback: return from cache or app shell
+        return caches.match(e.request).then((cached) => {
+          if (cached) return cached;
+          // For navigation requests, serve the app shell
+          if (e.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
+        });
       })
   );
+});
+
+// ─── Message: Force update ─────────────────────────────────────────
+self.addEventListener('message', (e) => {
+  if (e.data === 'SKIP_WAITING') self.skipWaiting();
 });
