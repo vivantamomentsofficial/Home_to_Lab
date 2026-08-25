@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useInactivityLogout } from './hooks/useInactivityLogout';
-import { Settings, HelpCircle, ShieldAlert } from 'lucide-react';
+import { Settings, HelpCircle, ShieldAlert, Shield, Lock } from 'lucide-react';
 import PWAInstallBanner from './components/PWAInstallBanner';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -15,10 +15,45 @@ const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Admin = React.lazy(() => import('./pages/Admin'));
 const AdminLogin = React.lazy(() => import('./pages/AdminLogin'));
 
-const LoadingFallback = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark">
-    <div className="w-12 h-12 rounded-full border-4 border-brand-primary border-t-transparent animate-spin"></div>
-    <p className="mt-4 text-sm font-medium text-slate-500">Loading page content...</p>
+const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
+  <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white relative overflow-hidden font-sans select-none">
+    {/* Dynamic Background Glow Orbs */}
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none animate-pulse"></div>
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none animate-ping opacity-30"></div>
+
+    <div className="relative z-10 flex flex-col items-center max-w-sm w-full px-6 text-center">
+      {/* Animated Brand Logo Icon */}
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[2px] shadow-2xl shadow-indigo-500/30 animate-bounce-subtle">
+          <div className="w-full h-full bg-slate-900 rounded-[22px] flex items-center justify-center backdrop-blur-md">
+            <Shield className="w-10 h-10 text-cyan-400 animate-pulse" />
+          </div>
+        </div>
+        {/* Outer Rotating Ring */}
+        <div className="absolute -inset-2 rounded-3xl border-2 border-indigo-500/30 border-t-cyan-400 animate-spin"></div>
+      </div>
+
+      {/* Brand Title */}
+      <h1 className="text-2xl font-black font-display tracking-tight text-white mb-1 flex items-center justify-center gap-1.5">
+        Cloud<span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-400 to-teal-300">Vault</span>
+      </h1>
+
+      {/* Dynamic Status Subtitle */}
+      <p className="text-xs text-slate-400 font-medium tracking-wide mb-6">
+        {message}
+      </p>
+
+      {/* Sleek Gradient Loader Bar */}
+      <div className="w-48 h-1.5 bg-slate-800 rounded-full overflow-hidden relative shadow-inner border border-slate-700/50">
+        <div className="absolute inset-y-0 bg-gradient-to-r from-indigo-500 via-cyan-400 to-teal-400 rounded-full animate-loading-bar"></div>
+      </div>
+
+      {/* Encrypted Security Badge */}
+      <div className="mt-8 flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-500 tracking-widest bg-slate-900/80 px-3.5 py-1.5 rounded-full border border-slate-800/80">
+        <Lock className="w-3 h-3 text-cyan-400" />
+        <span>AES-256 Encrypted Session</span>
+      </div>
+    </div>
   </div>
 );
 
@@ -27,12 +62,7 @@ const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark">
-        <div className="w-12 h-12 rounded-full border-4 border-brand-primary border-t-transparent animate-spin"></div>
-        <p className="mt-4 text-sm font-medium text-slate-500">Loading session details...</p>
-      </div>
-    );
+    return <LoadingFallback message="Loading session details..." />;
   }
 
   if (!user) {
@@ -51,12 +81,7 @@ const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark">
-        <div className="w-12 h-12 rounded-full border-4 border-brand-primary border-t-transparent animate-spin"></div>
-        <p className="mt-4 text-sm font-medium text-slate-500">Validating credentials...</p>
-      </div>
-    );
+    return <LoadingFallback message="Validating credentials..." />;
   }
 
   if (!user) {

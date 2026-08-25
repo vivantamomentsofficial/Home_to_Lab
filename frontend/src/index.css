@@ -139,3 +139,22 @@ svg {
   display: inline-block;
   vertical-align: middle;
 }
+
+@keyframes loadingBar {
+  0% { left: -40%; width: 40%; }
+  50% { left: 20%; width: 60%; }
+  100% { left: 100%; width: 40%; }
+}
+
+.animate-loading-bar {
+  animation: loadingBar 1.6s ease-in-out infinite;
+}
+
+@keyframes bounceSubtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-bounce-subtle {
+  animation: bounceSubtle 2.5s ease-in-out infinite;
+}

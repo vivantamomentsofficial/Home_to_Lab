@@ -28,10 +28,13 @@ export const AuthProvider = ({ children }) => {
   // 1. Fetch Supabase configuration on mount
   useEffect(() => {
     const fetchConfigAndInit = async () => {
-      let url = localStorage.getItem('CLOUDVAULT_SUPABASE_URL');
-      let key = localStorage.getItem('CLOUDVAULT_SUPABASE_ANON_KEY');
+      const DEFAULT_SUPABASE_URL = 'https://gxccllaqtdiuvnrialta.supabase.co';
+      const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
 
-      // If not in localStorage, try retrieving from the Node.js backend proxy
+      let url = import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('CLOUDVAULT_SUPABASE_URL');
+      let key = import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('CLOUDVAULT_SUPABASE_ANON_KEY');
+
+      // If not in localStorage or env, try retrieving from the Node.js backend proxy
       if (!url || !key) {
         try {
           // Point to local Express backend during dev or relative route in prod
@@ -49,10 +52,10 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
+      // Default fallback so setup wizard never interrupts normal users/visitors
       if (!url || !key) {
-        setNeedsSetup(true);
-        setLoading(false);
-        return;
+        url = DEFAULT_SUPABASE_URL;
+        key = DEFAULT_SUPABASE_ANON_KEY;
       }
 
       try {
