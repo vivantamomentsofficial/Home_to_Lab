@@ -79,7 +79,7 @@ const getFileCategory = (filename = '', mimeType = '') => {
 };
 
 const Dashboard = () => {
-  const { user, supabase, logout, deleteOwnAccount } = useAuth();
+  const { user, session, supabase, logout, deleteOwnAccount } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -1462,13 +1462,14 @@ const Dashboard = () => {
 
       // Try server-side cryptographically secure share generator endpoint first
       let serverSuccess = false;
-      if (session?.access_token) {
+      const activeSession = session || (supabase ? (await supabase.auth.getSession())?.data?.session : null);
+      if (activeSession?.access_token) {
         try {
           const res = await fetch(`${apiUrl}/api/share/generate`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`
+              'Authorization': `Bearer ${activeSession.access_token}`
             },
             body: JSON.stringify({
               file_id: shareOptionsFile.id,
