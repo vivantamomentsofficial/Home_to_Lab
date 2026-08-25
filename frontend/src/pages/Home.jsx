@@ -138,6 +138,8 @@ const Home = () => {
     e.preventDefault();
     setFeedbackSending(true);
 
+    const mailtoUrl = `mailto:homtolab@gmail.com?subject=${encodeURIComponent(`[${feedbackTopic}] CloudVault Feedback from ${feedbackName}`)}&body=${encodeURIComponent(`Name: ${feedbackName}\nEmail: ${feedbackEmail}\nTopic: ${feedbackTopic}\n\nMessage:\n${feedbackMessage}`)}`;
+
     try {
       const serviceId = 'service_98oq29o';
       const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_v0fdm9h';
@@ -158,8 +160,9 @@ const Home = () => {
       setFeedbackTopic('Feature Request');
       setFeedbackMessage('');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to send message: ' + (err.text || err.message), 'danger');
+      console.warn('EmailJS delivery failed, triggering mailto fallback:', err);
+      window.location.href = mailtoUrl;
+      showToast('Opened email client to deliver your feedback to homtolab@gmail.com!', 'success');
     } finally {
       setFeedbackSending(false);
     }

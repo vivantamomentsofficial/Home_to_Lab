@@ -8,17 +8,24 @@ const ThemeContext = createContext({
 export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider = ({ children }) => {
-  // Always lock theme to 'light'
-  const theme = 'light';
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('CLOUDVAULT_THEME');
+    if (saved) return saved;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
 
   useEffect(() => {
     const root = window.document.documentElement;
-    root.classList.remove('dark');
-    localStorage.setItem('CLOUDVAULT_THEME', 'light');
-  }, []);
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('CLOUDVAULT_THEME', theme);
+  }, [theme]);
 
   const toggleTheme = () => {
-    // No-op to disable changing theme
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
   return (
