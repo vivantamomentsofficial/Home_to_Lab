@@ -18,55 +18,48 @@ const AdminLogin = () => {
   const turnstileRef = useRef(null);
   const widgetIdRef = useRef(null);
 
-  // Cloudflare Turnstile state
+  // Safe Cloudflare Turnstile widget manager
   useEffect(() => {
-    let timer;
-    if (window.turnstile && turnstileRef.current) {
-      try {
-        if (widgetIdRef.current !== null) {
-          window.turnstile.remove(widgetIdRef.current);
-          widgetIdRef.current = null;
-        }
-        if (turnstileRef.current.children.length === 0) {
-          widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-            sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-            theme: theme === 'dark' ? 'dark' : 'light',
-          });
-        }
-      } catch (err) {
-        console.warn('Turnstile render error:', err);
-      }
-    } else {
-      timer = setInterval(() => {
-        if (window.turnstile && turnstileRef.current) {
-          clearInterval(timer);
-          try {
-            if (widgetIdRef.current !== null) {
-              window.turnstile.remove(widgetIdRef.current);
-              widgetIdRef.current = null;
-            }
-            if (turnstileRef.current.children.length === 0) {
-              widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-                sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-                theme: theme === 'dark' ? 'dark' : 'light',
-              });
-            }
-          } catch (err) {
-            console.warn('Turnstile render error:', err);
-          }
-        }
-      }, 100);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-      if (window.turnstile && widgetIdRef.current !== null) {
+    let intervalId;
+
+    const safeRemove = () => {
+      if (widgetIdRef.current !== null && window.turnstile) {
         try {
           window.turnstile.remove(widgetIdRef.current);
-          widgetIdRef.current = null;
-        } catch (err) {
-          console.warn('Turnstile cleanup error:', err);
+        } catch (e) {
+          // Suppress turnstile internal cleanup warnings
         }
+        widgetIdRef.current = null;
       }
+    };
+
+    const tryRender = () => {
+      if (!window.turnstile || !turnstileRef.current) return false;
+      try {
+        if (turnstileRef.current.querySelector('iframe')) return true;
+        safeRemove();
+        turnstileRef.current.innerHTML = '';
+        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
+          sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+          theme: theme === 'dark' ? 'dark' : 'light',
+        });
+        return true;
+      } catch (err) {
+        return false;
+      }
+    };
+
+    if (!tryRender()) {
+      intervalId = setInterval(() => {
+        if (tryRender()) {
+          clearInterval(intervalId);
+        }
+      }, 150);
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      safeRemove();
     };
   }, [theme]);
 
