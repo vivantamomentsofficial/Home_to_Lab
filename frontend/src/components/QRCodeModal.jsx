@@ -3,27 +3,25 @@ import QRCode from 'qrcode';
 import { X, QrCode, Copy, Check, Download } from 'lucide-react';
 
 const QRCodeModal = ({ isOpen, onClose, code, directUrl, filename }) => {
-  const canvasRef = useRef(null);
+  const [qrDataUrl, setQrDataUrl] = useState('');
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (isOpen && code && canvasRef.current) {
+    if (isOpen && code) {
       const targetUrl = directUrl || `${window.location.origin}/?code=${code}`;
-      QRCode.toCanvas(
-        canvasRef.current,
+      QRCode.toDataURL(
         targetUrl,
         {
-          width: 220,
+          width: 240,
           margin: 2,
           color: {
             dark: '#0f172a',
             light: '#ffffff',
           },
-        },
-        (error) => {
-          if (error) console.error('QR code generation error:', error);
         }
-      );
+      )
+      .then((url) => setQrDataUrl(url))
+      .catch((error) => console.error('QR code generation error:', error));
     }
   }, [isOpen, code, directUrl]);
 
@@ -38,10 +36,10 @@ const QRCodeModal = ({ isOpen, onClose, code, directUrl, filename }) => {
   };
 
   const handleDownloadQR = () => {
-    if (!canvasRef.current) return;
+    if (!qrDataUrl) return;
     const link = document.createElement('a');
     link.download = `cloudvault-qr-${code}.png`;
-    link.href = canvasRef.current.toDataURL('image/png');
+    link.href = qrDataUrl;
     link.click();
   };
 
@@ -69,9 +67,13 @@ const QRCodeModal = ({ isOpen, onClose, code, directUrl, filename }) => {
           {filename ? `File: ${filename}` : 'Scan with mobile camera to download'}
         </p>
 
-        {/* QR Code Canvas */}
-        <div className="bg-white p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-inner mb-4">
-          <canvas ref={canvasRef} className="rounded-lg max-w-full block"></canvas>
+        {/* QR Code Image */}
+        <div className="bg-white p-3.5 rounded-xl border border-slate-200 dark:border-slate-700 inline-block shadow-inner mb-4 min-w-[200px] min-h-[200px] flex items-center justify-center">
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR Code" className="rounded-lg w-[200px] h-[200px] block" />
+          ) : (
+            <div className="text-xs text-slate-400 font-semibold animate-pulse">Generating QR Code...</div>
+          )}
         </div>
 
         {/* Code display */}

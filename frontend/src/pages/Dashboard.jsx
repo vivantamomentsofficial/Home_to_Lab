@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import QRCode from 'qrcode';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
@@ -213,6 +214,24 @@ const Dashboard = () => {
   // QR Code Modal State
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrModalData, setQrModalData] = useState({ code: '', filename: '', url: '' });
+
+  // Local QR Code Generator State
+  const [shareQrDataUrl, setShareQrDataUrl] = useState('');
+
+  useEffect(() => {
+    if (showShareModal && shareCodeData?.code) {
+      const shareUrl = `${window.location.origin}/?code=${shareCodeData.code}`;
+      QRCode.toDataURL(shareUrl, {
+        width: 180,
+        margin: 2,
+        color: { dark: '#0f172a', light: '#ffffff' }
+      })
+      .then((url) => setShareQrDataUrl(url))
+      .catch((err) => console.error('Failed to generate local QR code:', err));
+    } else {
+      setShareQrDataUrl('');
+    }
+  }, [showShareModal, shareCodeData]);
 
   // Encrypted Note States
   const [noteEncrypt, setNoteEncrypt] = useState(false);
@@ -3694,13 +3713,16 @@ const Dashboard = () => {
               {/* QR Code Section */}
               <div className="mb-5 flex flex-col items-center gap-2">
                 <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Scan to Download</span>
-                <div className="p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-md">
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=${encodeURIComponent(shareUrl)}`}
-                    alt="QR Code"
-                    className="w-[140px] h-[140px] block rounded-lg bg-white"
-                    loading="lazy"
-                  />
+                <div className="p-2.5 bg-white rounded-xl border border-slate-200/50 dark:border-slate-700/50 shadow-md flex justify-center items-center min-w-[150px] min-h-[150px]">
+                  {shareQrDataUrl ? (
+                    <img
+                      src={shareQrDataUrl}
+                      alt="QR Code"
+                      className="w-[140px] h-[140px] block rounded-lg bg-white"
+                    />
+                  ) : (
+                    <div className="text-xs text-slate-400 font-semibold animate-pulse">Generating QR...</div>
+                  )}
                 </div>
               </div>
 
