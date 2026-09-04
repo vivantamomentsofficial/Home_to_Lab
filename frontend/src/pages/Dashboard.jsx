@@ -2356,105 +2356,26 @@ const Dashboard = () => {
       return;
     }
 
-    const downloadId = 'dn_' + Math.random().toString(36).substring(2, 9);
-    const controller = new AbortController();
-    
-    setShowDownloadProgressCard(true);
-    setActiveDownloads((prev) => ({
-      ...prev,
-      [downloadId]: {
-        name: filename,
-        progress: 0,
-        status: 'downloading',
-        controller
-      }
-    }));
-
     try {
-      showToast('Creating download URL...', 'info');
+      showToast('Preparing download...', 'info');
       const { data, error } = await supabase.storage
         .from('vault')
-        .createSignedUrl(path, 60);
+        .createSignedUrl(path, 120);
 
       if (error) throw error;
-      
-      const res = await fetch(data.signedUrl, { signal: controller.signal });
-      if (!res.ok) throw new Error("Failed to fetch file content.");
-      
-      const reader = res.body.getReader();
-      const contentLength = +res.headers.get('Content-Length');
-      
-      let receivedLength = 0;
-      let chunks = [];
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        receivedLength += value.length;
-        
-        if (contentLength) {
-          const percent = Math.round((receivedLength / contentLength) * 100);
-          setActiveDownloads((prev) => {
-            if (!prev[downloadId]) return prev;
-            return {
-              ...prev,
-              [downloadId]: {
-                ...prev[downloadId],
-                progress: percent
-              }
-            };
-          });
-        }
-      }
 
-      let chunksAll = new Uint8Array(receivedLength);
-      let position = 0;
-      for (let chunk of chunks) {
-        chunksAll.set(chunk, position);
-        position += chunk.length;
-      }
+      const link = document.createElement('a');
+      link.href = data.signedUrl;
+      link.download = filename;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-      const blob = new Blob([chunksAll], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.click();
-      
-      URL.revokeObjectURL(url);
-      
-      setActiveDownloads((prev) => {
-        if (!prev[downloadId]) return prev;
-        return {
-          ...prev,
-          [downloadId]: {
-            ...prev[downloadId],
-            status: 'completed',
-            progress: 100
-          }
-        };
-      });
-      
       showToast(`Downloaded "${filename}" successfully!`, 'success');
     } catch (err) {
-      console.error(err);
-      if (err.name === 'AbortError') {
-        showToast('Download cancelled.', 'warning');
-      } else {
-        setActiveDownloads((prev) => {
-          if (!prev[downloadId]) return prev;
-          return {
-            ...prev,
-            [downloadId]: {
-              ...prev[downloadId],
-              status: 'failed'
-            }
-          };
-        });
-        showToast('Download failed.', 'danger');
-      }
+      console.error('Download error:', err);
+      showToast('Download failed: ' + (err.message || String(err)), 'danger');
     }
   };
 
@@ -3591,9 +3512,15 @@ const Dashboard = () => {
                 )}
 
                 {getFilteredFiles().length === 0 ? (
-                  <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
-                    <p>No files found in this view.</p>
-                  </div>
+                  currentFolderId === null && folders.length > 0 ? (
+                    <div className="text-center py-6 px-4 text-slate-500 dark:text-slate-400 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
+                      <span>📁 All your files are safely organized inside the folders above. Click any folder to open it!</span>
+                    </div>
+                  ) : (
+                    <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
+                      <p>No files found in this view.</p>
+                    </div>
+                  )
                 ) : layoutMode === 'grid' ? (
                   // Grid View layout
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
