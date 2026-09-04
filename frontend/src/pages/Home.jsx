@@ -802,13 +802,20 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-6 lg:px-[8%] bg-white dark:bg-slate-950 border-t border-brand-border-light dark:border-brand-border-dark flex flex-col sm:flex-row justify-between items-center gap-4 z-10 text-xs text-slate-400 dark:text-slate-600">
+      <footer className="py-8 px-6 lg:px-[8%] bg-white dark:bg-slate-950 border-t border-brand-border-light dark:border-brand-border-dark flex flex-col md:flex-row justify-between items-center gap-4 z-10 text-xs text-slate-400 dark:text-slate-500">
         <div className="flex items-center gap-2">
           <Shield className="w-4.5 h-4.5 text-brand-primary stroke-[2.5]" />
           <span className="font-display font-semibold text-slate-800 dark:text-slate-400">CloudVault</span>
         </div>
+        <div className="flex items-center gap-4">
+          <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
+          <span>•</span>
+          <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
+          <span>•</span>
+          <a href="mailto:homtolab@gmail.com" className="hover:text-brand-primary transition">Contact</a>
+        </div>
         <div>
-          &copy; 2026 CloudVault. Secure and transient file transfer bridge. All rights reserved.
+          &copy; 2026 CloudVault (Home to Lab). All rights reserved.
         </div>
       </footer>
 

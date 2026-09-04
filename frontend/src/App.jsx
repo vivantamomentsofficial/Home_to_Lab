@@ -14,6 +14,8 @@ const Register = React.lazy(() => import('./pages/Register'));
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Admin = React.lazy(() => import('./pages/Admin'));
 const AdminLogin = React.lazy(() => import('./pages/AdminLogin'));
+const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
+const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 
 const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
   <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-950 text-white relative overflow-hidden font-sans select-none">
@@ -186,6 +188,8 @@ const AppContent = () => {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route
             path="/dashboard"
             element={

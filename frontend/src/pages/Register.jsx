@@ -78,8 +78,15 @@ const Register = () => {
     };
   }, [theme]);
 
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!agreedToTerms) {
+      showToast('You must accept the Terms of Service and Privacy Policy to create an account.', 'warning');
+      return;
+    }
 
     if (password.length < 6) {
       showToast('Password must be at least 6 characters.', 'warning');
@@ -233,6 +240,28 @@ const Register = () => {
             </div>
           </div>
 
+          {/* Terms of Service & Privacy Policy Agreement Checkbox */}
+          <div className="flex items-start gap-2.5 py-1">
+            <input
+              type="checkbox"
+              id="terms-checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 accent-brand-primary rounded border-slate-300 dark:border-slate-700 cursor-pointer"
+              required
+            />
+            <label htmlFor="terms-checkbox" className="text-xs text-slate-600 dark:text-slate-400 leading-snug cursor-pointer select-none">
+              I agree to CloudVault's{' '}
+              <Link to="/terms" target="_blank" className="text-brand-primary hover:underline font-bold">
+                Terms of Service
+              </Link>{' '}
+              and{' '}
+              <Link to="/privacy-policy" target="_blank" className="text-brand-primary hover:underline font-bold">
+                Privacy Policy
+              </Link>.
+            </label>
+          </div>
+
           {/* Cloudflare Turnstile CAPTCHA Widget */}
           <div 
             ref={turnstileRef}
@@ -243,7 +272,7 @@ const Register = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full btn-primary h-12 flex justify-center items-center mt-6"
+            className="w-full btn-primary h-12 flex justify-center items-center mt-4"
           >
             {loading ? (
               <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
@@ -258,6 +287,12 @@ const Register = () => {
           <Link to="/login" className="text-brand-primary hover:underline font-bold">
             Sign in here
           </Link>
+        </div>
+
+        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+          <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
+          <span>•</span>
+          <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
         </div>
       </div>
     </div>

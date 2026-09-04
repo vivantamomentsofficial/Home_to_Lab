@@ -558,10 +558,15 @@ const Login = () => {
               </Link>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-850/50 text-center">
+            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-850/50 flex flex-col items-center gap-2">
               <Link to="/admin/login" className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider inline-flex items-center gap-1">
                 <Shield className="w-3.5 h-3.5" /> Administrative Portal
               </Link>
+              <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
+                <span>•</span>
+                <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
+              </div>
             </div>
           </div>
         )}
