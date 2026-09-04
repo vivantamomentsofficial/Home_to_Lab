@@ -435,11 +435,12 @@ const Dashboard = () => {
     setVaultLoading(true);
     try {
       const { folders, files } = await fetchFilesAndFolders(supabase, user.id);
-      setFolders(folders);
-      setFiles(files);
+      console.log('[VAULT FETCH SUCCESS] Loaded folders:', folders?.length || 0, 'files:', files?.length || 0);
+      setFolders(folders || []);
+      setFiles(files || []);
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load files from storage database.', 'danger');
+      console.error('[VAULT FETCH ERROR]', err);
+      showToast('Failed to load files from storage database: ' + (err.message || String(err)), 'danger');
     } finally {
       setVaultLoading(false);
     }
@@ -2283,11 +2284,16 @@ const Dashboard = () => {
   // DATA RENDERING RESOLUTIONS
   // ==========================================
   const getFilteredFiles = () => {
+    if (!files || !Array.isArray(files)) return [];
     let filtered = files.filter(f => !f.is_deleted);
 
     // 1. Folder scope filter
     if (folderScope === 'current' && !searchQuery.trim()) {
-      filtered = filtered.filter(f => f.folder_id === currentFolderId || (currentFolderId === null && !f.folder_id));
+      filtered = filtered.filter(f => {
+        const fileFolderId = f.folder_id || null;
+        const targetFolderId = currentFolderId || null;
+        return fileFolderId === targetFolderId;
+      });
     }
 
     // 2. Search query filter
