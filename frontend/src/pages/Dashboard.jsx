@@ -210,6 +210,12 @@ const Dashboard = () => {
   const [selectedShareExpiry, setSelectedShareExpiry] = useState(1800);
   const [shareSelfDestruct, setShareSelfDestruct] = useState(false);
 
+  // Move file modal state & Upload destination folder
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [moveTargetFiles, setMoveTargetFiles] = useState([]);
+  const [selectedDestinationFolderId, setSelectedDestinationFolderId] = useState(null);
+  const [uploadTargetFolderId, setUploadTargetFolderId] = useState(null);
+
   // Audio voice memo recorder states
   const [showRecordModal, setShowRecordModal] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
@@ -1221,7 +1227,7 @@ const Dashboard = () => {
           storage_path: storagePath,
           file_type: fileCategory,
           size: fileToUpload.size,
-          folder_id: currentFolderId,
+          folder_id: (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId,
           content_hash: contentHash
         });
 
@@ -1451,11 +1457,43 @@ const Dashboard = () => {
         .eq('id', fileId);
 
       if (error) throw error;
-      showToast('File relocated successfully.', 'success');
+      const folderName = destFolderId ? (folders.find(f => f.id === destFolderId)?.name || 'Folder') : 'Vault Root';
+      showToast(`File moved to "${folderName}" successfully!`, 'success');
       fetchVaultFiles();
     } catch (err) {
       console.error(err);
-      showToast('Failed to relocate file.', 'danger');
+      showToast('Failed to relocate file: ' + (err.message || String(err)), 'danger');
+    }
+  };
+
+  const handleConfirmMoveFiles = async (destFolderId) => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
+    if (!moveTargetFiles || moveTargetFiles.length === 0) return;
+
+    try {
+      const fileIds = moveTargetFiles.map(f => f.id);
+      showToast(`Relocating ${fileIds.length} ${fileIds.length === 1 ? 'file' : 'files'}...`, 'info');
+
+      const { error } = await supabase
+        .from('files')
+        .update({ folder_id: destFolderId })
+        .in('id', fileIds);
+
+      if (error) throw error;
+
+      const folderName = destFolderId ? (folders.find(f => f.id === destFolderId)?.name || 'Folder') : 'Vault Root';
+      showToast(`Relocated ${fileIds.length} ${fileIds.length === 1 ? 'file' : 'files'} to "${folderName}"!`, 'success');
+      
+      setShowMoveModal(false);
+      setMoveTargetFiles([]);
+      setSelectedFileIds([]);
+      fetchVaultFiles();
+    } catch (err) {
+      console.error('Failed to move files:', err);
+      showToast('Failed to relocate files: ' + (err.message || String(err)), 'danger');
     }
   };
 
@@ -2788,6 +2826,33 @@ const Dashboard = () => {
                   </label>
                 </div>
 
+                {/* Target Destination Folder Selector */}
+                <div className="glass-card p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <Folder className="w-4.5 h-4.5 text-amber-500 shrink-0" />
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 dark:text-white block">
+                        Upload Destination Folder
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        Select which folder new files will be uploaded into
+                      </span>
+                    </div>
+                  </div>
+                  <select
+                    value={uploadTargetFolderId || ''}
+                    onChange={(e) => setUploadTargetFolderId(e.target.value || null)}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none w-full md:w-64 focus:border-brand-primary font-medium cursor-pointer"
+                  >
+                    <option value="">🏠 Vault Root (Uncategorized)</option>
+                    {folders.filter(f => !f.is_deleted).map((folder) => (
+                      <option key={folder.id} value={folder.id}>
+                        📁 {folder.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Encryption Options */}
                 <div className="glass-card p-4 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-3">
@@ -3265,13 +3330,27 @@ const Dashboard = () => {
                     <div className="text-xs font-semibold text-slate-700 dark:text-slate-300">
                       {selectedFileIds.length} {selectedFileIds.length === 1 ? 'file' : 'files'} selected
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={handleBatchDownloadZip}
                         className="btn-primary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Download className="w-3.5 h-3.5" /> Download as ZIP
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const targets = files.filter(f => selectedFileIds.includes(f.id));
+                          if (targets.length > 0) {
+                            setMoveTargetFiles(targets);
+                            setSelectedDestinationFolderId(currentFolderId || null);
+                            setShowMoveModal(true);
+                          }
+                        }}
+                        className="btn-secondary py-1.5 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 border-amber-300/50"
+                      >
+                        <Folder className="w-3.5 h-3.5 text-amber-500" /> Move Selected ({selectedFileIds.length})
                       </button>
                       <button
                         type="button"
@@ -3345,7 +3424,7 @@ const Dashboard = () => {
                                 <MoreVertical className="w-4 h-4" />
                               </button>
                               {activeMenuId === file.id && (
-                                <div className="absolute right-0 top-6 w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1 z-30">
+                                <div className="absolute right-0 top-6 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1 z-30">
                                   <button
                                     onClick={() => {
                                       setActiveMenuId(null);
@@ -3363,6 +3442,17 @@ const Dashboard = () => {
                                     className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
                                   >
                                     <Download className="w-3.5 h-3.5" /> Download
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      setMoveTargetFiles([file]);
+                                      setSelectedDestinationFolderId(file.folder_id || null);
+                                      setShowMoveModal(true);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                  >
+                                    <Folder className="w-3.5 h-3.5 text-amber-500" /> Move to Folder
                                   </button>
                                   <button
                                     onClick={() => {
@@ -3486,6 +3576,17 @@ const Dashboard = () => {
                             <Download className="w-4 h-4" />
                           </button>
                           <button
+                            onClick={() => {
+                              setMoveTargetFiles([file]);
+                              setSelectedDestinationFolderId(file.folder_id || null);
+                              setShowMoveModal(true);
+                            }}
+                            className="p-2 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg text-amber-500 transition-colors cursor-pointer"
+                            title="Move to folder"
+                          >
+                            <Folder className="w-4 h-4" />
+                          </button>
+                          <button
                             onClick={() => handleGenerateShareCode(file)}
                             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
                             title="Generate Share Code"
@@ -3517,7 +3618,7 @@ const Dashboard = () => {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {activeMenuId === file.id && (
-                            <div className="absolute right-0 top-8 w-36 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1 z-35">
+                            <div className="absolute right-0 top-8 w-40 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg py-1 z-35">
                               <button
                                 onClick={() => {
                                   setActiveMenuId(null);
@@ -3535,6 +3636,17 @@ const Dashboard = () => {
                                 className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2"
                               >
                                 <Download className="w-3.5 h-3.5" /> Download
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setActiveMenuId(null);
+                                  setMoveTargetFiles([file]);
+                                  setSelectedDestinationFolderId(file.folder_id || null);
+                                  setShowMoveModal(true);
+                                }}
+                                className="w-full px-4 py-2 text-left text-xs font-semibold text-amber-600 dark:text-amber-400 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                              >
+                                <Folder className="w-3.5 h-3.5 text-amber-500" /> Move to Folder
                               </button>
                               <button
                                 onClick={() => {
@@ -4774,6 +4886,97 @@ const Dashboard = () => {
                 className="btn-primary py-2 px-3.5 text-xs font-bold"
               >
                 Upload Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move File Destination Selection Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
+                  <Folder className="w-4.5 h-4.5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                    Move {moveTargetFiles.length} {moveTargetFiles.length === 1 ? 'File' : 'Files'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Select target folder destination</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setMoveTargetFiles([]);
+                }}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-350">
+              Relocating: <strong className="text-brand-primary">{moveTargetFiles.map(f => f.filename).join(', ')}</strong>
+            </p>
+
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto custom-scrollbar my-1">
+              {/* Vault Root Destination Option */}
+              <div
+                onClick={() => setSelectedDestinationFolderId(null)}
+                className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                  selectedDestinationFolderId === null
+                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary font-bold shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <Shield className="w-4 h-4 text-brand-primary" />
+                  <span className="text-xs font-semibold">🏠 Vault Root (Uncategorized)</span>
+                </div>
+                {selectedDestinationFolderId === null && <Check className="w-4 h-4 text-brand-primary" />}
+              </div>
+
+              {/* User Folders List */}
+              {folders.filter(f => !f.is_deleted).map((folder) => (
+                <div
+                  key={folder.id}
+                  onClick={() => setSelectedDestinationFolderId(folder.id)}
+                  className={`p-3 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                    selectedDestinationFolderId === folder.id
+                      ? 'border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Folder className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs font-semibold">📁 {folder.name}</span>
+                  </div>
+                  {selectedDestinationFolderId === folder.id && <Check className="w-4 h-4 text-amber-500" />}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowMoveModal(false);
+                  setMoveTargetFiles([]);
+                }}
+                className="btn-secondary py-2 px-4 text-xs font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleConfirmMoveFiles(selectedDestinationFolderId)}
+                className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5"
+              >
+                Relocate File(s) Here
               </button>
             </div>
           </div>
