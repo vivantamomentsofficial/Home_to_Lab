@@ -37,32 +37,38 @@ router.get('/stats', async (req, res) => {
       supabase.from('profiles').select('storage_limit, is_suspended, upload_locked'),
     ]);
 
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const loginsRes = await supabase
-      .from('login_logs')
-      .select('id', { count: 'exact', head: true })
-      .gt('login_time', dayAgo);
+    let loginsCount = 0;
+    try {
+      const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const loginsRes = await supabase
+        .from('login_logs')
+        .select('id', { count: 'exact', head: true })
+        .gt('login_time', dayAgo);
+      loginsCount = loginsRes?.count || 0;
+    } catch (lErr) {
+      console.warn('[ADMIN STATS] login_logs table query warning:', lErr.message);
+    }
 
     const files = filesRes.data || [];
     const totalStorageBytes = files.reduce((acc, f) => acc + (parseInt(f.size) || 0), 0);
 
     const profiles = profilesRes.data || [];
-    const suspendedCount = profiles.filter(p => p.is_suspended).length;
-    const lockedCount = profiles.filter(p => p.upload_locked || p.clipboard_locked || p.download_locked || p.operations_locked).length;
+    const suspendedCount = profiles.filter(p => p && p.is_suspended).length;
+    const lockedCount = profiles.filter(p => p && (p.upload_locked || p.clipboard_locked || p.download_locked || p.operations_locked)).length;
 
     return res.json({
       usersCount: usersRes.count || 0,
       filesCount: files.length,
       notesCount: notesRes.count || 0,
-      loginsCount: loginsRes.count || 0,
-      pendingRequestsCount: pendingReqRes.count || 0,
+      loginsCount,
+      pendingRequestsCount: pendingReqRes?.count || 0,
       totalStorageBytes,
       suspendedCount,
       lockedCount
     });
   } catch (err) {
     console.error('Failed to load admin stats:', err);
-    return res.status(500).json({ error: 'Failed to retrieve stats.' });
+    return res.status(500).json({ error: `Failed to retrieve stats: ${err.message || String(err)}` });
   }
 });
 
@@ -71,14 +77,28 @@ router.get('/analytics', async (req, res) => {
   try {
     const supabase = req.supabase;
 
-    const [filesRes, profilesRes, loginLogsRes] = await Promise.all([
-      supabase.from('files').select('id, filename, file_type, size, created_at, user_id'),
-      supabase.from('profiles').select('id, email, full_name, college, storage_limit, failed_login_attempts, locked_until'),
-      supabase.from('login_logs').select('id, user_id, email, login_time, ip_address, user_agent').order('login_time', { ascending: false }).limit(500),
-    ]);
+    let filesRes = await supabase.from('files').select('id, filename, file_type, size, created_at, user_id');
+    if (filesRes.error) {
+      console.warn('[ADMIN ANALYTICS] Files query error:', filesRes.error.message);
+      throw filesRes.error;
+    }
 
-    if (filesRes.error) throw filesRes.error;
-    if (profilesRes.error) throw profilesRes.error;
+    let profilesRes = await supabase.from('profiles').select('id, email, full_name, college, storage_limit, failed_login_attempts, locked_until');
+    if (profilesRes.error) {
+      console.warn('[ADMIN ANALYTICS] Full profiles query failed, falling back to basic profile fields:', profilesRes.error.message);
+      profilesRes = await supabase.from('profiles').select('id, email, full_name, storage_limit');
+      if (profilesRes.error) throw profilesRes.error;
+    }
+
+    let loginLogsRes = { data: [] };
+    try {
+      loginLogsRes = await supabase.from('login_logs').select('id, user_id, email, login_time, ip_address, user_agent').order('login_time', { ascending: false }).limit(500);
+      if (loginLogsRes.error) {
+        console.warn('[ADMIN ANALYTICS] login_logs table query notice:', loginLogsRes.error.message);
+      }
+    } catch (lErr) {
+      console.warn('[ADMIN ANALYTICS] login_logs query non-fatal exception:', lErr.message);
+    }
 
     const files = filesRes.data || [];
     const profiles = profilesRes.data || [];
@@ -93,7 +113,7 @@ router.get('/analytics', async (req, res) => {
     const categoryBytes = { image: 0, document: 0, code: 0, text: 0, audio_video: 0, archive: 0, other: 0 };
 
     files.forEach(f => {
-      const ext = (f.filename.split('.').pop() || '').toLowerCase();
+      const ext = (f.filename ? f.filename.split('.').pop() : '' || '').toLowerCase();
       let cat = 'other';
       if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext)) cat = 'image';
       else if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt'].includes(ext)) cat = 'document';
@@ -116,7 +136,7 @@ router.get('/analytics', async (req, res) => {
       id: p.id,
       email: p.email,
       name: p.full_name || 'Anonymous User',
-      college: p.college,
+      college: p.college || 'N/A',
       usedBytes: userStorageMap[p.id] || 0,
       limitBytes: parseInt(p.storage_limit) || 104857600,
       usagePercent: Math.min(100, Math.round(((userStorageMap[p.id] || 0) / (parseInt(p.storage_limit) || 104857600)) * 100))
@@ -127,14 +147,18 @@ router.get('/analytics', async (req, res) => {
     const dayAgo = now - 24 * 60 * 60 * 1000;
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
 
-    const activeUsers24h = new Set(logs.filter(l => new Date(l.login_time).getTime() > dayAgo).map(l => l.user_id)).size;
-    const activeUsers7d = new Set(logs.filter(l => new Date(l.login_time).getTime() > weekAgo).map(l => l.user_id)).size;
+    const activeUsers24h = new Set(logs.filter(l => l && l.login_time && new Date(l.login_time).getTime() > dayAgo).map(l => l.user_id)).size;
+    const activeUsers7d = new Set(logs.filter(l => l && l.login_time && new Date(l.login_time).getTime() > weekAgo).map(l => l.user_id)).size;
 
     // Peak Activity by Hour (0-23)
     const hourlyActivity = Array(24).fill(0);
     logs.forEach(l => {
-      const hour = new Date(l.login_time).getHours();
-      hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
+      if (l && l.login_time) {
+        const hour = new Date(l.login_time).getHours();
+        if (!isNaN(hour) && hour >= 0 && hour < 24) {
+          hourlyActivity[hour] = (hourlyActivity[hour] || 0) + 1;
+        }
+      }
     });
 
     // Flagged accounts (brute force or failed attempts)
@@ -159,7 +183,7 @@ router.get('/analytics', async (req, res) => {
     });
   } catch (err) {
     console.error('Failed to calculate analytics:', err);
-    return res.status(500).json({ error: 'Failed to retrieve analytics data.' });
+    return res.status(500).json({ error: `Failed to retrieve analytics data: ${err.message || String(err)}` });
   }
 });
 
