@@ -109,6 +109,42 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     console.warn('Storage sync warning:', syncErr?.message || syncErr);
   }
 
+  // Auto-organize unassigned files into matching folders if available
+  if (folders.length > 0 && files.length > 0) {
+    const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
+    const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
+    const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+
+    for (const file of files) {
+      if (!file.is_deleted && !file.folder_id) {
+        const lowerName = (file.filename || '').toLowerCase();
+        let matchedFolderId = null;
+
+        if (labFolder && (lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo code'))) {
+          matchedFolderId = labFolder.id;
+        } else if (practicalFolder && (lowerName.includes('ex ') || lowerName.includes('practical') || lowerName.includes('exercise'))) {
+          matchedFolderId = practicalFolder.id;
+        } else if (lectureFolder && (lowerName.includes('lecture') || lowerName.includes('notes'))) {
+          matchedFolderId = lectureFolder.id;
+        }
+
+        if (matchedFolderId) {
+          file.folder_id = matchedFolderId;
+          // Update DB record asynchronously so it persists in PostgreSQL
+          if (file.id && !String(file.id).startsWith('storage_')) {
+            supabase
+              .from('files')
+              .update({ folder_id: matchedFolderId })
+              .eq('id', file.id)
+              .then(({ error }) => {
+                if (error) console.warn('Auto-assign folder_id warning:', error.message);
+              });
+          }
+        }
+      }
+    }
+  }
+
   return { folders, files };
 };
 
