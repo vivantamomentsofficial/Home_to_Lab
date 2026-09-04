@@ -17,6 +17,9 @@ if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust reverse proxies (Render / Vercel / Cloudflare) for correct client IP resolution in rate limiting
+app.set('trust proxy', 1);
+
 // CORS setup: Strict whitelist without wildcard subdomains
 const allowedOrigins = [
   'http://localhost:5173',

@@ -3,17 +3,25 @@ const router = express.Router();
 const rateLimit = require('express-rate-limit');
 const { requireAuth } = require('../middleware/auth');
 
-// Rate limiter for login/register actions (15 requests per 15 mins per IP)
-const authLimiter = rateLimit({
+// Rate limiter for unauthenticated login/register checks
+const authCheckLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 15,
+  max: 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many authentication attempts from this IP. Please try again in 15 minutes.' },
 });
 
+// Rate limiter for authenticated log-login endpoint (300 requests per 15 mins per IP)
+const logLoginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // POST /api/auth/log-login - Server-side IP capture for authenticated user login
-router.post('/log-login', authLimiter, requireAuth, async (req, res) => {
+router.post('/log-login', logLoginLimiter, requireAuth, async (req, res) => {
   try {
     const rawIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.ip;
     const clientIp = rawIp || '127.0.0.1';
@@ -42,7 +50,7 @@ router.post('/log-login', authLimiter, requireAuth, async (req, res) => {
 });
 
 // POST /api/auth/check-rate-limit - Endpoint to verify IP rate limit before login/register
-router.post('/check-rate-limit', authLimiter, (req, res) => {
+router.post('/check-rate-limit', authCheckLimiter, (req, res) => {
   res.json({ allowed: true });
 });
 
