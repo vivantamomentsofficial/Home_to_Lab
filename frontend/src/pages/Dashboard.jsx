@@ -441,12 +441,15 @@ const Dashboard = () => {
     setVaultLoading(true);
     try {
       const { folders, files } = await fetchFilesAndFolders(supabase, user.id);
-      console.log('[VAULT FETCH SUCCESS] Loaded folders:', folders?.length || 0, 'files:', files?.length || 0);
       setFolders(folders || []);
       setFiles(files || []);
+      if (files) {
+        const total = files.reduce((acc, f) => acc + (parseInt(f.size, 10) || 0), 0);
+        setUsedStorage(total);
+      }
     } catch (err) {
       console.error('[VAULT FETCH ERROR]', err);
-      showToast('Failed to load files from storage database: ' + (err.message || String(err)), 'danger');
+      showToast('Failed to load files: ' + (err.message || String(err)), 'danger');
     } finally {
       setVaultLoading(false);
     }
@@ -496,7 +499,7 @@ const Dashboard = () => {
   const fetchUpgradeRequestStatus = async () => {
     if (!supabase || !user) return;
     try {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('storage_requests')
         .select('id, status')
         .eq('user_id', user.id)
@@ -513,31 +516,33 @@ const Dashboard = () => {
     }
   };
 
+  const isInitialMountRef = useRef(true);
+
+  // Initial load: Batch parallel fetch
   useEffect(() => {
     if (user) {
-      fetchProfileDetails();
-      fetchStorageStats();
-      fetchUpgradeRequestStatus();
-      fetchUserLoginLogs();
-      fetchActiveAlert();
-      fetchVaultFiles();
-      fetchNotes();
+      Promise.allSettled([
+        fetchProfileDetails(),
+        fetchVaultFiles(),
+        fetchNotes(),
+        fetchUpgradeRequestStatus(),
+        fetchUserLoginLogs(),
+        fetchActiveAlert()
+      ]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Tab change trigger loading
+  // Tab change trigger loading (skips initial mount)
+  const prevTabRef = useRef(activeTab);
   useEffect(() => {
-    if (user) {
-      if (activeTab === 'vault') {
+    if (user && prevTabRef.current !== activeTab) {
+      prevTabRef.current = activeTab;
+      if (activeTab === 'vault' || activeTab === 'overview') {
         fetchVaultFiles();
       }
       if (activeTab === 'clipboard') {
         fetchNotes();
-      }
-      if (activeTab === 'overview') {
-        fetchStorageStats();
-        fetchVaultFiles();
       }
       if (activeTab === 'settings') {
         fetchUserLoginLogs();
