@@ -1445,23 +1445,72 @@ const Dashboard = () => {
     }
   };
 
-  const moveFileToFolder = async (fileId, destFolderId) => {
+  const moveFileToFolder = async (targetFileOrId, destFolderId) => {
     if (operationsLocked) {
       showToast('Folder and file modifications are locked by the administrator.', 'warning');
       return;
     }
     try {
-      const { error } = await supabase
-        .from('files')
-        .update({ folder_id: destFolderId })
-        .eq('id', fileId);
+      let targetFile = typeof targetFileOrId === 'object' ? targetFileOrId : files.find(f => f.id === targetFileOrId);
+      const fileId = typeof targetFileOrId === 'string' ? targetFileOrId : targetFileOrId?.id;
 
-      if (error) throw error;
+      if (!targetFile && fileId) {
+        targetFile = files.find(f => f.id === fileId);
+      }
+
+      if (!targetFile) {
+        throw new Error('Target file record not found.');
+      }
+
+      // Check if fileId is a real database UUID or virtual/unindexed ID
+      const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
+
+      if (isVirtualId) {
+        // Upsert/Insert missing DB row with folder_id
+        const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+        const { error: insertErr } = await supabase
+          .from('files')
+          .insert({
+            user_id: user.id,
+            filename: targetFile.filename,
+            storage_path: targetFile.storage_path,
+            file_type: fileCategory,
+            size: targetFile.size || 0,
+            folder_id: destFolderId
+          });
+
+        if (insertErr) throw insertErr;
+      } else {
+        // Real UUID: update database row
+        const { data: updatedData, error: updateErr } = await supabase
+          .from('files')
+          .update({ folder_id: destFolderId })
+          .eq('id', fileId)
+          .select();
+
+        if (updateErr) throw updateErr;
+
+        // If 0 rows updated (record missing in DB), insert new row with folder_id
+        if (!updatedData || updatedData.length === 0) {
+          const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+          await supabase
+            .from('files')
+            .insert({
+              user_id: user.id,
+              filename: targetFile.filename,
+              storage_path: targetFile.storage_path,
+              file_type: fileCategory,
+              size: targetFile.size || 0,
+              folder_id: destFolderId
+            });
+        }
+      }
+
       const folderName = destFolderId ? (folders.find(f => f.id === destFolderId)?.name || 'Folder') : 'Vault Root';
       showToast(`File moved to "${folderName}" successfully!`, 'success');
       fetchVaultFiles();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to move file:', err);
       showToast('Failed to relocate file: ' + (err.message || String(err)), 'danger');
     }
   };
@@ -1474,18 +1523,49 @@ const Dashboard = () => {
     if (!moveTargetFiles || moveTargetFiles.length === 0) return;
 
     try {
-      const fileIds = moveTargetFiles.map(f => f.id);
-      showToast(`Relocating ${fileIds.length} ${fileIds.length === 1 ? 'file' : 'files'}...`, 'info');
+      showToast(`Relocating ${moveTargetFiles.length} ${moveTargetFiles.length === 1 ? 'file' : 'files'}...`, 'info');
 
-      const { error } = await supabase
-        .from('files')
-        .update({ folder_id: destFolderId })
-        .in('id', fileIds);
+      for (const targetFile of moveTargetFiles) {
+        const fileId = targetFile.id;
+        const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
 
-      if (error) throw error;
+        if (isVirtualId) {
+          const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+          await supabase
+            .from('files')
+            .insert({
+              user_id: user.id,
+              filename: targetFile.filename,
+              storage_path: targetFile.storage_path,
+              file_type: fileCategory,
+              size: targetFile.size || 0,
+              folder_id: destFolderId
+            });
+        } else {
+          const { data: updatedData, error: updateErr } = await supabase
+            .from('files')
+            .update({ folder_id: destFolderId })
+            .eq('id', fileId)
+            .select();
+
+          if (updateErr || !updatedData || updatedData.length === 0) {
+            const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+            await supabase
+              .from('files')
+              .insert({
+                user_id: user.id,
+                filename: targetFile.filename,
+                storage_path: targetFile.storage_path,
+                file_type: fileCategory,
+                size: targetFile.size || 0,
+                folder_id: destFolderId
+              });
+          }
+        }
+      }
 
       const folderName = destFolderId ? (folders.find(f => f.id === destFolderId)?.name || 'Folder') : 'Vault Root';
-      showToast(`Relocated ${fileIds.length} ${fileIds.length === 1 ? 'file' : 'files'} to "${folderName}"!`, 'success');
+      showToast(`Relocated ${moveTargetFiles.length} ${moveTargetFiles.length === 1 ? 'file' : 'files'} to "${folderName}"!`, 'success');
       
       setShowMoveModal(false);
       setMoveTargetFiles([]);
@@ -1494,6 +1574,82 @@ const Dashboard = () => {
     } catch (err) {
       console.error('Failed to move files:', err);
       showToast('Failed to relocate files: ' + (err.message || String(err)), 'danger');
+    }
+  };
+
+  const handleAutoOrganizeFiles = async () => {
+    if (operationsLocked) {
+      showToast('Folder and file modifications are locked by the administrator.', 'warning');
+      return;
+    }
+    
+    // Find target folders by name (case-insensitive)
+    const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
+    const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
+    const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+
+    if (!labFolder && !lectureFolder && !practicalFolder) {
+      showToast('No target folders (Lab, Lecture, practical) found to auto-organize into.', 'warning');
+      return;
+    }
+
+    const unassignedFiles = files.filter(f => !f.is_deleted && !f.folder_id);
+    if (unassignedFiles.length === 0) {
+      showToast('All files are already organized inside folders!', 'info');
+      return;
+    }
+
+    showToast(`Auto-organizing ${unassignedFiles.length} files into folders...`, 'info');
+    let organizedCount = 0;
+
+    try {
+      for (const file of unassignedFiles) {
+        const lowerName = file.filename.toLowerCase();
+        let targetDestId = null;
+
+        if (labFolder && (lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo code'))) {
+          targetDestId = labFolder.id;
+        } else if (practicalFolder && (lowerName.includes('ex ') || lowerName.includes('practical') || lowerName.includes('exercise'))) {
+          targetDestId = practicalFolder.id;
+        } else if (lectureFolder && (lowerName.includes('lecture') || lowerName.includes('notes'))) {
+          targetDestId = lectureFolder.id;
+        }
+
+        if (targetDestId) {
+          const fileId = file.id;
+          const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
+
+          if (isVirtualId) {
+            const fileCategory = getFileCategory(file.filename, file.file_type || '');
+            await supabase
+              .from('files')
+              .insert({
+                user_id: user.id,
+                filename: file.filename,
+                storage_path: file.storage_path,
+                file_type: fileCategory,
+                size: file.size || 0,
+                folder_id: targetDestId
+              });
+          } else {
+            await supabase
+              .from('files')
+              .update({ folder_id: targetDestId })
+              .eq('id', fileId);
+          }
+          organizedCount++;
+        }
+      }
+
+      if (organizedCount > 0) {
+        showToast(`⚡ Successfully auto-organized ${organizedCount} files into folders!`, 'success');
+        fetchVaultFiles();
+      } else {
+        showToast('No matching files found for auto-organization rules.', 'warning');
+      }
+    } catch (err) {
+      console.error('Failed to auto-organize files:', err);
+      showToast('Auto-organization error: ' + (err.message || String(err)), 'danger');
     }
   };
 
@@ -3174,6 +3330,15 @@ const Dashboard = () => {
                 <button onClick={() => setShowRecordModal(true)} className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
                   <Mic className="w-4 h-4 text-brand-primary" /> Record Memo
                 </button>
+                {currentFolderId === null && files.some(f => !f.is_deleted && !f.folder_id) && (
+                  <button
+                    onClick={handleAutoOrganizeFiles}
+                    className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 font-bold border-amber-300/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    title="Automatically sort root files into Lab, Lecture, & practical folders based on file names"
+                  >
+                    <Folder className="w-4 h-4 text-amber-500" /> Auto-Organize Files
+                  </button>
+                )}
               </div>
               
               <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
