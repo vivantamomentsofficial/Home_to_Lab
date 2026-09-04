@@ -145,7 +145,7 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
-  const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
+  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
 
   // Versioning and Duplicate Modals
   const [versionModalFile, setVersionModalFile] = useState(null);
