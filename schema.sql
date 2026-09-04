@@ -318,10 +318,19 @@ DROP POLICY IF EXISTS "Allow users to view their own profile" ON public.profiles
 CREATE POLICY "Allow users to view their own profile" ON public.profiles
     FOR SELECT TO authenticated USING (auth.uid() = id);
 
+DROP POLICY IF EXISTS "Allow users to insert their own profile" ON public.profiles;
+CREATE POLICY "Allow users to insert their own profile" ON public.profiles
+    FOR INSERT TO authenticated WITH CHECK (auth.uid() = id);
+
+DROP POLICY IF EXISTS "Allow users to update their own profile" ON public.profiles;
+CREATE POLICY "Allow users to update their own profile" ON public.profiles
+    FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
+
 DROP POLICY IF EXISTS "Allow admin to do everything on profiles" ON public.profiles;
 CREATE POLICY "Allow admin to do everything on profiles" ON public.profiles
     FOR ALL TO authenticated USING (public.is_admin())
     WITH CHECK (public.is_admin());
+
 
 
 -- ---------------------------------------------------------

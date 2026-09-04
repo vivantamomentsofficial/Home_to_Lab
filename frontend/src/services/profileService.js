@@ -13,9 +13,37 @@ export const fetchProfileDetailsFromDb = async (supabase, userId) => {
     .from('profiles')
     .select('full_name, college, storage_limit, upload_locked, clipboard_locked, download_locked, is_suspended, avatar_url')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) throw error;
+
+  if (!data) {
+    // Auto-create missing profile row for user
+    const { data: authUserData } = await supabase.auth.getUser();
+    const currentUser = authUserData?.user;
+
+    const newProfile = {
+      id: userId,
+      email: currentUser?.email || null,
+      full_name: currentUser?.user_metadata?.full_name || currentUser?.email || 'CloudVault User',
+      college: currentUser?.user_metadata?.college || null,
+      avatar_url: currentUser?.user_metadata?.avatar_url || null,
+      storage_limit: 104857600
+    };
+
+    const { data: inserted, error: insertErr } = await supabase
+      .from('profiles')
+      .upsert(newProfile, { onConflict: 'id' })
+      .select('full_name, college, storage_limit, upload_locked, clipboard_locked, download_locked, is_suspended, avatar_url')
+      .maybeSingle();
+
+    if (insertErr) {
+      console.warn('Profile auto-creation fallback failed:', insertErr.message);
+      return newProfile;
+    }
+    return inserted || newProfile;
+  }
+
   return data;
 };
 

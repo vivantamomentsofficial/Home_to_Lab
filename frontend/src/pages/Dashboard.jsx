@@ -513,25 +513,31 @@ const Dashboard = () => {
       fetchUpgradeRequestStatus();
       fetchUserLoginLogs();
       fetchActiveAlert();
+      fetchVaultFiles();
+      fetchNotes();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   // Tab change trigger loading
   useEffect(() => {
-    if (activeTab === 'vault') {
-      fetchVaultFiles();
+    if (user) {
+      if (activeTab === 'vault') {
+        fetchVaultFiles();
+      }
+      if (activeTab === 'clipboard') {
+        fetchNotes();
+      }
+      if (activeTab === 'overview') {
+        fetchStorageStats();
+        fetchVaultFiles();
+      }
+      if (activeTab === 'settings') {
+        fetchUserLoginLogs();
+      }
     }
-    if (activeTab === 'clipboard') {
-      fetchNotes();
-    }
-    if (activeTab === 'overview') {
-      fetchStorageStats();
-    }
-    if (activeTab === 'settings') {
-      fetchUserLoginLogs();
-    }
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, user]);
 
   // CTRL + SHIFT + V paste modal event listener
   useEffect(() => {
