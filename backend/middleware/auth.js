@@ -51,12 +51,19 @@ const requireAuth = async (req, res, next) => {
     let adminSupabase = null;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (serviceKey) {
-      adminSupabase = createClient(supabaseUrl, serviceKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
+      if (!serviceKey.startsWith('eyJ')) {
+        console.warn('[AUTH WARNING] SUPABASE_SERVICE_ROLE_KEY should be the JWT service_role key (starts with eyJ...). Modern sb_secret_ keys may cause Invalid API key errors with Supabase REST client.');
+      }
+      try {
+        adminSupabase = createClient(supabaseUrl, serviceKey, {
+          auth: {
+            persistSession: false,
+            autoRefreshToken: false,
+          },
+        });
+      } catch (cErr) {
+        console.error('[AUTH] Admin client init failure:', cErr.message);
+      }
     }
 
     // Attach user information and initialized client instance to the request
