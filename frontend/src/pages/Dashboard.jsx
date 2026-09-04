@@ -145,7 +145,7 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
-  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
+  const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
 
   // Versioning and Duplicate Modals
   const [versionModalFile, setVersionModalFile] = useState(null);
@@ -3213,37 +3213,48 @@ const Dashboard = () => {
                 {/* 1. Folders container (Only show on Root) */}
                 {currentFolderId === null && folders.length > 0 && !searchQuery && (
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    {folders.filter(f => !f.is_deleted).map((folder) => (
-                      <div
-                        key={folder.id}
-                        onClick={() => setCurrentFolderId(folder.id)}
-                        className="glass-card p-4 hover:shadow-md cursor-pointer flex items-center justify-between gap-3 border-slate-100 dark:border-slate-800 group"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={(e) => {
-                          e.preventDefault();
-                          const fileId = e.dataTransfer.getData('text/plain');
-                          if (fileId) moveFileToFolder(fileId, folder.id);
-                        }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Folder className="w-7 h-7 text-amber-400 shrink-0" />
-                          <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate select-none">
-                            {folder.name}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteFolder(folder);
+                    {folders.filter(f => !f.is_deleted).map((folder) => {
+                      const count = files.filter(file => !file.is_deleted && file.folder_id === folder.id).length;
+                      return (
+                        <div
+                          key={folder.id}
+                          onClick={() => {
+                            setCurrentFolderId(folder.id);
+                            setFolderScope('current');
                           }}
-                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Delete folder"
+                          className="glass-card p-4 hover:shadow-md cursor-pointer flex items-center justify-between gap-3 border-slate-100 dark:border-slate-800 group"
+                          onDragOver={(e) => e.preventDefault()}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            const fileId = e.dataTransfer.getData('text/plain');
+                            if (fileId) moveFileToFolder(fileId, folder.id);
+                          }}
                         >
-                          <Trash className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Folder className="w-7 h-7 text-amber-400 shrink-0" />
+                            <div className="flex flex-col min-w-0">
+                              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate select-none">
+                                {folder.name}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-medium">
+                                {count} {count === 1 ? 'file' : 'files'}
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteFolder(folder);
+                            }}
+                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Delete folder"
+                          >
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -3281,8 +3292,22 @@ const Dashboard = () => {
                 )}
 
                 {getFilteredFiles().length === 0 ? (
-                  <div className="text-center py-20 text-slate-400 text-sm">
-                    No files found in this directory. Upload files to get started!
+                  <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
+                    <p>No files found in this view.</p>
+                    {folderScope === 'current' && currentFolderId === null && folders.length > 0 && (
+                      <div className="mt-2 flex flex-col items-center gap-2">
+                        <p className="text-xs text-brand-primary font-medium">
+                          💡 Files exist inside your folders above ({folders.map(f => f.name).join(', ')}). Click any folder card or switch Scope to "🌐 All Folders"!
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => setFolderScope('all')}
+                          className="btn-secondary text-xs py-1 px-3 mt-1 cursor-pointer font-semibold"
+                        >
+                          Show All Files Across Folders
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : layoutMode === 'grid' ? (
                   // Grid View layout
@@ -3374,9 +3399,23 @@ const Dashboard = () => {
                           <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate" title={file.filename}>
                             {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
                           </h4>
-                          <p className="text-[10px] text-slate-400 mt-1">
-                            {formatBytes(file.size)}
-                          </p>
+                          <div className="flex items-center justify-between mt-1">
+                            <p className="text-[10px] text-slate-400">
+                              {formatBytes(file.size)}
+                            </p>
+                            {file.folder_id && (
+                              <span
+                                onClick={() => {
+                                  setCurrentFolderId(file.folder_id);
+                                  setFolderScope('current');
+                                }}
+                                className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded cursor-pointer hover:underline font-semibold"
+                                title="Open folder"
+                              >
+                                📁 {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         
                         <div className="text-[9px] text-slate-400 mt-4 pt-2 border-t border-slate-100 dark:border-slate-800/80">
@@ -3412,8 +3451,20 @@ const Dashboard = () => {
                             <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate" title={file.filename}>
                               {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
                             </h4>
-                            <p className="text-[10px] text-slate-400">
-                              {formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}
+                            <p className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
+                              <span>{formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}</span>
+                              {file.folder_id && (
+                                <span
+                                  onClick={() => {
+                                    setCurrentFolderId(file.folder_id);
+                                    setFolderScope('current');
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded cursor-pointer hover:underline font-semibold"
+                                  title="Open folder"
+                                >
+                                  📁 {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
+                                </span>
+                              )}
                             </p>
                           </div>
                         </div>
