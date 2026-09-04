@@ -15,7 +15,13 @@ import {
   softDeleteFileInDb,
   restoreFileInDb,
   deleteFileRecordFromDb,
-  deleteFileFromStorage
+  deleteFileFromStorage,
+  computeFileHash,
+  deleteFolderInDb,
+  fetchFileVersions,
+  saveFileVersionRecord,
+  restoreFileVersion,
+  uploadFileResumable
 } from '../services/fileService';
 
 import { 
@@ -40,7 +46,8 @@ import {
   LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
   LogOut, Sun, Moon, ShieldAlert, Bell, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
   Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic, QrCode, RotateCcw, Lock, Unlock, Play
+  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic, QrCode, RotateCcw, Lock, Unlock, Play,
+  History, Copy, Calendar, Filter
 } from 'lucide-react';
 
 
@@ -137,6 +144,13 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
+  const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
+  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
+
+  // Versioning and Duplicate Modals
+  const [versionModalFile, setVersionModalFile] = useState(null);
+  const [fileVersionsList, setFileVersionsList] = useState([]);
+  const [duplicateModalData, setDuplicateModalData] = useState(null);
 
   // Notes/Clipboard caching
   const [notes, setNotes] = useState([]);
@@ -1096,7 +1110,7 @@ const Dashboard = () => {
     }
   };
 
-  const startUploadingFile = async (uploadId, file, passphrase = '') => {
+  const startUploadingFile = async (uploadId, file, passphrase = '', forceUpload = false) => {
     const controller = new AbortController();
 
     setActiveUploads((prev) => ({
@@ -1113,6 +1127,23 @@ const Dashboard = () => {
     let fileNameToSave = file.name;
 
     try {
+      // Calculate content hash for duplicate detection
+      const contentHash = await computeFileHash(file);
+
+      // Task 2.3: Duplicate Detection Check
+      if (!forceUpload) {
+        const existingDup = files.find(f => !f.is_deleted && f.content_hash === contentHash);
+        if (existingDup) {
+          setDuplicateModalData({ uploadId, file, passphrase, existingDup });
+          setActiveUploads((prev) => {
+            const next = { ...prev };
+            delete next[uploadId];
+            return next;
+          });
+          return;
+        }
+      }
+
       if (isEncrypted) {
         const arrayBuffer = await file.arrayBuffer();
         const encryptedBuffer = await encryptFileBuffer(arrayBuffer, passphrase);
@@ -1120,33 +1151,60 @@ const Dashboard = () => {
         fileToUpload = new window.File([encryptedBuffer], fileNameToSave, { type: 'application/octet-stream' });
       }
 
+      // Task 2.2: Versioning - Check if file with same name exists in same folder
+      const existingSameName = files.find(f => 
+        !f.is_deleted && 
+        f.filename === fileNameToSave && 
+        (f.folder_id === currentFolderId || (!f.folder_id && !currentFolderId))
+      );
+      if (existingSameName) {
+        await saveFileVersionRecord(supabase, existingSameName);
+      }
+
       const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
       const storagePath = `uploads/${user.id}/${uniquePrefix}_${fileNameToSave}`;
 
-      const { data, error } = await supabase.storage
-        .from('vault')
-        .upload(storagePath, fileToUpload, {
-          cacheControl: '3600',
-          upsert: false,
-          contentType: fileToUpload.type || 'application/octet-stream',
-          onUploadProgress: (progressEvent) => {
-            const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
-            setActiveUploads((prev) => {
-              if (!prev[uploadId]) return prev;
-              return {
-                ...prev,
-                [uploadId]: {
-                  ...prev[uploadId],
-                  progress: percent
-                }
-              };
-            });
-          }
+      // Task 2.4: Resumable upload for files > 20MB
+      const TWENTY_MB = 20 * 1024 * 1024;
+      if (fileToUpload.size > TWENTY_MB) {
+        await uploadFileResumable(supabase, storagePath, fileToUpload, (percent) => {
+          setActiveUploads((prev) => {
+            if (!prev[uploadId]) return prev;
+            return {
+              ...prev,
+              [uploadId]: {
+                ...prev[uploadId],
+                progress: percent
+              }
+            };
+          });
         });
+      } else {
+        const { error } = await supabase.storage
+          .from('vault')
+          .upload(storagePath, fileToUpload, {
+            cacheControl: '3600',
+            upsert: false,
+            contentType: fileToUpload.type || 'application/octet-stream',
+            onUploadProgress: (progressEvent) => {
+              const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
+              setActiveUploads((prev) => {
+                if (!prev[uploadId]) return prev;
+                return {
+                  ...prev,
+                  [uploadId]: {
+                    ...prev[uploadId],
+                    progress: percent
+                  }
+                };
+              });
+            }
+          });
 
-      if (error) throw error;
+        if (error) throw error;
+      }
 
-      // Register file entry in DB catalog
+      // Register file entry in DB catalog with content_hash & folder_id
       const fileCategory = getFileCategory(fileNameToSave, fileToUpload.type || 'application/octet-stream');
       const { error: dbError } = await supabase
         .from('files')
@@ -1156,7 +1214,8 @@ const Dashboard = () => {
           storage_path: storagePath,
           file_type: fileCategory,
           size: fileToUpload.size,
-          folder_id: currentFolderId
+          folder_id: currentFolderId,
+          content_hash: contentHash
         });
 
       if (dbError) throw dbError;
@@ -2218,24 +2277,40 @@ const Dashboard = () => {
   // DATA RENDERING RESOLUTIONS
   // ==========================================
   const getFilteredFiles = () => {
-    // 1. Filter folder structures
-    let filtered = files.filter(f => f.folder_id === currentFolderId);
+    let filtered = files.filter(f => !f.is_deleted);
+
+    // 1. Folder scope filter
+    if (folderScope === 'current' && !searchQuery.trim()) {
+      filtered = filtered.filter(f => f.folder_id === currentFolderId || (currentFolderId === null && !f.folder_id));
+    }
 
     // 2. Search query filter
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      filtered = files.filter(f => f.filename.toLowerCase().includes(q));
+      filtered = filtered.filter(f => f.filename.toLowerCase().includes(q));
     }
 
-    // 3. Tag Filter
+    // 3. Category / Type Filter
     if (activeFilter !== 'all') {
       filtered = filtered.filter(f => {
-        const cat = getFileCategory(f.filename, '');
+        const cat = getFileCategory(f.filename, f.file_type || '');
         return cat === activeFilter;
       });
     }
 
-    // 4. Sorting dropdowns
+    // 4. Date Range Filter
+    if (dateFilter !== 'all') {
+      const now = Date.now();
+      filtered = filtered.filter(f => {
+        const fileTime = new Date(f.created_at).getTime();
+        if (dateFilter === 'today') return (now - fileTime) <= 24 * 60 * 60 * 1000;
+        if (dateFilter === '7days') return (now - fileTime) <= 7 * 24 * 60 * 60 * 1000;
+        if (dateFilter === '30days') return (now - fileTime) <= 30 * 24 * 60 * 60 * 1000;
+        return true;
+      });
+    }
+
+    // 5. Sorting
     if (sortOption === 'newest') {
       filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     } else if (sortOption === 'oldest') {
@@ -2247,6 +2322,52 @@ const Dashboard = () => {
     }
 
     return filtered;
+  };
+
+  // Folder Delete Handler (Task 2.5)
+  const handleDeleteFolder = async (folder) => {
+    if (operationsLocked) {
+      showToast('File and folder modifications are locked on your account by the administrator.', 'danger');
+      return;
+    }
+    if (!window.confirm(`Are you sure you want to delete folder "${folder.name}" and all files inside it?`)) {
+      return;
+    }
+    try {
+      showToast(`Deleting folder "${folder.name}"...`, 'info');
+      await deleteFolderInDb(supabase, folder.id);
+      showToast(`Folder "${folder.name}" moved to trash.`, 'success');
+      fetchVaultFiles();
+    } catch (err) {
+      console.error('Failed to delete folder:', err);
+      showToast('Failed to delete folder: ' + err.message, 'danger');
+    }
+  };
+
+  // File Version History Handlers (Task 2.2)
+  const handleOpenVersionHistory = async (file) => {
+    try {
+      showToast('Fetching file version history...', 'info');
+      const versions = await fetchFileVersions(supabase, file.id);
+      setVersionModalFile(file);
+      setFileVersionsList(versions);
+    } catch (err) {
+      console.error('Error fetching file versions:', err);
+      showToast('Failed to load version history: ' + err.message, 'danger');
+    }
+  };
+
+  const handleRestoreVersion = async (file, version) => {
+    try {
+      showToast(`Restoring version #${version.version_number}...`, 'info');
+      await restoreFileVersion(supabase, file.id, version);
+      showToast(`Restored "${file.filename}" to version #${version.version_number}!`, 'success');
+      setVersionModalFile(null);
+      fetchVaultFiles();
+    } catch (err) {
+      console.error('Failed to restore file version:', err);
+      showToast('Failed to restore version: ' + err.message, 'danger');
+    }
   };
 
   const getFilteredNotes = (showDeleted = false) => {
@@ -2983,12 +3104,32 @@ const Dashboard = () => {
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="text"
-                    placeholder="Search vault..."
+                    placeholder="Search filename..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input-field pl-9 py-2 text-xs"
                   />
                 </div>
+                <select
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none"
+                  title="Filter by date range"
+                >
+                  <option value="all">📅 All Time</option>
+                  <option value="today">Today (24h)</option>
+                  <option value="7days">Past 7 Days</option>
+                  <option value="30days">Past 30 Days</option>
+                </select>
+                <select
+                  value={folderScope}
+                  onChange={(e) => setFolderScope(e.target.value)}
+                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none"
+                  title="Filter folder scope"
+                >
+                  <option value="current">📁 Current Folder</option>
+                  <option value="all">🌐 All Folders</option>
+                </select>
                 <select
                   value={sortOption}
                   onChange={(e) => setSortOption(e.target.value)}
@@ -3060,11 +3201,11 @@ const Dashboard = () => {
                 {/* 1. Folders container (Only show on Root) */}
                 {currentFolderId === null && folders.length > 0 && !searchQuery && (
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    {folders.map((folder) => (
+                    {folders.filter(f => !f.is_deleted).map((folder) => (
                       <div
                         key={folder.id}
                         onClick={() => setCurrentFolderId(folder.id)}
-                        className="glass-card p-4 hover:shadow-md cursor-pointer flex items-center gap-3 border-slate-100 dark:border-slate-800"
+                        className="glass-card p-4 hover:shadow-md cursor-pointer flex items-center justify-between gap-3 border-slate-100 dark:border-slate-800 group"
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={(e) => {
                           e.preventDefault();
@@ -3072,10 +3213,23 @@ const Dashboard = () => {
                           if (fileId) moveFileToFolder(fileId, folder.id);
                         }}
                       >
-                        <Folder className="w-7 h-7 text-amber-400 shrink-0" />
-                        <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate select-none">
-                          {folder.name}
-                        </span>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Folder className="w-7 h-7 text-amber-400 shrink-0" />
+                          <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate select-none">
+                            {folder.name}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteFolder(folder);
+                          }}
+                          className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Delete folder"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -4436,6 +4590,127 @@ const Dashboard = () => {
                 className="py-2 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
               >
                 Close Player
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version History Modal (Task 2.2) */}
+      {versionModalFile && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4">
+            <div className="flex justify-between items-start gap-4">
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                  <History className="w-5 h-5 text-brand-primary" /> Version History
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5 truncate max-w-xs" title={versionModalFile.filename}>
+                  {versionModalFile.filename}
+                </p>
+              </div>
+              <button
+                onClick={() => setVersionModalFile(null)}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto custom-scrollbar my-2">
+              <div className="p-3 bg-brand-primary/10 border border-brand-primary/20 rounded-xl flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-bold text-brand-primary">Current Active Version</span>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    {formatBytes(versionModalFile.size)} • {new Date(versionModalFile.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <span className="px-2 py-0.5 bg-brand-primary text-white text-[10px] font-bold rounded-full">ACTIVE</span>
+              </div>
+
+              {fileVersionsList.length === 0 ? (
+                <div className="text-center py-6 text-xs text-slate-400">
+                  No previous versions recorded for this file yet. Re-uploading a file with the same name will automatically preserve historical versions.
+                </div>
+              ) : (
+                fileVersionsList.map((ver) => (
+                  <div key={ver.id} className="p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        Version #{ver.version_number}
+                      </div>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
+                        {formatBytes(ver.size)} • {new Date(ver.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRestoreVersion(versionModalFile, ver)}
+                      className="btn-secondary py-1 px-2.5 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Restore
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setVersionModalFile(null)}
+                className="btn-secondary py-2 px-4 text-xs font-bold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate File Warning Modal (Task 2.3) */}
+      {duplicateModalData && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left">
+            <div className="flex items-center gap-3 text-amber-500">
+              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">Duplicate File Detected</h3>
+                <p className="text-xs text-slate-400">Identical content already stored in vault</p>
+              </div>
+            </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-slate-700 dark:text-slate-300">
+              <p>
+                The file <span className="font-bold text-amber-600 dark:text-amber-400">"{duplicateModalData.file.name}"</span> has identical content to an existing file:
+              </p>
+              <div className="mt-2 font-mono text-[11px] bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg truncate">
+                📄 {duplicateModalData.existingDup.filename} ({formatBytes(duplicateModalData.existingDup.size)})
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-500">Would you like to upload it anyway or skip upload to avoid duplicate storage?</p>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDuplicateModalData(null)}
+                className="btn-secondary py-2 px-3.5 text-xs font-bold"
+              >
+                Skip Upload
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const { uploadId, file, passphrase } = duplicateModalData;
+                  setDuplicateModalData(null);
+                  startUploadingFile(uploadId, file, passphrase, true);
+                }}
+                className="btn-primary py-2 px-3.5 text-xs font-bold"
+              >
+                Upload Anyway
               </button>
             </div>
           </div>

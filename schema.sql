@@ -16,6 +16,38 @@ CREATE TABLE IF NOT EXISTS public.files (
     storage_path TEXT NOT NULL,
     file_type TEXT NOT NULL,
     size BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    folder_id UUID,
+    content_hash TEXT
+);
+
+-- Ensure migration columns on public.files
+ALTER TABLE public.files ADD COLUMN IF NOT EXISTS folder_id UUID;
+ALTER TABLE public.files ADD COLUMN IF NOT EXISTS content_hash TEXT;
+
+-- Folders table
+CREATE TABLE IF NOT EXISTS public.folders (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    name TEXT NOT NULL,
+    parent_id UUID REFERENCES public.folders(id) ON DELETE CASCADE,
+    is_deleted BOOLEAN DEFAULT false NOT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+ALTER TABLE public.folders ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.folders ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+
+-- File Versions table (Task 2.2)
+CREATE TABLE IF NOT EXISTS public.file_versions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    file_id UUID REFERENCES public.files(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    version_number INT NOT NULL DEFAULT 1,
+    storage_path TEXT NOT NULL,
+    filename TEXT NOT NULL,
+    size BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -109,6 +141,44 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.login_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.platform_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.folders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.file_versions ENABLE ROW LEVEL SECURITY;
+
+-- ---------------------------------------------------------
+-- RLS Policies for public.folders
+-- ---------------------------------------------------------
+DROP POLICY IF EXISTS "Users can insert their own folders" ON public.folders;
+CREATE POLICY "Users can insert their own folders" ON public.folders FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own folders" ON public.folders;
+CREATE POLICY "Users can view their own folders" ON public.folders FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own folders" ON public.folders;
+CREATE POLICY "Users can update their own folders" ON public.folders FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own folders" ON public.folders;
+CREATE POLICY "Users can delete their own folders" ON public.folders FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can do everything on folders" ON public.folders;
+CREATE POLICY "Admin can do everything on folders" ON public.folders FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
+
+-- ---------------------------------------------------------
+-- RLS Policies for public.file_versions
+-- ---------------------------------------------------------
+DROP POLICY IF EXISTS "Users can insert their own file_versions" ON public.file_versions;
+CREATE POLICY "Users can insert their own file_versions" ON public.file_versions FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can view their own file_versions" ON public.file_versions;
+CREATE POLICY "Users can view their own file_versions" ON public.file_versions FOR SELECT USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update their own file_versions" ON public.file_versions;
+CREATE POLICY "Users can update their own file_versions" ON public.file_versions FOR UPDATE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete their own file_versions" ON public.file_versions;
+CREATE POLICY "Users can delete their own file_versions" ON public.file_versions FOR DELETE USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Admin can do everything on file_versions" ON public.file_versions;
+CREATE POLICY "Admin can do everything on file_versions" ON public.file_versions FOR ALL TO authenticated USING (public.is_admin()) WITH CHECK (public.is_admin());
 
 -- ---------------------------------------------------------
 -- RLS Policies for public.platform_settings
@@ -817,6 +887,40 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION public.resolve_self_destruct_share(VARCHAR) TO anon, authenticated, service_role;
+
+-- =========================================================================
+-- SERVER-SIDE FILE EXTENSION VALIDATION TRIGGER & FUNCTION (Task 1.2)
+-- =========================================================================
+CREATE OR REPLACE FUNCTION public.check_blocked_file_extension()
+RETURNS TRIGGER AS $$
+DECLARE
+    file_name TEXT;
+    ext TEXT;
+    blocked_exts TEXT[] := ARRAY['.exe', '.bat', '.cmd', '.sh', '.bash', '.ps1', '.vbs', '.msi', '.scr', '.jar', '.com', '.pif', '.hta', '.cpl', '.apk', '.gadget', '.wsf'];
+BEGIN
+    file_name := LOWER(COALESCE(NEW.filename, NEW.name, ''));
+    FOREACH ext IN ARRAY blocked_exts LOOP
+        IF file_name LIKE '%' || ext THEN
+            RAISE EXCEPTION 'Upload blocked: Files with extension % are prohibited for security reasons.', ext;
+        END IF;
+    END LOOP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_check_file_extension ON public.files;
+CREATE TRIGGER trg_check_file_extension
+    BEFORE INSERT OR UPDATE ON public.files
+    FOR EACH ROW EXECUTE FUNCTION public.check_blocked_file_extension();
+
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
+        EXECUTE 'DROP TRIGGER IF EXISTS trg_check_storage_object_extension ON storage.objects';
+        EXECUTE 'CREATE TRIGGER trg_check_storage_object_extension BEFORE INSERT OR UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION public.check_blocked_file_extension()';
+    END IF;
+END $$;
+
 
 
 

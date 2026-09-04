@@ -8,7 +8,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'homtolab@gmail.com';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseServiceKey) {
+  console.error('[CRITICAL] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Administrative features will fail fast.');
+}
 
 // Middleware to extract and verify JWT token using Supabase Auth getUser API
 const requireAuth = async (req, res, next) => {
@@ -42,22 +47,25 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired authentication token.' });
     }
 
-    // Create admin service client if service key exists for admin operations
-    const adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    // Create admin service client ONLY if service key exists (fail fast if missing)
+    let adminSupabase = null;
+    if (supabaseServiceKey) {
+      adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
         },
-      },
-    });
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      });
+    }
 
     // Attach user information and initialized client instance to the request
     req.user = user;
-    req.supabase = adminSupabase;
+    req.supabase = adminSupabase || supabase;
     req.userSupabase = supabase;
     req.token = token;
 
@@ -82,7 +90,11 @@ const requireAuth = async (req, res, next) => {
 // Middleware to enforce Super Admin checks
 const requireAdmin = async (req, res, next) => {
   try {
-    if (!req.user || req.user.email !== 'homtolab@gmail.com') {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[CRITICAL] Missing SUPABASE_SERVICE_ROLE_KEY in environment. Refusing /api/admin/* endpoint request.');
+      return res.status(500).json({ error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY is missing. Admin access refused.' });
+    }
+    if (!req.user || req.user.email?.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
       return res.status(403).json({ error: 'Access denied: Administrative privileges required.' });
     }
     next();

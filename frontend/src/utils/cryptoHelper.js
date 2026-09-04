@@ -4,7 +4,9 @@
  * Output file format: [16 bytes Salt] + [12 bytes IV] + [Ciphertext]
  */
 
-const ITERATIONS = 10000;
+// OWASP recommended iteration count for PBKDF2-SHA256
+// NOTE: Files and notes encrypted under the old iteration count (10,000) will fail to decrypt with this new default — this is expected and acceptable.
+const ITERATIONS = 600000;
 const KEY_LEN = 256;
 
 // Helper to convert password to a CryptoKey

@@ -6,6 +6,7 @@ const path = require('path');
 
 const shareRouter = require('./routes/share');
 const adminRouter = require('./routes/admin');
+const authRouter = require('./routes/auth');
 
 // Fail fast if required environment variables are missing
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
@@ -69,6 +70,7 @@ app.get('/api/config', (req, res) => {
 // Mounting Router Modules
 app.use('/api/share', shareRouter);
 app.use('/api/admin', adminRouter);
+app.use('/api/auth', authRouter);
 
 // Default status probe
 app.get('/api/health', (req, res) => {

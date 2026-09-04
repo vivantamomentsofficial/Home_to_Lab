@@ -80,29 +80,30 @@ export const AuthProvider = ({ children }) => {
           setSession(newSession);
           setUser(newSession?.user || null);
 
-          // Sync login logs if user signs in and is not anonymous
+          // Sync login logs if user signs in and is not anonymous (server-side IP capture)
           const isAnonymous = newSession && newSession.user && newSession.user.is_anonymous;
           if (event === 'SIGNED_IN' && !isAnonymous && newSession?.user) {
             try {
-              let ipAddress = '127.0.0.1';
-              try {
-                const ipRes = await fetch('https://api.ipify.org?format=json');
-                if (ipRes.ok) {
-                  const ipData = await ipRes.json();
-                  ipAddress = ipData.ip || '127.0.0.1';
+              const apiUrl = import.meta.env.VITE_API_URL || '';
+              const logRes = await fetch(`${apiUrl}/api/auth/log-login`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${newSession.access_token}`
                 }
-              } catch (ipErr) {
-                console.warn('Failed to fetch IP address:', ipErr);
-              }
-
-              await client.from('login_logs').insert({
-                user_id: newSession.user.id,
-                email: newSession.user.email || 'guest@cloudvault.local',
-                login_time: new Date().toISOString(),
-                ip_address: ipAddress
               });
+
+              if (!logRes.ok) {
+                // Fallback to client insertion if backend endpoint is unavailable
+                await client.from('login_logs').insert({
+                  user_id: newSession.user.id,
+                  email: newSession.user.email || 'guest@cloudvault.local',
+                  login_time: new Date().toISOString(),
+                  ip_address: '127.0.0.1'
+                });
+              }
             } catch (err) {
-              console.error('Failed to log login action in Supabase:', err);
+              console.error('Failed to log login action via backend:', err);
             }
           }
         });
