@@ -3538,20 +3538,6 @@ const Dashboard = () => {
                 {getFilteredFiles().length === 0 ? (
                   <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
                     <p>No files found in this view.</p>
-                    {folderScope === 'current' && currentFolderId === null && folders.length > 0 && (
-                      <div className="mt-2 flex flex-col items-center gap-2">
-                        <p className="text-xs text-brand-primary font-medium">
-                          💡 Files exist inside your folders above ({folders.map(f => f.name).join(', ')}). Click any folder card or switch Scope to "🌐 All Folders"!
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => setFolderScope('all')}
-                          className="btn-secondary text-xs py-1 px-3 mt-1 cursor-pointer font-semibold"
-                        >
-                          Show All Files Across Folders
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ) : layoutMode === 'grid' ? (
                   // Grid View layout
