@@ -11,25 +11,30 @@ import { checkBlockedExtension } from '../utils/fileSecurity';
 export const fetchFilesAndFolders = async (supabase, userId) => {
   if (!supabase) throw new Error('Supabase client not initialized.');
 
-  // Fetch Folders
-  const { data: folders, error: folderErr } = await supabase
-    .from('folders')
-    .select('*')
-    .eq('user_id', userId)
-    .order('name', { ascending: true });
+  let folders = [];
+  let files = [];
 
-  if (folderErr) throw folderErr;
+  try {
+    const { data, error } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('user_id', userId)
+      .order('name', { ascending: true });
+    if (!error && data) folders = data;
+  } catch (fErr) {
+    console.warn('Folders query warning:', fErr?.message || fErr);
+  }
 
-  // Fetch Files
-  const { data: files, error: fileErr } = await supabase
+  const { data: fileData, error: fileErr } = await supabase
     .from('files')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
   if (fileErr) throw fileErr;
+  files = fileData || [];
 
-  return { folders: folders || [], files: files || [] };
+  return { folders, files };
 };
 
 /**

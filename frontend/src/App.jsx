@@ -69,10 +69,6 @@ const ProtectedRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.email === 'aayushparekh26@gmail.com') {
-    return <Navigate to="/admin" replace />;
-  }
-
   return children;
 };
 
