@@ -2457,7 +2457,7 @@ const Dashboard = () => {
             <span className="font-display font-black text-xl text-slate-800 dark:text-white">
               CloudVault
             </span>
-            {user?.email === 'homtolab@gmail.com' && (
+            {user?.email === 'aayushparekh26@gmail.com' && (
               <span className="px-1.5 py-0.5 bg-brand-primary/10 text-[9px] font-bold text-brand-primary rounded tracking-wider uppercase">
                 Admin
               </span>
@@ -2557,7 +2557,7 @@ const Dashboard = () => {
           </button>
 
           {/* Admin Dedicated View Link */}
-          {user?.email === 'homtolab@gmail.com' && (
+          {user?.email === 'aayushparekh26@gmail.com' && (
             <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
               <Link
                 to="/admin"
@@ -3659,7 +3659,7 @@ const Dashboard = () => {
                       Display name and college can only be changed by requesting the administrator.
                     </p>
                     <a
-                      href={`mailto:homtolab@gmail.com?subject=Profile Change Request for ${encodeURIComponent(user?.email)}&body=Hello Admin,%0A%0AI would like to request a change to my profile details.%0A%0ACurrent Name: ${encodeURIComponent(fullName)}%0ACurrent College: ${encodeURIComponent(college)}%0A%0ANew Name: %0ANew College: %0A%0AThank you!`}
+                      href={`mailto:aayushparekh26@gmail.com?subject=Profile Change Request for ${encodeURIComponent(user?.email)}&body=Hello Admin,%0A%0AI would like to request a change to my profile details.%0A%0ACurrent Name: ${encodeURIComponent(fullName)}%0ACurrent College: ${encodeURIComponent(college)}%0A%0ANew Name: %0ANew College: %0A%0AThank you!`}
                       className="w-full btn-secondary py-2 text-xs flex items-center justify-center gap-1 border border-brand-primary/10 text-brand-primary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-brand-primary-hover"
                     >
                       Request Profile Change

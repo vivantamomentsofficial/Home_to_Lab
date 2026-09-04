@@ -8,7 +8,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'homtolab@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aayushparekh26@gmail.com';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseServiceKey) {
@@ -47,13 +47,10 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired authentication token.' });
     }
 
-    // Create admin service client with full service_role RLS bypass privileges
+    // Create admin service client if valid JWT service_role key exists (starts with eyJ)
     let adminSupabase = null;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (serviceKey) {
-      if (!serviceKey.startsWith('eyJ')) {
-        console.warn('[AUTH WARNING] SUPABASE_SERVICE_ROLE_KEY should be the JWT service_role key (starts with eyJ...). Modern sb_secret_ keys may cause Invalid API key errors with Supabase REST client.');
-      }
+    if (serviceKey && serviceKey.startsWith('eyJ')) {
       try {
         adminSupabase = createClient(supabaseUrl, serviceKey, {
           auth: {
@@ -64,6 +61,8 @@ const requireAuth = async (req, res, next) => {
       } catch (cErr) {
         console.error('[AUTH] Admin client init failure:', cErr.message);
       }
+    } else if (serviceKey && !serviceKey.startsWith('eyJ')) {
+      console.warn('[AUTH NOTICE] SUPABASE_SERVICE_ROLE_KEY is sb_secret format. Using authenticated user context for admin endpoints.');
     }
 
     // Attach user information and initialized client instance to the request

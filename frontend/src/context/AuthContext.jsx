@@ -154,7 +154,7 @@ export const AuthProvider = ({ children }) => {
         console.warn('Could not check suspension status on login:', profileError);
       } else if (profileData && profileData.is_suspended) {
         await supabase.auth.signOut();
-        throw new Error('Your account has been suspended by the administrator. Please contact homtolab@gmail.com.');
+        throw new Error('Your account has been suspended by the administrator. Please contact aayushparekh26@gmail.com.');
       }
     } catch (profileErr) {
       if (profileErr.message?.includes('suspended')) {

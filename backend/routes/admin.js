@@ -6,7 +6,7 @@ const { requireAuth, requireAdmin } = require('../middleware/auth');
 router.use(requireAuth);
 router.use(requireAdmin);
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'homtolab@gmail.com';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aayushparekh26@gmail.com';
 
 // Internal audit logger helper
 async function logAudit(supabase, adminUser, action, targetType, targetId, details = {}) {

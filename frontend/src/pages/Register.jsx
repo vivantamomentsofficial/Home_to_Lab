@@ -22,7 +22,7 @@ const Register = () => {
   // Redirect logged in sessions
   useEffect(() => {
     if (user) {
-      if (user.email === 'homtolab@gmail.com') {
+      if (user.email === 'aayushparekh26@gmail.com') {
         navigate('/admin');
       } else {
         navigate('/dashboard');

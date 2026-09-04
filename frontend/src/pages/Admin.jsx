@@ -1039,7 +1039,7 @@ const Admin = () => {
 
         <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-850">
           <div className="flex flex-col">
-            <span className="font-bold text-slate-300">homtolab@gmail.com</span>
+            <span className="font-bold text-slate-300">aayushparekh26@gmail.com</span>
             <span className="text-[10px] text-slate-500">Super Admin</span>
           </div>
           <button

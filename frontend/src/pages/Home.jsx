@@ -138,7 +138,7 @@ const Home = () => {
     e.preventDefault();
     setFeedbackSending(true);
 
-    const mailtoUrl = `mailto:homtolab@gmail.com?subject=${encodeURIComponent(`[${feedbackTopic}] CloudVault Feedback from ${feedbackName}`)}&body=${encodeURIComponent(`Name: ${feedbackName}\nEmail: ${feedbackEmail}\nTopic: ${feedbackTopic}\n\nMessage:\n${feedbackMessage}`)}`;
+    const mailtoUrl = `mailto:aayushparekh26@gmail.com?subject=${encodeURIComponent(`[${feedbackTopic}] CloudVault Feedback from ${feedbackName}`)}&body=${encodeURIComponent(`Name: ${feedbackName}\nEmail: ${feedbackEmail}\nTopic: ${feedbackTopic}\n\nMessage:\n${feedbackMessage}`)}`;
 
     try {
       const serviceId = 'service_98oq29o';
@@ -162,7 +162,7 @@ const Home = () => {
     } catch (err) {
       console.warn('EmailJS delivery failed, triggering mailto fallback:', err);
       window.location.href = mailtoUrl;
-      showToast('Opened email client to deliver your feedback to homtolab@gmail.com!', 'success');
+      showToast('Opened email client to deliver your feedback to aayushparekh26@gmail.com!', 'success');
     } finally {
       setFeedbackSending(false);
     }
@@ -812,7 +812,7 @@ const Home = () => {
           <span>•</span>
           <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
           <span>•</span>
-          <a href="mailto:homtolab@gmail.com" className="hover:text-brand-primary transition">Contact</a>
+          <a href="mailto:aayushparekh26@gmail.com" className="hover:text-brand-primary transition">Contact</a>
         </div>
         <div>
           &copy; 2026 CloudVault (Home to Lab). All rights reserved.

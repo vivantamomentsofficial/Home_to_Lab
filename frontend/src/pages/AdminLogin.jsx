@@ -66,7 +66,7 @@ const AdminLogin = () => {
   // Redirect logged in sessions
   useEffect(() => {
     if (user) {
-      if (user.email === 'homtolab@gmail.com') {
+      if (user.email === 'aayushparekh26@gmail.com') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
@@ -92,7 +92,7 @@ const AdminLogin = () => {
     setLoading(true);
     try {
       // Direct Admin account authentication via Supabase Auth
-      const email = 'homtolab@gmail.com';
+      const email = 'aayushparekh26@gmail.com';
       await login(email, password, captchaToken);
       showToast('Super Admin authenticated successfully!', 'success');
       navigate('/admin');

@@ -82,7 +82,7 @@ const Login = () => {
   // Redirect logged in sessions
   useEffect(() => {
     if (user) {
-      if (user.email === 'homtolab@gmail.com') {
+      if (user.email === 'aayushparekh26@gmail.com') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
@@ -174,7 +174,7 @@ const Login = () => {
       localStorage.removeItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL');
 
       showToast('Welcome back to CloudVault!', 'success');
-      if (email.trim().toLowerCase() === 'homtolab@gmail.com') {
+      if (email.trim().toLowerCase() === 'aayushparekh26@gmail.com') {
         navigate('/admin');
       } else {
         navigate('/dashboard');
@@ -328,7 +328,7 @@ const Login = () => {
             </p>
             <div className="flex flex-col gap-2.5">
               <a
-                href={`mailto:homtolab@gmail.com?subject=Reactivation Request for Suspended Account (${encodeURIComponent(email || 'User')})&body=Hello Admin,%0A%0AMy CloudVault account (${encodeURIComponent(email || 'User')}) has been suspended by the administrator.%0A%0AI would like to request reactivation.%0A%0AThank you!`}
+                href={`mailto:aayushparekh26@gmail.com?subject=Reactivation Request for Suspended Account (${encodeURIComponent(email || 'User')})&body=Hello Admin,%0A%0AMy CloudVault account (${encodeURIComponent(email || 'User')}) has been suspended by the administrator.%0A%0AI would like to request reactivation.%0A%0AThank you!`}
                 className="w-full btn-danger h-12 flex justify-center items-center font-bold text-sm"
               >
                 Contact Support via Email
@@ -453,7 +453,7 @@ const Login = () => {
                   </div>
                 </div>
                 <a
-                  href={`mailto:homtolab@gmail.com?subject=CloudVault Password Recovery Support for ${encodeURIComponent(resetEmail)}&body=Hello Admin,%0A%0AI tried resetting my CloudVault password using the forgot password form, but I received a 500 SMTP error indicating that Supabase is unable to send emails.%0A%0AMy registered email: ${encodeURIComponent(resetEmail)}%0A%0APlease help reset my password.%0A%0AThanks!`}
+                  href={`mailto:aayushparekh26@gmail.com?subject=CloudVault Password Recovery Support for ${encodeURIComponent(resetEmail)}&body=Hello Admin,%0A%0AI tried resetting my CloudVault password using the forgot password form, but I received a 500 SMTP error indicating that Supabase is unable to send emails.%0A%0AMy registered email: ${encodeURIComponent(resetEmail)}%0A%0APlease help reset my password.%0A%0AThanks!`}
                   className="w-full text-center py-2 bg-red-500 hover:bg-red-650 text-white rounded-lg font-semibold text-xs transition-colors shadow-sm"
                 >
                   Request Manual Recovery via Mail
