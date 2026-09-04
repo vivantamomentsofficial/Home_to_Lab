@@ -8,6 +8,22 @@ import { checkBlockedExtension } from '../utils/fileSecurity';
 /**
  * Fetch both folders and files for a user.
  */
+const getCategoryFromFilename = (filename = '', mimeType = '') => {
+  const ext = (filename.split('.').pop() || '').toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'].includes(ext) || mimeType.startsWith('image/')) return 'image';
+  if (['mp4', 'webm', 'mov', 'mkv', 'avi', 'm4v'].includes(ext) || mimeType.startsWith('video/')) return 'video';
+  if (['mp3', 'wav', 'ogg', 'm4a', 'flac', 'aac'].includes(ext) || mimeType.startsWith('audio/')) return 'audio';
+  if (['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'odt', 'ods', 'odp'].includes(ext)) return 'document';
+  if (['java', 'py', 'html', 'css', 'js', 'json', 'xml', 'cpp', 'c', 'sh', 'sql', 'php', 'ts', 'jsx', 'tsx', 'rs', 'go', 'yaml', 'yml'].includes(ext)) return 'code';
+  if (['txt', 'md', 'csv', 'log', 'env'].includes(ext) || mimeType.startsWith('text/')) return 'text';
+  if (['zip', 'rar', 'tar', 'gz', '7z'].includes(ext)) return 'zip';
+  return 'other';
+};
+
+/**
+ * Fetch both folders and files for a user.
+ * Automatically syncs files from Supabase Storage bucket ('vault') if database catalog is missing records.
+ */
 export const fetchFilesAndFolders = async (supabase, userId) => {
   if (!supabase) throw new Error('Supabase client not initialized.');
 
@@ -25,14 +41,73 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     console.warn('Folders query warning:', fErr?.message || fErr);
   }
 
-  const { data: fileData, error: fileErr } = await supabase
-    .from('files')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  try {
+    const { data: fileData, error: fileErr } = await supabase
+      .from('files')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
 
-  if (fileErr) throw fileErr;
-  files = fileData || [];
+    if (!fileErr && fileData) {
+      files = fileData;
+    }
+  } catch (err) {
+    console.warn('Files query warning:', err?.message || err);
+  }
+
+  // Storage Auto-Sync: Check Supabase storage bucket 'vault' at uploads/{userId}/
+  // to sync any physical storage files that do not have database rows in public.files
+  try {
+    const { data: storageObjects, error: listErr } = await supabase.storage
+      .from('vault')
+      .list(`uploads/${userId}`, { limit: 200 });
+
+    if (!listErr && storageObjects && storageObjects.length > 0) {
+      const existingPaths = new Set(files.map(f => f.storage_path));
+      const unindexedFiles = storageObjects.filter(item => item.name && !item.name.startsWith('.') && item.name !== 'avatar' && !existingPaths.has(`uploads/${userId}/${item.name}`));
+
+      if (unindexedFiles.length > 0) {
+        for (const sFile of unindexedFiles) {
+          const storagePath = `uploads/${userId}/${sFile.name}`;
+          // Clean display name
+          let cleanName = sFile.name;
+          const match = sFile.name.match(/^\d+_[a-z0-9]+_(.+)$/i);
+          if (match && match[1]) {
+            cleanName = match[1];
+          }
+
+          const fileType = getCategoryFromFilename(cleanName, sFile.metadata?.mimetype || '');
+          const fileSize = sFile.metadata?.size || sFile.size || 0;
+
+          const newFileRecord = {
+            user_id: userId,
+            filename: cleanName,
+            storage_path: storagePath,
+            file_type: fileType,
+            size: fileSize,
+            created_at: sFile.created_at || new Date().toISOString()
+          };
+
+          const { data: inserted, error: insertErr } = await supabase
+            .from('files')
+            .insert(newFileRecord)
+            .select();
+
+          if (!insertErr && inserted && inserted.length > 0) {
+            files.push(inserted[0]);
+          } else {
+            // Push virtual record so user can view & download even if DB insert fails
+            files.push({
+              id: sFile.id || 'storage_' + Math.random().toString(36).substring(2, 9),
+              ...newFileRecord
+            });
+          }
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Storage sync warning:', syncErr?.message || syncErr);
+  }
 
   return { folders, files };
 };
