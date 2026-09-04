@@ -190,7 +190,15 @@ router.get('/analytics', async (req, res) => {
 // GET /api/admin/users - Get list of users registered
 router.get('/users', async (req, res) => {
   try {
-    const supabase = req.supabase;
+    const supabase = req.supabase || req.userSupabase;
+
+    // Trigger auto-sync of auth.users into public.profiles
+    try {
+      await supabase.rpc('admin_sync_auth_users');
+    } catch (syncErr) {
+      console.warn('[ADMIN USERS] admin_sync_auth_users RPC warning:', syncErr.message);
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')

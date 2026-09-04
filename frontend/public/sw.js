@@ -43,8 +43,8 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(e.request.url);
 
-  // Skip external APIs & CDN fonts - never cache these in SW fetch interceptor
-  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com'];
+  // Skip external APIs, AdSense & CDN fonts - never cache these in SW fetch interceptor
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com'];
   if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(

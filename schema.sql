@@ -232,7 +232,7 @@ CREATE OR REPLACE FUNCTION public.is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
     RETURN COALESCE(
-        (auth.jwt() ->> 'email') = 'homtolab@gmail.com',
+        (auth.jwt() ->> 'email') = 'aayushparekh26@gmail.com' OR (auth.jwt() ->> 'email') = 'homtolab@gmail.com',
         false
     );
 END;
@@ -428,7 +428,7 @@ BEGIN
             NEW.raw_user_meta_data->>'avatar_url',
             NEW.created_at,
             NEW.last_sign_in_at,
-            COALESCE((NEW.email = 'homtolab@gmail.com'), false)
+            COALESCE((NEW.email = 'aayushparekh26@gmail.com' OR NEW.email = 'homtolab@gmail.com'), false)
         );
         -- Log login upon sign-up creation
         INSERT INTO public.login_logs (user_id, email, login_time)
@@ -473,32 +473,41 @@ CREATE TRIGGER on_auth_user_updated
 
 
 -- =========================================================================
--- 5. SUPER ADMIN PROVISIONING
+-- 5. SUPER ADMIN PROVISIONING & USER SYNC
 -- =========================================================================
--- Note: Create the super admin user (homtolab@gmail.com) via your Supabase
--- Auth Dashboard (Authentication -> Users -> Add User) with a strong password.
--- The triggers will automatically create the corresponding profile and grant admin rights.
 
+-- Function to synchronize all auth.users records into public.profiles
+CREATE OR REPLACE FUNCTION public.admin_sync_auth_users()
+RETURNS INT AS $$
+DECLARE
+    synced_count INT;
+BEGIN
+    INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
+    SELECT 
+        id, 
+        email, 
+        COALESCE(raw_user_meta_data->>'full_name', email, 'User'), 
+        raw_user_meta_data->>'college',
+        raw_user_meta_data->>'avatar_url', 
+        created_at, 
+        last_sign_in_at,
+        COALESCE((email = 'aayushparekh26@gmail.com' OR email = 'homtolab@gmail.com'), false)
+    FROM auth.users
+    ON CONFLICT (id) DO UPDATE SET
+        email = EXCLUDED.email,
+        full_name = COALESCE(public.profiles.full_name, EXCLUDED.full_name),
+        college = COALESCE(public.profiles.college, EXCLUDED.college),
+        avatar_url = COALESCE(public.profiles.avatar_url, EXCLUDED.avatar_url),
+        last_sign_in_at = COALESCE(EXCLUDED.last_sign_in_at, public.profiles.last_sign_in_at),
+        is_admin = EXCLUDED.is_admin;
+
+    GET DIAGNOSTICS synced_count = ROW_COUNT;
+    RETURN synced_count;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Run initial sync of all existing users into the profiles table
-INSERT INTO public.profiles (id, email, full_name, college, avatar_url, created_at, last_sign_in_at, is_admin)
-SELECT 
-    id, 
-    email, 
-    COALESCE(raw_user_meta_data->>'full_name', email, 'Guest User'), 
-    raw_user_meta_data->>'college',
-    raw_user_meta_data->>'avatar_url', 
-    created_at, 
-    last_sign_in_at,
-    COALESCE((email = 'homtolab@gmail.com'), false)
-FROM auth.users
-ON CONFLICT (id) DO UPDATE SET
-    email = EXCLUDED.email,
-    full_name = EXCLUDED.full_name,
-    college = EXCLUDED.college,
-    avatar_url = EXCLUDED.avatar_url,
-    last_sign_in_at = EXCLUDED.last_sign_in_at,
-    is_admin = EXCLUDED.is_admin;
+SELECT public.admin_sync_auth_users();
 
 
 
