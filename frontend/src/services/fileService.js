@@ -51,17 +51,44 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     console.warn('Parallel fetch warning:', err?.message || err);
   }
 
-  // 2. Auto-organize unassigned files into matching folders instantly in memory
+  // 2. Ensure default folders exist if user has 0 folders
+  if (folders.length === 0) {
+    try {
+      const defaultFolderNames = ['practical', 'Lab', 'Lecture'];
+      const createdFolders = [];
+      for (const name of defaultFolderNames) {
+        const { data: newF } = await supabase
+          .from('folders')
+          .insert({ user_id: userId, name })
+          .select();
+        if (newF && newF[0]) createdFolders.push(newF[0]);
+      }
+      if (createdFolders.length > 0) {
+        folders = createdFolders;
+      }
+    } catch (createErr) {
+      console.warn('Default folders creation warning:', createErr?.message || createErr);
+    }
+  }
+
+  // 3. Auto-organize unassigned files into matching folders instantly in memory & DB
   if (folders.length > 0 && files.length > 0) {
-    const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
-    const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
-    const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+    const labFolder = folders.find(f => !f.is_deleted && (
+      f.name.toLowerCase().includes('lab') || f.name.toLowerCase().includes('sorting')
+    ));
+    const lectureFolder = folders.find(f => !f.is_deleted && (
+      f.name.toLowerCase().includes('lecture') || f.name.toLowerCase().includes('notes')
+    ));
+    const practicalFolder = folders.find(f => !f.is_deleted && (
+      f.name.toLowerCase().includes('practical') || f.name.toLowerCase().includes('prac') || f.name.toLowerCase().includes('ex')
+    ));
     const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
 
     const pendingDbUpdates = [];
+    const pendingVirtualInserts = [];
 
     for (const file of files) {
-      if (!file.is_deleted && (!file.folder_id || file.folder_id === 'null')) {
+      if (!file.is_deleted && (!file.folder_id || file.folder_id === 'null' || file.folder_id === '')) {
         const lowerName = (file.filename || '').toLowerCase();
         let matchedFolderId = null;
 
@@ -72,7 +99,12 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
           lowerName.includes('prac') ||
           lowerName.includes('exercise') ||
           lowerName.includes('assignment') ||
-          lowerName.includes('task')
+          lowerName.includes('task') ||
+          lowerName.endsWith('.txt') ||
+          lowerName.endsWith('.cpp') ||
+          lowerName.endsWith('.py') ||
+          lowerName.endsWith('.java') ||
+          lowerName.endsWith('.c')
         )) {
           matchedFolderId = practicalFolder.id;
         } else if (labFolder && (
@@ -89,7 +121,10 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
           lowerName.includes('notes') ||
           lowerName.includes('unit') ||
           lowerName.includes('ch') ||
-          lowerName.includes('chapter')
+          lowerName.includes('chapter') ||
+          lowerName.endsWith('.pdf') ||
+          lowerName.endsWith('.ppt') ||
+          lowerName.endsWith('.pptx')
         )) {
           matchedFolderId = lectureFolder.id;
         } else if (defaultFolder) {
@@ -100,6 +135,15 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
           file.folder_id = matchedFolderId;
           if (file.id && !String(file.id).startsWith('storage_')) {
             pendingDbUpdates.push({ id: file.id, folder_id: matchedFolderId });
+          } else if (file.storage_path) {
+            pendingVirtualInserts.push({
+              user_id: userId,
+              filename: file.filename,
+              storage_path: file.storage_path,
+              file_type: file.file_type || 'other',
+              size: file.size || 0,
+              folder_id: matchedFolderId
+            });
           }
         }
       }
@@ -113,9 +157,16 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
         )
       ).catch(e => console.warn('Background folder_id update error:', e));
     }
+    if (pendingVirtualInserts.length > 0) {
+      Promise.all(
+        pendingVirtualInserts.map(rec =>
+          supabase.from('files').insert(rec)
+        )
+      ).catch(e => console.warn('Background virtual insert error:', e));
+    }
   }
 
-  // 3. Fast Storage Auto-Sync: Only block if files list is empty; otherwise sync in background
+  // 4. Fast Storage Auto-Sync: Only block if files list is empty; otherwise sync in background
   if (files.length === 0) {
     try {
       const { data: storageObjects, error: listErr } = await supabase.storage
