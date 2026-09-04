@@ -1217,6 +1217,32 @@ const Dashboard = () => {
         if (error) throw error;
       }
 
+      // Determine folder_id for new upload record
+      let assignedFolderId = (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId;
+      if (!assignedFolderId && folders.length > 0) {
+        const lowerName = fileNameToSave.toLowerCase();
+        const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
+        const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
+        const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+        const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
+
+        if (practicalFolder && (
+          /ex[\s\-_0-9.]/i.test(lowerName) || /^ex\d/i.test(lowerName) || lowerName.includes('ex') || lowerName.includes('prac') || lowerName.includes('exercise') || lowerName.includes('assignment') || lowerName.includes('task')
+        )) {
+          assignedFolderId = practicalFolder.id;
+        } else if (labFolder && (
+          lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo') || lowerName.includes('algo') || lowerName.includes('exp')
+        )) {
+          assignedFolderId = labFolder.id;
+        } else if (lectureFolder && (
+          lowerName.includes('lecture') || lowerName.includes('notes') || lowerName.includes('unit') || lowerName.includes('ch') || lowerName.includes('chapter')
+        )) {
+          assignedFolderId = lectureFolder.id;
+        } else if (defaultFolder) {
+          assignedFolderId = defaultFolder.id;
+        }
+      }
+
       // Register file entry in DB catalog with content_hash & folder_id
       const fileCategory = getFileCategory(fileNameToSave, fileToUpload.type || 'application/octet-stream');
       const { error: dbError } = await supabase
@@ -1227,7 +1253,7 @@ const Dashboard = () => {
           storage_path: storagePath,
           file_type: fileCategory,
           size: fileToUpload.size,
-          folder_id: (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId,
+          folder_id: assignedFolderId || null,
           content_hash: contentHash
         });
 
@@ -1587,13 +1613,14 @@ const Dashboard = () => {
     const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
     const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
     const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+    const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
 
-    if (!labFolder && !lectureFolder && !practicalFolder) {
-      showToast('No target folders (Lab, Lecture, practical) found to auto-organize into.', 'warning');
+    if (!defaultFolder) {
+      showToast('No target folders found to auto-organize into.', 'warning');
       return;
     }
 
-    const unassignedFiles = files.filter(f => !f.is_deleted && !f.folder_id);
+    const unassignedFiles = files.filter(f => !f.is_deleted && (!f.folder_id || f.folder_id === 'null'));
     if (unassignedFiles.length === 0) {
       showToast('All files are already organized inside folders!', 'info');
       return;
@@ -1607,12 +1634,35 @@ const Dashboard = () => {
         const lowerName = file.filename.toLowerCase();
         let targetDestId = null;
 
-        if (labFolder && (lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo code'))) {
-          targetDestId = labFolder.id;
-        } else if (practicalFolder && (lowerName.includes('ex ') || lowerName.includes('practical') || lowerName.includes('exercise'))) {
+        if (practicalFolder && (
+          /ex[\s\-_0-9.]/i.test(lowerName) ||
+          /^ex\d/i.test(lowerName) ||
+          lowerName.includes('ex') ||
+          lowerName.includes('prac') ||
+          lowerName.includes('exercise') ||
+          lowerName.includes('assignment') ||
+          lowerName.includes('task')
+        )) {
           targetDestId = practicalFolder.id;
-        } else if (lectureFolder && (lowerName.includes('lecture') || lowerName.includes('notes'))) {
+        } else if (labFolder && (
+          lowerName.includes('lab') ||
+          lowerName.includes('sorting') ||
+          lowerName.includes('sort') ||
+          lowerName.includes('sudo') ||
+          lowerName.includes('algo') ||
+          lowerName.includes('exp')
+        )) {
+          targetDestId = labFolder.id;
+        } else if (lectureFolder && (
+          lowerName.includes('lecture') ||
+          lowerName.includes('notes') ||
+          lowerName.includes('unit') ||
+          lowerName.includes('ch') ||
+          lowerName.includes('chapter')
+        )) {
           targetDestId = lectureFolder.id;
+        } else if (defaultFolder) {
+          targetDestId = defaultFolder.id;
         }
 
         if (targetDestId) {

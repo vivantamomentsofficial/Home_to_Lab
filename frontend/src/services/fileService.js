@@ -109,23 +109,47 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     console.warn('Storage sync warning:', syncErr?.message || syncErr);
   }
 
-  // Auto-organize unassigned files into matching folders if available
+  // Auto-organize unassigned files into matching folders if available for ANY user
   if (folders.length > 0 && files.length > 0) {
     const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
     const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
     const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
+    const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
 
     for (const file of files) {
-      if (!file.is_deleted && !file.folder_id) {
+      if (!file.is_deleted && (!file.folder_id || file.folder_id === 'null')) {
         const lowerName = (file.filename || '').toLowerCase();
         let matchedFolderId = null;
 
-        if (labFolder && (lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo code'))) {
-          matchedFolderId = labFolder.id;
-        } else if (practicalFolder && (lowerName.includes('ex ') || lowerName.includes('practical') || lowerName.includes('exercise'))) {
+        if (practicalFolder && (
+          /ex[\s\-_0-9.]/i.test(lowerName) ||
+          /^ex\d/i.test(lowerName) ||
+          lowerName.includes('ex') ||
+          lowerName.includes('prac') ||
+          lowerName.includes('exercise') ||
+          lowerName.includes('assignment') ||
+          lowerName.includes('task')
+        )) {
           matchedFolderId = practicalFolder.id;
-        } else if (lectureFolder && (lowerName.includes('lecture') || lowerName.includes('notes'))) {
+        } else if (labFolder && (
+          lowerName.includes('lab') ||
+          lowerName.includes('sorting') ||
+          lowerName.includes('sort') ||
+          lowerName.includes('sudo') ||
+          lowerName.includes('algo') ||
+          lowerName.includes('exp')
+        )) {
+          matchedFolderId = labFolder.id;
+        } else if (lectureFolder && (
+          lowerName.includes('lecture') ||
+          lowerName.includes('notes') ||
+          lowerName.includes('unit') ||
+          lowerName.includes('ch') ||
+          lowerName.includes('chapter')
+        )) {
           matchedFolderId = lectureFolder.id;
+        } else if (defaultFolder) {
+          matchedFolderId = defaultFolder.id;
         }
 
         if (matchedFolderId) {
@@ -138,6 +162,23 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
               .eq('id', file.id)
               .then(({ error }) => {
                 if (error) console.warn('Auto-assign folder_id warning:', error.message);
+              });
+          } else if (file.storage_path) {
+            // Virtual/unindexed storage record: upsert DB row with folder_id
+            supabase
+              .from('files')
+              .insert({
+                user_id: userId,
+                filename: file.filename,
+                storage_path: file.storage_path,
+                file_type: file.file_type || 'other',
+                size: file.size || 0,
+                folder_id: matchedFolderId
+              })
+              .then(({ data: insData, error: insErr }) => {
+                if (!insErr && insData && insData[0]) {
+                  file.id = insData[0].id;
+                }
               });
           }
         }
