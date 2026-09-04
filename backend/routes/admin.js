@@ -200,7 +200,7 @@ router.get('/users', async (req, res) => {
     return res.json(data || []);
   } catch (err) {
     console.error('Failed to load user profiles:', err);
-    return res.status(500).json({ error: 'Failed to fetch user directory.' });
+    return res.status(500).json({ error: `Failed to fetch user directory: ${err.message || String(err)}` });
   }
 });
 

@@ -47,18 +47,14 @@ const requireAuth = async (req, res, next) => {
       return res.status(401).json({ error: 'Invalid or expired authentication token.' });
     }
 
-    // Create admin service client ONLY if service key exists (fail fast if missing)
+    // Create admin service client with full service_role RLS bypass privileges
     let adminSupabase = null;
-    if (supabaseServiceKey) {
-      adminSupabase = createClient(supabaseUrl, supabaseServiceKey, {
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (serviceKey) {
+      adminSupabase = createClient(supabaseUrl, serviceKey, {
         auth: {
           persistSession: false,
           autoRefreshToken: false,
-        },
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
         },
       });
     }
