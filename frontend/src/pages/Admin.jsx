@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
+import { getFaFileIcon } from '../utils/faIcons';
+import { createSignedDownloadUrl } from '../services/fileService';
 import {
   ShieldAlert, Bell, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
   Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu, Trash2,
@@ -114,7 +116,6 @@ const Admin = () => {
       share_codes_enabled: true
     }
   });
-  const [settingsLoading, setSettingsLoading] = useState(false);
   const [newExtInput, setNewExtInput] = useState('');
 
   // Global Alerts / Announcements State
@@ -123,22 +124,15 @@ const Admin = () => {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
-  // Target User Modal Action Forms (Rename / Limit / Behalf Upload / Note)
+  // Target User Modal Action Forms (Rename Display Name)
   const [editNameInput, setEditNameInput] = useState('');
-  const [editStorageLimit, setEditStorageLimit] = useState('');
-  const [behalfNoteTitle, setBehalfNoteTitle] = useState('');
-  const [behalfNoteContent, setBehalfNoteContent] = useState('');
-  const [behalfFile, setBehalfFile] = useState(null);
-  const behalfFileRef = useRef(null);
-  const [behalfUploading, setBehalfUploading] = useState(false);
 
   // Global Confirmation Dialog
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmData, setConfirmData] = useState({ title: '', message: '', action: null, isDanger: false });
 
-  // Lightbox Previews
-  const [previewImage, setPreviewImage] = useState(null);
-  const [previewText, setPreviewText] = useState(null);
+  // Unified Media Lightbox Preview Modal State
+  const [previewMedia, setPreviewMedia] = useState(null); // { type: 'image'|'pdf'|'text'|'audio'|'video', title: string, url?: string, content?: string }
 
   // Request Headers
   const getHeaders = () => ({
@@ -560,7 +554,6 @@ const Admin = () => {
       if (!res.ok) throw new Error(data.error || 'Failed to update storage limit.');
 
       showToast(`Storage quota updated to ${formatBytes(newLimitBytes)}!`, 'success');
-      setEditStorageLimit(newLimitBytes.toString());
       setTargetUserDetails(prev => ({
         ...prev,
         profile: { ...prev.profile, storage_limit: newLimitBytes }
@@ -569,6 +562,56 @@ const Admin = () => {
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Failed to update storage limit.', 'danger');
+    }
+  };
+
+  const handlePreviewFileInAdmin = async (file) => {
+    if (!file || !file.storage_path) {
+      showToast('File storage path is unavailable.', 'warning');
+      return;
+    }
+    const cat = getFileCategory(file.filename);
+    try {
+      const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 3600);
+      if (!signedUrl) throw new Error('Could not generate secure preview URL.');
+
+      if (cat === 'image') {
+        setPreviewMedia({ type: 'image', title: file.filename, url: signedUrl });
+      } else if (cat === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
+        setPreviewMedia({ type: 'pdf', title: file.filename, url: signedUrl });
+      } else if (['code', 'text'].includes(cat)) {
+        const res = await fetch(signedUrl);
+        const content = await res.text();
+        setPreviewMedia({ type: 'text', title: file.filename, content: content.slice(0, 50000), url: signedUrl });
+      } else if (['audio', 'video'].includes(cat)) {
+        setPreviewMedia({ type: cat, title: file.filename, url: signedUrl });
+      } else {
+        window.open(signedUrl, '_blank');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to preview file: ' + err.message, 'danger');
+    }
+  };
+
+  const handleDownloadFileInAdmin = async (file) => {
+    if (!file || !file.storage_path) {
+      showToast('File storage path is unavailable.', 'warning');
+      return;
+    }
+    try {
+      const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 3600);
+      if (!signedUrl) throw new Error('Could not generate download URL.');
+      const a = document.createElement('a');
+      a.href = signedUrl;
+      a.download = file.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast(`Downloading ${file.filename}...`, 'success');
+    } catch (err) {
+      console.error(err);
+      showToast('Download failed: ' + err.message, 'danger');
     }
   };
 
@@ -893,35 +936,46 @@ const Admin = () => {
           isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 opacity-0'
         }`}
       >
-        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8">
+        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-6">
           <div className="flex items-center gap-2.5">
-            <Shield className="w-7 h-7 text-red-500 stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+              <i className="fa-solid fa-shield-halved text-white text-lg"></i>
+            </div>
             <div>
               <span className="font-display font-black text-xl text-white tracking-tight block">
                 CloudVault
               </span>
-              <span className="text-[10px] text-slate-400 font-mono">SUPER ADMIN V4</span>
+              <span className="text-[10px] text-red-400 font-mono font-bold tracking-wider">SUPER ADMIN V4</span>
             </div>
           </div>
           <button
             onClick={() => setIsDrawerOpen(false)}
             className="lg:hidden p-1 bg-slate-850 rounded-lg text-slate-400 hover:text-white"
           >
-            <X className="w-4 h-4" />
+            <i className="fa-solid fa-xmark"></i>
           </button>
         </div>
+
+        {/* Quick Return to User Dashboard */}
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all mb-4"
+        >
+          <i className="fa-solid fa-arrow-left text-xs"></i>
+          <span>Switch to User Dashboard</span>
+        </button>
 
         <nav className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
           <button
             onClick={() => { setActiveSection('overview'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'overview'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <BarChart2 className="w-4 h-4" /> System Analytics
+              <i className="fa-solid fa-chart-line w-4 text-center"></i> System Analytics
             </div>
           </button>
           
@@ -929,12 +983,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('users'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'users'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Users className="w-4 h-4" /> User Management
+              <i className="fa-solid fa-users w-4 text-center"></i> User Management
             </div>
             <span className="px-1.5 py-0.5 bg-slate-800 text-[10px] rounded text-slate-300 font-mono">{stats.usersCount}</span>
           </button>
@@ -943,12 +997,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('global_files'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'global_files'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <HardDrive className="w-4 h-4" /> Content Moderation
+              <i className="fa-solid fa-folder-open w-4 text-center"></i> Content Moderation
             </div>
             <span className="px-1.5 py-0.5 bg-slate-800 text-[10px] rounded text-slate-300 font-mono">{stats.filesCount}</span>
           </button>
@@ -957,12 +1011,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('requests'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'requests'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <UploadCloud className="w-4 h-4" /> Storage Requests
+              <i className="fa-solid fa-cloud-arrow-up w-4 text-center"></i> Storage Requests
             </div>
             {stats.pendingRequestsCount > 0 && (
               <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full font-bold animate-pulse">
@@ -975,12 +1029,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('snippets'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'snippets'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Clipboard className="w-4 h-4" /> Snippets Database
+              <i className="fa-solid fa-clipboard w-4 text-center"></i> Snippets Database
             </div>
           </button>
 
@@ -988,12 +1042,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('settings'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'settings'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <SettingsIcon className="w-4 h-4" /> Platform Config
+              <i className="fa-solid fa-sliders w-4 text-center"></i> Platform Config
             </div>
           </button>
 
@@ -1001,12 +1055,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('audit_logs'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'audit_logs'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-4 h-4" /> Admin Action Logs
+              <i className="fa-solid fa-shield-halved w-4 text-center"></i> Admin Action Logs
             </div>
           </button>
 
@@ -1014,12 +1068,12 @@ const Admin = () => {
             onClick={() => { setActiveSection('login_logs'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'login_logs'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Key className="w-4 h-4" /> Security Login Audits
+              <i className="fa-solid fa-key w-4 text-center"></i> Security Login Audits
             </div>
           </button>
 
@@ -1027,27 +1081,32 @@ const Admin = () => {
             onClick={() => { setActiveSection('alerts'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'alerts'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/10'
+                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
                 : 'text-slate-400 hover:text-white hover:bg-slate-900'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <Bell className="w-4 h-4" /> Global Announcements
+              <i className="fa-solid fa-bullhorn w-4 text-center"></i> Global Announcements
             </div>
           </button>
         </nav>
 
         <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-850">
           <div className="flex flex-col">
-            <span className="font-bold text-slate-300">aayushparekh26@gmail.com</span>
-            <span className="text-[10px] text-slate-500">Super Admin</span>
+            <span className="font-bold text-slate-300 truncate max-w-[180px]">
+              {session?.user?.email || 'Super Admin'}
+            </span>
+            <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+              Admin Active
+            </span>
           </div>
           <button
             onClick={() => { logout(); navigate('/'); }}
             className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-xl transition-all"
             title="Log Out"
           >
-            <LogOut className="w-4 h-4" />
+            <i className="fa-solid fa-right-from-bracket"></i>
           </button>
         </div>
       </aside>
@@ -1533,8 +1592,13 @@ const Admin = () => {
                             className="rounded text-brand-primary focus:ring-0 cursor-pointer"
                           />
                         </td>
-                        <td className="py-3 pr-4 font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={f.filename}>
-                          {f.filename}
+                        <td className="py-3 pr-4 font-bold text-slate-900 dark:text-white truncate max-w-[240px]" title={f.filename}>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 flex items-center justify-center shrink-0 shadow-xs">
+                              {getFaFileIcon(f.filename, '', 'text-sm')}
+                            </div>
+                            <span className="truncate">{f.filename}</span>
+                          </div>
                         </td>
                         <td className="py-3 px-4 font-semibold">
                           <div>{f.userName}</div>
@@ -1543,12 +1607,32 @@ const Admin = () => {
                         <td className="py-3 px-4 font-mono">{formatBytes(f.size)}</td>
                         <td className="py-3 px-4 text-slate-400">{new Date(f.created_at).toLocaleDateString()}</td>
                         <td className="py-3 pl-4 text-right">
-                          <button
-                            onClick={() => { setSelectedFileIds([f.id]); handleBulkDeleteFiles(); }}
-                            className="btn-danger py-1 px-2.5 text-[10px]"
-                          >
-                            Purge File
-                          </button>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewFileInAdmin(f)}
+                              className="px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Preview file"
+                            >
+                              <i className="fa-solid fa-eye text-[10px]"></i> Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadFileInAdmin(f)}
+                              className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] flex items-center gap-1 cursor-pointer transition-colors"
+                              title="Download file"
+                            >
+                              <i className="fa-solid fa-download text-[10px]"></i> Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setSelectedFileIds([f.id]); handleBulkDeleteFiles(); }}
+                              className="btn-danger py-1 px-2.5 text-[10px] flex items-center gap-1 cursor-pointer"
+                              title="Purge file"
+                            >
+                              <i className="fa-solid fa-trash-can text-[10px]"></i> Purge
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -2263,8 +2347,31 @@ const Admin = () => {
               <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
                 {targetUserDetails.files.map(f => (
                   <div key={f.id} className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl flex justify-between items-center text-xs">
-                    <span className="font-bold truncate max-w-xs">{f.filename}</span>
-                    <span className="font-mono text-slate-400">{formatBytes(f.size)}</span>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-800 flex items-center justify-center shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+                        {getFaFileIcon(f.filename, '', 'text-xs')}
+                      </div>
+                      <span className="font-bold truncate max-w-xs">{f.filename}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="font-mono text-slate-400 text-[10px]">{formatBytes(f.size)}</span>
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewFileInAdmin(f)}
+                        className="px-2 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400 text-[10px] font-bold cursor-pointer"
+                        title="Preview"
+                      >
+                        <i className="fa-solid fa-eye text-[10px]"></i>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadFileInAdmin(f)}
+                        className="px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold cursor-pointer"
+                        title="Download"
+                      >
+                        <i className="fa-solid fa-download text-[10px]"></i>
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2307,22 +2414,92 @@ const Admin = () => {
         </div>
       )}
 
-      {/* Lightbox Text Preview Modal */}
-      {previewText && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4">
-          <div className="glass-card max-w-2xl w-full p-6 shadow-2xl flex flex-col gap-4 animate-scale-up">
-            <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white truncate">{previewText.title}</h3>
-              <button onClick={() => setPreviewText(null)} className="p-1 text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
+      {/* Lightbox Unified Media Preview Modal */}
+      {previewMedia && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="glass-card max-w-3xl w-full p-6 shadow-2xl flex flex-col gap-4 animate-scale-up border-slate-700/60 bg-slate-900/95 text-white max-h-[90vh]">
+            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5 min-w-0 pr-4">
+                <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700/50">
+                  {getFaFileIcon(previewMedia.title, '', 'text-sm')}
+                </div>
+                <h3 className="font-bold text-sm text-white truncate" title={previewMedia.title}>
+                  {previewMedia.title}
+                </h3>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {previewMedia.url && (
+                  <a
+                    href={previewMedia.url}
+                    download={previewMedia.title}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs flex items-center gap-1 font-bold"
+                    title="Download file"
+                  >
+                    <i className="fa-solid fa-download"></i>
+                  </a>
+                )}
+                {previewMedia.content && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(previewMedia.content);
+                      showToast('Text copied to clipboard!', 'success');
+                    }}
+                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs flex items-center gap-1 font-bold cursor-pointer"
+                    title="Copy text"
+                  >
+                    <i className="fa-solid fa-copy"></i>
+                  </button>
+                )}
+                <button
+                  onClick={() => setPreviewMedia(null)}
+                  className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                  title="Close preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <textarea
-              readOnly
-              value={previewText.content}
-              rows={12}
-              className="input-field font-mono text-xs p-3 leading-relaxed bg-slate-900 text-slate-100 border-slate-800"
-            ></textarea>
+
+            <div className="overflow-auto custom-scrollbar flex items-center justify-center min-h-[200px] max-h-[70vh]">
+              {previewMedia.type === 'image' && (
+                <img
+                  src={previewMedia.url}
+                  alt={previewMedia.title}
+                  className="max-h-[65vh] w-auto rounded-xl object-contain shadow-md"
+                />
+              )}
+              {previewMedia.type === 'pdf' && (
+                <iframe
+                  src={previewMedia.url}
+                  title={previewMedia.title}
+                  className="w-full h-[65vh] rounded-xl border border-slate-800 bg-white"
+                />
+              )}
+              {previewMedia.type === 'text' && (
+                <textarea
+                  readOnly
+                  value={previewMedia.content}
+                  rows={14}
+                  className="w-full font-mono text-xs p-4 leading-relaxed bg-slate-950 text-emerald-400 border border-slate-800 rounded-xl outline-none select-all custom-scrollbar"
+                ></textarea>
+              )}
+              {previewMedia.type === 'video' && (
+                <video
+                  src={previewMedia.url}
+                  controls
+                  autoPlay
+                  className="max-h-[65vh] w-full rounded-xl"
+                />
+              )}
+              {previewMedia.type === 'audio' && (
+                <div className="w-full p-8 flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-pink-500/20 text-pink-400 flex items-center justify-center text-2xl animate-pulse">
+                    <i className="fa-solid fa-music"></i>
+                  </div>
+                  <audio src={previewMedia.url} controls className="w-full max-w-md" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

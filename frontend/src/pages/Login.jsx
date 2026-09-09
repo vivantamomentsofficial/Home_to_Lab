@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { Key, Mail, ShieldAlert, ArrowLeft, Sun, Moon, Shield } from 'lucide-react';
+import { ShieldAlert } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Login = () => {
@@ -15,6 +15,7 @@ const Login = () => {
   // Form states
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
 
@@ -291,22 +292,36 @@ const Login = () => {
       {/* Background Orbs */}
       <div className="glow-orb glow-orb-primary"></div>
       <div className="glow-orb glow-orb-accent"></div>
-      {/* Back to Home Link */}
-      <div className="absolute top-5 left-5 z-20 flex gap-2">
+      {/* Top Header Controls */}
+      <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
         <Link
           to="/"
-          className="flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors"
+          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-xs"
         >
-          <ArrowLeft className="w-4 h-4" /> Back to Home
+          <i className="fa-solid fa-arrow-left text-xs"></i> Back to Home
         </Link>
+        <button
+          onClick={toggleTheme}
+          className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary-light transition-all shadow-xs cursor-pointer"
+          title="Toggle color theme"
+          aria-label="Toggle color theme"
+        >
+          {theme === 'dark' ? (
+            <i className="fa-solid fa-sun text-amber-400"></i>
+          ) : (
+            <i className="fa-solid fa-moon text-slate-600"></i>
+          )}
+        </button>
       </div>
-      <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up">
+      <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up border-brand-border-light dark:border-brand-border-dark bg-white/90 dark:bg-slate-900/85">
         {/* Header Icon */}
         <div className="flex justify-center mb-6">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="w-8 h-8 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-2xl text-slate-800 dark:text-white">
-              CloudVault
+          <Link to="/" className="flex items-center gap-2.5 group">
+            <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
+              <i className="fa-solid fa-shield-halved text-xl text-brand-primary"></i>
+            </div>
+            <span className="font-display font-black text-2xl text-slate-900 dark:text-white tracking-tight">
+              Cloud<span className="text-brand-primary">Vault</span>
             </span>
           </Link>
         </div>
@@ -475,13 +490,13 @@ const Login = () => {
               <div>
                 <label className="label-title">EMAIL ADDRESS</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <i className="fa-solid fa-envelope text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
                   <input
                     type="email"
                     placeholder="student@college.edu"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="input-field pl-10"
+                    className="input-field pl-10 text-xs"
                     required
                   />
                 </div>
@@ -499,15 +514,23 @@ const Login = () => {
                   </button>
                 </div>
                 <div className="relative">
-                  <Key className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                  <i className="fa-solid fa-lock text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-field pl-10"
+                    className="input-field pl-10 pr-10 text-xs"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-3 top-2.5 cursor-pointer"
+                    aria-label="Toggle password visibility"
+                  >
+                    <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`}></i>
+                  </button>
                 </div>
               </div>
 
@@ -559,8 +582,8 @@ const Login = () => {
             </div>
 
             <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-850/50 flex flex-col items-center gap-2">
-              <Link to="/admin/login" className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider inline-flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5" /> Administrative Portal
+              <Link to="/admin/login" className="text-[10px] font-bold text-slate-400 hover:text-red-500 transition-colors uppercase tracking-wider inline-flex items-center gap-1.5 py-1 px-2.5 rounded-lg hover:bg-red-500/5">
+                <i className="fa-solid fa-user-shield text-xs text-red-400"></i> Administrative Portal
               </Link>
               <div className="flex items-center gap-3 text-[11px] text-slate-400">
                 <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>

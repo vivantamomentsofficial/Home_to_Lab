@@ -41,13 +41,13 @@ import { checkBlockedExtension } from '../utils/fileSecurity';
 import QRCodeModal from '../components/QRCodeModal';
 import StorageDonutChart from '../components/StorageDonutChart';
 import GlobalAnnouncementBanner from '../components/GlobalAnnouncementBanner';
+import { getFaFileIcon } from '../utils/faIcons';
 
 import {
-  LayoutDashboard, UploadCloud, Clipboard, FolderKanban, Settings as SettingsIcon, User as UserIcon,
-  LogOut, Sun, Moon, ShieldAlert, Bell, Folder, File, FileImage, FileText, FileCode, FileArchive, HelpCircle,
-  Grid, List, Search, ArrowUpDown, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
-  X, Check, AlertTriangle, ShieldCheck, Shield, Camera, Menu, Mic, QrCode, RotateCcw, Lock, Unlock, Play,
-  History, Copy, Calendar, Filter
+  ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
+  Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
+  X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
+  History
 } from 'lucide-react';
 
 
@@ -327,7 +327,7 @@ const Dashboard = () => {
 
   const handleLogoutClick = () => {
     setConfirmModalData({
-      title: 'Na Kare Janab Na kare',
+      title: 'Sign Out Confirmation',
       message: 'Are you sure you want to sign out of your CloudVault session? Any unsaved clipboard drafts or active file selections will be closed.',
       confirmText: 'Logout',
       cancelText: 'Back',
@@ -2589,22 +2589,7 @@ const Dashboard = () => {
   };
 
   const getFileIcon = (filename) => {
-    const cat = getFileCategory(filename, '');
-    const iconClass = "w-5 h-5 flex-shrink-0";
-    switch (cat) {
-      case 'image':
-        return <FileImage className={`${iconClass} text-green-500`} />;
-      case 'document':
-        return <FileText className={`${iconClass} text-rose-500`} />;
-      case 'code':
-        return <FileCode className={`${iconClass} text-amber-500`} />;
-      case 'text':
-        return <FileText className={`${iconClass} text-sky-500`} />;
-      case 'zip':
-        return <FileArchive className={`${iconClass} text-violet-500`} />;
-      default:
-        return <File className={`${iconClass} text-slate-500`} />;
-    }
+    return getFaFileIcon(filename);
   };
 
   return (
@@ -2680,11 +2665,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'overview'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" /> Overview
+            <i className="fa-solid fa-gauge-high w-4 text-center"></i> Overview
           </button>
           
           <button
@@ -2694,11 +2679,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'upload'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <UploadCloud className="w-4 h-4" /> Send to Server
+            <i className="fa-solid fa-cloud-arrow-up w-4 text-center"></i> Send to Server
           </button>
 
           <button
@@ -2708,11 +2693,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'clipboard'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <Clipboard className="w-4 h-4" /> Clipboard Paste
+            <i className="fa-solid fa-clipboard w-4 text-center"></i> Clipboard Paste
           </button>
 
           <button
@@ -2722,11 +2707,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'vault'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <FolderKanban className="w-4 h-4" /> Vault Explorer
+            <i className="fa-solid fa-folder-tree w-4 text-center"></i> Vault Explorer
           </button>
 
           <button
@@ -2736,11 +2721,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'settings'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <SettingsIcon className="w-4 h-4" /> Settings
+            <i className="fa-solid fa-sliders w-4 text-center"></i> Settings
           </button>
 
           <button
@@ -2750,11 +2735,11 @@ const Dashboard = () => {
             }}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
               activeTab === 'profile'
-                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light'
-                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+                ? 'bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <UserIcon className="w-4 h-4" /> Profile Info
+            <i className="fa-solid fa-user-gear w-4 text-center"></i> Profile Info
           </button>
 
           {/* Admin Dedicated View Link */}
@@ -2762,10 +2747,10 @@ const Dashboard = () => {
             <div className="pt-4 mt-4 border-t border-slate-200 dark:border-slate-800">
               <Link
                 to="/admin"
-                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/5 hover:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/10 rounded-xl text-sm font-semibold transition-all"
+                className="w-full flex items-center gap-3 px-4 py-3 bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 rounded-xl text-sm font-bold transition-all shadow-xs"
                 onClick={() => setIsDrawerOpen(false)}
               >
-                <ShieldCheck className="w-4 h-4" /> Admin Panel
+                <i className="fa-solid fa-user-shield w-4 text-center"></i> Admin Control Centre
               </Link>
             </div>
           )}
@@ -2787,13 +2772,12 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            
             <button
               onClick={handleLogoutClick}
               className="p-1.5 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
               title="Log Out"
             >
-              <LogOut className="w-4.5 h-4.5" />
+              <i className="fa-solid fa-right-from-bracket"></i>
             </button>
           </div>
         </div>

@@ -541,23 +541,32 @@ const Home = () => {
       <section className="py-12 bg-white dark:bg-slate-900/40 border-y border-brand-border-light dark:border-brand-border-dark z-10 px-6 lg:px-[8%]">
         <div className="max-w-4xl mx-auto flex flex-col gap-6 items-center">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
-            <div className="glass-card p-6 flex flex-col items-center justify-center text-center">
+            <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <i className="fa-solid fa-users text-brand-primary text-xl"></i>
+              </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Daily Visitors</div>
             </div>
-            <div className="glass-card p-6 flex flex-col items-center justify-center text-center">
+            <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <i className="fa-solid fa-graduation-cap text-brand-primary text-xl"></i>
+              </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Registered Students</div>
             </div>
-            <div className="glass-card p-6 flex flex-col items-center justify-center text-center">
+            <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
+              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+                <i className="fa-solid fa-cloud-arrow-up text-brand-primary text-xl"></i>
+              </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">File Transfers</div>
             </div>
           </div>
           <div className="text-sm font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 mt-2">
             <span>Share CloudVault and</span>
-            <button onClick={() => scrollToSection('developer-feedback')} className="text-brand-primary hover:underline flex items-center gap-1">
-              Add Your Friends Now! <Send className="w-3.5 h-3.5" />
+            <button onClick={() => scrollToSection('developer-feedback')} className="text-brand-primary hover:underline flex items-center gap-1.5">
+              Add Your Friends Now! <i className="fa-solid fa-paper-plane text-xs"></i>
             </button>
           </div>
         </div>
@@ -572,36 +581,36 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-          <div className="glass-card p-6 flex gap-4">
-            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-11 w-11 flex items-center justify-center">
-              <DownloadCloud className="w-5.5 h-5.5" />
+          <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
+            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
+              <i className="fa-solid fa-cloud-arrow-up text-xl"></i>
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Drag & Drop Upload</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Upload images, PDFs, Word docs, code files, and zip files up to 100MB instantly.</p>
             </div>
           </div>
-          <div className="glass-card p-6 flex gap-4">
-            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-11 w-11 flex items-center justify-center">
-              <Clipboard className="w-5.5 h-5.5" />
+          <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
+            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
+              <i className="fa-solid fa-clipboard text-xl"></i>
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Instant Clipboard Sync</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Paste code, links, notes, or credentials to access them on secondary machines.</p>
             </div>
           </div>
-          <div className="glass-card p-6 flex gap-4">
-            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-11 w-11 flex items-center justify-center">
-              <Shield className="w-5.5 h-5.5" />
+          <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
+            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
+              <i className="fa-solid fa-shield-halved text-xl"></i>
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Security Built-In</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Private vault secured with Enterprise Row-Level Security policies. Only you can access your own files.</p>
             </div>
           </div>
-          <div className="glass-card p-6 flex gap-4">
-            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-11 w-11 flex items-center justify-center">
-              <LogOut className="w-5.5 h-5.5" />
+          <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
+            <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
+              <i className="fa-solid fa-right-from-bracket text-xl"></i>
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Lab Session Self-Destruct</h3>
