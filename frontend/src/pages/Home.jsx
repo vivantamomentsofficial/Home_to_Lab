@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import {
   Shield, Sparkles, ArrowRight, DownloadCloud, Download, Plus, Folder, ClipboardCopy, LogOut,
   FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Sun, Moon, Menu,
-  AlertTriangle, Users, GraduationCap, UploadCloud, ShieldCheck
+  AlertTriangle, Users, GraduationCap, UploadCloud, ShieldCheck, CheckCircle2, Zap, BookOpen, Cpu
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -615,6 +615,71 @@ const Home = () => {
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Lab Session Self-Destruct</h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Close the lab browser and your session is automatically cleared, leaving no cookies or credentials behind on shared PCs.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Campus Use Cases Section */}
+      <section className="py-16 px-6 lg:px-[8%] bg-slate-50/50 dark:bg-slate-900/30 border-t border-brand-border-light dark:border-brand-border-dark z-10 text-center">
+        <div className="max-w-4xl mx-auto flex flex-col gap-10">
+          <div>
+            <span className="px-3 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-xs font-bold rounded-full uppercase tracking-wider">Campus Workflows</span>
+            <h2 className="text-3xl font-bold font-display text-slate-800 dark:text-white mt-4">Built for Campus & Lab Life</h2>
+            <p className="text-slate-500 mt-2 text-sm max-w-lg mx-auto">Tailored for computer science labs, library computers, and group assignment handoffs.</p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
+            <div className="glass-card p-5 flex flex-col justify-between hover:border-brand-primary/40 transition-all group">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <FileCode className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">Coding Labs & Scripts</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Sync Python, Java, C++, or React code files from home directly onto lab terminals.</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1 text-[11px] font-bold text-brand-primary">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> Syntax Intact
+              </div>
+            </div>
+
+            <div className="glass-card p-5 flex flex-col justify-between hover:border-brand-primary/40 transition-all group">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <Clipboard className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">Exam Seat & Commands</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Store connection strings, terminal commands, or seat numbers in fast-access notes.</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1 text-[11px] font-bold text-amber-500">
+                <Zap className="w-3.5 h-3.5" /> Instant Copy
+              </div>
+            </div>
+
+            <div className="glass-card p-5 flex flex-col justify-between hover:border-brand-primary/40 transition-all group">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">PDFs & Manuals</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Upload lab instruction sheets and study manuals to view anywhere on campus.</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1 text-[11px] font-bold text-sky-500">
+                <FileCheck className="w-3.5 h-3.5" /> Up to 100MB
+              </div>
+            </div>
+
+            <div className="glass-card p-5 flex flex-col justify-between hover:border-brand-primary/40 transition-all group">
+              <div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-white">Burn-After-Reading</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">Share single-use download links that auto-delete after the recipient fetches the file.</p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center gap-1 text-[11px] font-bold text-emerald-500">
+                <Cpu className="w-3.5 h-3.5" /> Auto Purged
+              </div>
             </div>
           </div>
         </div>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cloudvault-v5-cache';
+const CACHE_NAME = 'cloudvault-v6-cache';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -44,7 +44,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // Skip external APIs, AdSense & CDN fonts - never cache these in SW fetch interceptor
-  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google'];
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org'];
   if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(

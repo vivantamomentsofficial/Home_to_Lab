@@ -314,9 +314,16 @@ const Dashboard = () => {
 
         // Resolve avatar image URL using a signed URL if set
         if (data.avatar_url) {
-          const signedUrl = await createSignedDownloadUrl(supabase, data.avatar_url, 3600);
-          if (signedUrl) {
-            setAvatarUrl(signedUrl);
+          try {
+            const signedUrl = await createSignedDownloadUrl(supabase, data.avatar_url, 3600);
+            if (signedUrl) {
+              setAvatarUrl(signedUrl);
+            } else {
+              setAvatarUrl(null);
+            }
+          } catch (avErr) {
+            console.warn('Avatar image resolution skipped:', avErr.message);
+            setAvatarUrl(null);
           }
         }
       }
@@ -653,12 +660,9 @@ const Dashboard = () => {
       if (updateError) throw updateError;
 
       // Create signed URL for local UI state
-      const { data: signedData } = await supabase.storage
-        .from('vault')
-        .createSignedUrl(avatarPath, 3600);
-
-      if (signedData) {
-        setAvatarUrl(signedData.signedUrl);
+      const signedUrl = await createSignedDownloadUrl(supabase, avatarPath, 3600);
+      if (signedUrl) {
+        setAvatarUrl(signedUrl);
       }
 
       showToast('Profile picture updated successfully!', 'success');

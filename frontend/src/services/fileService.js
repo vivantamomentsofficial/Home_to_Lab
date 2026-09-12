@@ -359,14 +359,25 @@ export const calculateUsedStorage = async (supabase, userId) => {
  * Create a signed download URL for a file.
  */
 export const createSignedDownloadUrl = async (supabase, storagePath, expiresInSeconds = 1800) => {
-  if (!supabase) throw new Error('Supabase client not initialized.');
+  if (!supabase || !storagePath) return null;
+  if (typeof storagePath === 'string' && (storagePath.startsWith('http://') || storagePath.startsWith('https://') || storagePath.startsWith('data:'))) {
+    return storagePath;
+  }
 
-  const { data, error } = await supabase.storage
-    .from('vault')
-    .createSignedUrl(storagePath, expiresInSeconds);
+  try {
+    const { data, error } = await supabase.storage
+      .from('vault')
+      .createSignedUrl(storagePath, expiresInSeconds);
 
-  if (error) throw error;
-  return data?.signedUrl;
+    if (error) {
+      console.warn(`Storage signed URL notice [${storagePath}]:`, error.message);
+      return null;
+    }
+    return data?.signedUrl || null;
+  } catch (err) {
+    console.warn(`Failed to create signed URL for [${storagePath}]:`, err.message);
+    return null;
+  }
 };
 
 /**
