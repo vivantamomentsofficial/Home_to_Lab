@@ -1274,17 +1274,40 @@ const Dashboard = () => {
 
       // Register file entry in DB catalog with content_hash & folder_id
       const fileCategory = getFileCategory(fileNameToSave, fileToUpload.type || 'application/octet-stream');
-      const { error: dbError } = await supabase
+      
+      const filePayload = {
+        user_id: user.id,
+        filename: fileNameToSave,
+        storage_path: storagePath,
+        file_type: fileCategory,
+        size: fileToUpload.size,
+      };
+
+      if (assignedFolderId) filePayload.folder_id = assignedFolderId;
+      if (contentHash) filePayload.content_hash = contentHash;
+
+      let { error: dbError } = await supabase
         .from('files')
-        .insert({
+        .insert(filePayload);
+
+      // Gracefully handle schema mismatch (e.g. if folder_id or content_hash columns don't exist yet in Supabase schema cache)
+      if (dbError && (
+        dbError.message?.toLowerCase().includes('schema') ||
+        dbError.message?.toLowerCase().includes('column') ||
+        dbError.message?.toLowerCase().includes('out of sync') ||
+        dbError.code === 'PGRST204'
+      )) {
+        console.warn('Full file payload insert failed due to DB schema mismatch, retrying with core columns:', dbError.message);
+        const corePayload = {
           user_id: user.id,
           filename: fileNameToSave,
           storage_path: storagePath,
           file_type: fileCategory,
           size: fileToUpload.size,
-          folder_id: assignedFolderId || null,
-          content_hash: contentHash
-        });
+        };
+        const fallbackRes = await supabase.from('files').insert(corePayload);
+        dbError = fallbackRes.error;
+      }
 
       if (dbError) throw dbError;
 

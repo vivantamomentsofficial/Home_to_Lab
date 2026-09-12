@@ -329,10 +329,29 @@ export const uploadFileToStorage = async (supabase, storagePath, fileObj, option
 export const insertFileRecord = async (supabase, fileData) => {
   if (!supabase) throw new Error('Supabase client not initialized.');
 
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from('files')
     .insert(fileData)
     .select();
+
+  if (error && (
+    error.message?.toLowerCase().includes('schema') ||
+    error.message?.toLowerCase().includes('column') ||
+    error.message?.toLowerCase().includes('out of sync') ||
+    error.code === 'PGRST204'
+  )) {
+    console.warn('insertFileRecord schema mismatch fallback triggered:', error.message);
+    const coreData = {
+      user_id: fileData.user_id,
+      filename: fileData.filename,
+      storage_path: fileData.storage_path,
+      file_type: fileData.file_type,
+      size: fileData.size
+    };
+    const res = await supabase.from('files').insert(coreData).select();
+    data = res.data;
+    error = res.error;
+  }
 
   if (error) throw error;
   return data?.[0];
