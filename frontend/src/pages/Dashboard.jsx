@@ -963,8 +963,9 @@ const Dashboard = () => {
       const filename = `${sanitizedTitle}_snippet.txt`;
       const storagePath = `uploads/${user.id}/${filename}`;
 
-      // Convert note text to file blob
-      const blob = new Blob([note.content], { type: 'text/plain' });
+      // Convert note text to file blob (use decrypted note content if available)
+      const noteText = decryptedNotesMap[note.id] || note.content;
+      const blob = new Blob([noteText], { type: 'text/plain' });
       const fileObj = new window.File([blob], filename, { type: 'text/plain' });
 
       // Upload text file to storage
@@ -996,7 +997,7 @@ const Dashboard = () => {
       }
 
       // Generate the sharing code for this file record
-      await handleGenerateShareCode(fileRecord);
+      handleGenerateShareCode(fileRecord);
       
       // Refresh vault if active
       fetchStorageStats();
@@ -1847,10 +1848,10 @@ const Dashboard = () => {
 
       // Secure client fallback using window.crypto.getRandomValues if server endpoint is offline
       if (!serverSuccess) {
-        // Step 1: Create signed URL from storage bucket valid for selected duration
+        // Step 1: Create signed URL from storage bucket valid for selected duration with attachment header
         const { data: signedData, error: signedError } = await supabase.storage
           .from('vault')
-          .createSignedUrl(shareOptionsFile.storage_path, selectedShareExpiry);
+          .createSignedUrl(shareOptionsFile.storage_path, selectedShareExpiry, { download: shareOptionsFile.filename });
 
         if (signedError) throw signedError;
         signedUrl = signedData.signedUrl;
@@ -1859,19 +1860,19 @@ const Dashboard = () => {
         const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
         let codeExists = true;
         let shareCode = '';
-        while (codeExists) {
+        let attempts = 0;
+        while (codeExists && attempts < 10) {
+          attempts++;
           const randomBytes = new Uint8Array(6);
           window.crypto.getRandomValues(randomBytes);
           shareCode = Array.from(randomBytes).map(b => chars[b % chars.length]).join('');
 
-          // Check database collision
-          const { data: collisionData } = await supabase
-            .from('share_codes')
-            .select('id')
-            .eq('code', shareCode)
-            .gt('expires_at', new Date().toISOString());
+          // Check database collision safely using get_shared_file_by_code RPC
+          const { data: rpcData } = await supabase.rpc('get_shared_file_by_code', {
+            p_code: shareCode
+          });
           
-          if (!collisionData || collisionData.length === 0) {
+          if (!rpcData || rpcData.length === 0) {
             codeExists = false;
           }
         }

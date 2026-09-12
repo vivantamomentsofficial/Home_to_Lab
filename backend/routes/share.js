@@ -93,7 +93,13 @@ router.post('/generate', requireAuth, async (req, res) => {
       .maybeSingle();
 
     if (fileError || !fileData) {
-      return res.status(404).json({ error: 'File not found or access denied.' });
+      return res.status(404).json({ error: 'File not found.' });
+    }
+
+    // Verify user owns the file or is super admin
+    const isAdmin = req.user.email?.toLowerCase() === (process.env.ADMIN_EMAIL || 'aayushparekh26@gmail.com').toLowerCase();
+    if (fileData.user_id !== req.user.id && !isAdmin) {
+      return res.status(403).json({ error: 'Access denied: You do not own this file.' });
     }
 
     // Security check: Block dangerous executable file formats from being shared
@@ -103,11 +109,10 @@ router.post('/generate', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Prohibited file type: Executable/script files cannot be shared via public codes.' });
     }
 
-    // 2. Generate signed URL for storage object
-
+    // 2. Generate signed URL for storage object with attachment disposition
     const { data: signedData, error: signedError } = await supabase.storage
       .from('vault')
-      .createSignedUrl(fileData.storage_path, duration);
+      .createSignedUrl(fileData.storage_path, duration, { download: fileData.filename });
 
     if (signedError || !signedData?.signedUrl) {
       console.error('Error creating signed URL:', signedError);
@@ -122,14 +127,11 @@ router.post('/generate', requireAuth, async (req, res) => {
     while (!isUnique && attempts < 10) {
       attempts++;
       shareCode = generateSecureShareCode();
-      const { data: existing, error: checkError } = await supabase
-        .from('share_codes')
-        .select('id')
-        .eq('code', shareCode)
-        .gt('expires_at', new Date().toISOString())
-        .maybeSingle();
+      const { data: rpcData, error: checkError } = await supabase.rpc('get_shared_file_by_code', {
+        p_code: shareCode,
+      });
 
-      if (!checkError && !existing) {
+      if (!checkError && (!rpcData || rpcData.length === 0)) {
         isUnique = true;
       }
     }
