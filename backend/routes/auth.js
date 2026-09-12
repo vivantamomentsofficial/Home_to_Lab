@@ -54,4 +54,45 @@ router.post('/check-rate-limit', authCheckLimiter, (req, res) => {
   res.json({ allowed: true });
 });
 
+// POST /api/auth/set-cookie - Set httpOnly cookie for session token
+router.post('/set-cookie', authCheckLimiter, (req, res) => {
+  const { access_token, refresh_token } = req.body;
+
+  if (!access_token) {
+    return res.status(400).json({ error: 'Access token required to set session cookie.' });
+  }
+
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+  };
+
+  res.cookie('sb-access-token', access_token, cookieOptions);
+  if (refresh_token) {
+    res.cookie('sb-refresh-token', refresh_token, cookieOptions);
+  }
+
+  return res.json({ success: true, message: 'Session httpOnly cookie set successfully.' });
+});
+
+// POST /api/auth/clear-cookie - Clear httpOnly auth cookies
+router.post('/clear-cookie', (req, res) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  const cookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    path: '/'
+  };
+
+  res.clearCookie('sb-access-token', cookieOptions);
+  res.clearCookie('sb-refresh-token', cookieOptions);
+
+  return res.json({ success: true, message: 'Session httpOnly cookies cleared.' });
+});
+
 module.exports = router;

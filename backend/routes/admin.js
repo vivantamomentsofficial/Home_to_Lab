@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth, requireAdmin } = require('../middleware/auth');
+const { sanitizeString, escapeHtml } = require('../utils/sanitize');
 
 // Mount Auth & Admin checks on all routes in this router
 router.use(requireAuth);

@@ -80,17 +80,48 @@ export const AuthProvider = ({ children }) => {
           setSession(newSession);
           setUser(newSession?.user || null);
 
+          const apiUrl = import.meta.env.VITE_API_URL || '';
+
+          // Sync httpOnly cookies on SIGNED_IN or TOKEN_REFRESHED
+          if (newSession?.access_token && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+            try {
+              await fetch(`${apiUrl}/api/auth/set-cookie`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                  access_token: newSession.access_token,
+                  refresh_token: newSession.refresh_token
+                })
+              });
+            } catch (cErr) {
+              console.warn('Failed to sync httpOnly session cookie:', cErr);
+            }
+          }
+
+          // Clear httpOnly cookies on SIGNED_OUT
+          if (event === 'SIGNED_OUT') {
+            try {
+              await fetch(`${apiUrl}/api/auth/clear-cookie`, {
+                method: 'POST',
+                credentials: 'include'
+              });
+            } catch (cErr) {
+              console.warn('Failed to clear httpOnly session cookie:', cErr);
+            }
+          }
+
           // Sync login logs if user signs in and is not anonymous (server-side IP capture)
           const isAnonymous = newSession && newSession.user && newSession.user.is_anonymous;
           if (event === 'SIGNED_IN' && !isAnonymous && newSession?.user) {
             try {
-              const apiUrl = import.meta.env.VITE_API_URL || '';
               const logRes = await fetch(`${apiUrl}/api/auth/log-login`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
                   'Authorization': `Bearer ${newSession.access_token}`
-                }
+                },
+                credentials: 'include'
               });
 
               if (!logRes.ok) {
@@ -142,6 +173,24 @@ export const AuthProvider = ({ children }) => {
 
     if (error) throw error;
 
+    // Set httpOnly cookie via backend proxy endpoint
+    if (data?.session?.access_token) {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        await fetch(`${apiUrl}/api/auth/set-cookie`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          })
+        });
+      } catch (cErr) {
+        console.warn('Backend set-cookie warning:', cErr);
+      }
+    }
+
     // Check if account is suspended before fully setting session
     try {
       const { data: profileData, error: profileError } = await supabase
@@ -184,12 +233,39 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (error) throw error;
+
+    if (data?.session?.access_token) {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        await fetch(`${apiUrl}/api/auth/set-cookie`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token
+          })
+        });
+      } catch (cErr) {
+        console.warn('Backend set-cookie warning on register:', cErr);
+      }
+    }
+
     return data;
   };
 
   // Sign out handler
   const logout = async () => {
     if (!supabase) return;
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      await fetch(`${apiUrl}/api/auth/clear-cookie`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+    } catch (cErr) {
+      console.warn('Backend clear-cookie warning:', cErr);
+    }
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Sign out error:', error);
     setUser(null);

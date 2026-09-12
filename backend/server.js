@@ -4,6 +4,8 @@ const cors = require('cors');
 const morgan = require('morgan');
 const path = require('path');
 
+const cookieParser = require('cookie-parser');
+
 const shareRouter = require('./routes/share');
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
@@ -37,6 +39,7 @@ if (process.env.FRONTEND_URL) {
 
 app.use(
   cors({
+    credentials: true,
     origin: (origin, callback) => {
       // Allow requests with no origin (like server-to-server, mobile apps, curl)
       if (!origin) return callback(null, true);
@@ -57,6 +60,7 @@ app.use(
 // General Middlewares
 app.use(morgan('dev'));
 app.use(express.json());
+app.use(cookieParser());
 
 // Serving Supabase Configuration Variables (Secure Proxy without hardcoded fallbacks)
 app.get('/api/config', (req, res) => {

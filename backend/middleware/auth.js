@@ -19,7 +19,9 @@ if (!supabaseServiceKey) {
 const requireAuth = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    const bearerToken = authHeader && authHeader.split(' ')[1];
+    const cookieToken = req.cookies ? (req.cookies['sb-access-token'] || req.cookies['sb-auth-token']) : null;
+    const token = cookieToken || bearerToken;
 
     if (!token) {
       return res.status(401).json({ error: 'Authentication token required.' });
