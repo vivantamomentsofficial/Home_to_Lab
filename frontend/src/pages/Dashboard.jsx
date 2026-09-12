@@ -1267,7 +1267,7 @@ const Dashboard = () => {
       }
 
       const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
-      const storagePath = `uploads/${user.id}/${uniquePrefix}_${fileNameToSave}`;
+      let finalStoragePath = `uploads/${user.id}/${uniquePrefix}_${fileNameToSave}`;
 
       // Progress reporting helper
       setActiveUploads((prev) => {
@@ -1281,31 +1281,56 @@ const Dashboard = () => {
         };
       });
 
-      // Task 2.4: Resumable upload for files > 20MB
-      const TWENTY_MB = 20 * 1024 * 1024;
-      if (fileToUpload.size > TWENTY_MB) {
-        await uploadFileResumable(supabase, storagePath, fileToUpload, (percent) => {
-          setActiveUploads((prev) => {
-            if (!prev[uploadId]) return prev;
-            return {
-              ...prev,
-              [uploadId]: {
-                ...prev[uploadId],
-                progress: Math.max(30, percent)
-              }
-            };
+      // Attempt Supabase storage upload with automatic resilient fallback
+      try {
+        const TWENTY_MB = 20 * 1024 * 1024;
+        if (fileToUpload.size > TWENTY_MB) {
+          await uploadFileResumable(supabase, finalStoragePath, fileToUpload, (percent) => {
+            setActiveUploads((prev) => {
+              if (!prev[uploadId]) return prev;
+              return {
+                ...prev,
+                [uploadId]: {
+                  ...prev[uploadId],
+                  progress: Math.max(30, percent)
+                }
+              };
+            });
           });
-        });
-      } else {
-        const { error } = await supabase.storage
-          .from('vault')
-          .upload(storagePath, fileToUpload, {
-            cacheControl: '3600',
-            upsert: true,
-            contentType: fileToUpload.type || 'application/octet-stream'
-          });
+        } else {
+          const { error } = await supabase.storage
+            .from('vault')
+            .upload(finalStoragePath, fileToUpload, {
+              cacheControl: '3600',
+              upsert: true,
+              contentType: fileToUpload.type || 'application/octet-stream'
+            });
 
-        if (error) throw error;
+          if (error) throw error;
+        }
+      } catch (storageErr) {
+        console.warn('Storage upload notice, evaluating resilient fallback:', storageErr.message || storageErr);
+        
+        const isStorageError = 
+          storageErr.message?.toLowerCase().includes('schema') ||
+          storageErr.message?.toLowerCase().includes('out of sync') ||
+          storageErr.code === 'DatabaseSchemaMismatch' ||
+          storageErr.status === 503 ||
+          storageErr.status === 400 ||
+          storageErr.__isStorageError;
+
+        if (isStorageError && fileToUpload.size <= 15 * 1024 * 1024) {
+          showToast('Storage API desynced. Saving file via database vault fallback...', 'info');
+          const dataUrl = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsDataURL(fileToUpload);
+          });
+          finalStoragePath = dataUrl;
+        } else {
+          throw storageErr;
+        }
       }
 
       setActiveUploads((prev) => {
@@ -1354,7 +1379,7 @@ const Dashboard = () => {
       const filePayload = {
         user_id: user.id,
         filename: fileNameToSave,
-        storage_path: storagePath,
+        storage_path: finalStoragePath,
         file_type: fileCategory,
         size: fileToUpload.size,
       };
@@ -2426,14 +2451,19 @@ const Dashboard = () => {
 
     try {
       showToast('Preparing download...', 'info');
-      const { data, error } = await supabase.storage
-        .from('vault')
-        .createSignedUrl(path, 120);
+      let targetUrl = path;
 
-      if (error) throw error;
+      if (!path.startsWith('http://') && !path.startsWith('https://') && !path.startsWith('data:')) {
+        const { data, error } = await supabase.storage
+          .from('vault')
+          .createSignedUrl(path, 120);
+
+        if (error) throw error;
+        targetUrl = data.signedUrl;
+      }
 
       const link = document.createElement('a');
-      link.href = data.signedUrl;
+      link.href = targetUrl;
       link.download = filename;
       link.target = '_blank';
       document.body.appendChild(link);
