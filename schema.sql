@@ -366,17 +366,7 @@ CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
     FOR INSERT TO authenticated WITH CHECK (
         bucket_id = 'vault' AND
         (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text AND
-        -- Enforce storage limit checks dynamically
-        (
-            SELECT COALESCE(SUM(size), 0)
-            FROM public.files
-            WHERE user_id = auth.uid()
-        ) + COALESCE((metadata->>'size')::bigint, 0) <= (
-            SELECT COALESCE(storage_limit, 104857600)
-            FROM public.profiles
-            WHERE id = auth.uid()
-        )
+        (storage.foldername(name))[2] = auth.uid()::text
     );
 
 -- Allow users to view/select their own uploaded files
