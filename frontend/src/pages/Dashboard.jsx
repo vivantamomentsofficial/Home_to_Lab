@@ -47,7 +47,7 @@ import {
   ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
-  History
+  History, UploadCloud, Clipboard, FolderKanban
 } from 'lucide-react';
 
 

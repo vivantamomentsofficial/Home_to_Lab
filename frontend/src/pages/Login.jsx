@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, ArrowLeft, Mail } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 const Login = () => {
