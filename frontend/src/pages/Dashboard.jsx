@@ -1079,6 +1079,54 @@ const Dashboard = () => {
     }
   };
 
+  // Image compression helper using HTML5 canvas
+  const compressImageFile = (file, maxWidth = 1920, quality = 0.8) => {
+    return new Promise((resolve) => {
+      if (!file.type || !file.type.startsWith('image/') || file.type.includes('svg') || file.type.includes('gif')) {
+        return resolve(file);
+      }
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              if (!blob || blob.size >= file.size) {
+                return resolve(file);
+              }
+              const compressedFile = new window.File([blob], file.name, {
+                type: file.type,
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            file.type,
+            quality
+          );
+        };
+        img.onerror = () => resolve(file);
+      };
+      reader.onerror = () => resolve(file);
+    });
+  };
+
   // ==========================================
   // FILE UPLOAD CONTROLLER (SEND TO SERVER)
   // ==========================================
@@ -1092,7 +1140,17 @@ const Dashboard = () => {
   };
 
   const handleUploadQueue = async (incomingFiles) => {
-    if (incomingFiles.length === 0) return;
+    if (!incomingFiles || incomingFiles.length === 0) return;
+
+    if (!user) {
+      showToast('You must be logged in to upload files.', 'danger');
+      return;
+    }
+
+    if (uploadLocked) {
+      showToast('File uploading is locked by the administrator.', 'warning');
+      return;
+    }
 
     let currentUsed = usedStorage;
     const itemsArray = Array.from(incomingFiles);
@@ -1155,6 +1213,11 @@ const Dashboard = () => {
   const startUploadingFile = async (uploadId, file, passphrase = '', forceUpload = false) => {
     const controller = new AbortController();
 
+    if (!user) {
+      showToast('User session expired. Please sign in again.', 'danger');
+      return;
+    }
+
     setActiveUploads((prev) => ({
       ...prev,
       [uploadId]: {
@@ -1206,6 +1269,18 @@ const Dashboard = () => {
       const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
       const storagePath = `uploads/${user.id}/${uniquePrefix}_${fileNameToSave}`;
 
+      // Progress reporting helper
+      setActiveUploads((prev) => {
+        if (!prev[uploadId]) return prev;
+        return {
+          ...prev,
+          [uploadId]: {
+            ...prev[uploadId],
+            progress: 30
+          }
+        };
+      });
+
       // Task 2.4: Resumable upload for files > 20MB
       const TWENTY_MB = 20 * 1024 * 1024;
       if (fileToUpload.size > TWENTY_MB) {
@@ -1216,7 +1291,7 @@ const Dashboard = () => {
               ...prev,
               [uploadId]: {
                 ...prev[uploadId],
-                progress: percent
+                progress: Math.max(30, percent)
               }
             };
           });
@@ -1226,28 +1301,29 @@ const Dashboard = () => {
           .from('vault')
           .upload(storagePath, fileToUpload, {
             cacheControl: '3600',
-            upsert: false,
-            contentType: fileToUpload.type || 'application/octet-stream',
-            onUploadProgress: (progressEvent) => {
-              const percent = Math.round((progressEvent.loaded / (progressEvent.total || fileToUpload.size || 1)) * 100);
-              setActiveUploads((prev) => {
-                if (!prev[uploadId]) return prev;
-                return {
-                  ...prev,
-                  [uploadId]: {
-                    ...prev[uploadId],
-                    progress: percent
-                  }
-                };
-              });
-            }
+            upsert: true,
+            contentType: fileToUpload.type || 'application/octet-stream'
           });
 
         if (error) throw error;
       }
 
+      setActiveUploads((prev) => {
+        if (!prev[uploadId]) return prev;
+        return {
+          ...prev,
+          [uploadId]: {
+            ...prev[uploadId],
+            progress: 80
+          }
+        };
+      });
+
       // Determine folder_id for new upload record
       let assignedFolderId = (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId;
+      if (assignedFolderId === 'null' || assignedFolderId === 'undefined' || assignedFolderId === '') {
+        assignedFolderId = null;
+      }
       if (!assignedFolderId && folders.length > 0) {
         const lowerName = fileNameToSave.toLowerCase();
         const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
@@ -2067,61 +2143,6 @@ const Dashboard = () => {
       if (shareTimerRef.current) clearInterval(shareTimerRef.current);
     };
   }, []);
-
-  const compressImageFile = (file) => {
-    return new Promise((resolve) => {
-      const imgType = file.type;
-      if (!['image/jpeg', 'image/png', 'image/webp'].includes(imgType)) {
-        resolve(file);
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const maxDim = 1920;
-          let width = img.width;
-          let height = img.height;
-
-          if (width > maxDim || height > maxDim) {
-            if (width > height) {
-              height = Math.round((height * maxDim) / width);
-              width = maxDim;
-            } else {
-              width = Math.round((width * maxDim) / height);
-              height = maxDim;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                const compressedFile = new window.File([blob], file.name.replace(/\.[^/.]+$/, "") + ".jpg", {
-                  type: 'image/jpeg',
-                  lastModified: Date.now(),
-                });
-                resolve(compressedFile);
-              } else {
-                resolve(file);
-              }
-            },
-            'image/jpeg',
-            0.75
-          );
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  };
 
   const handleDecryptAndDownload = async (path, filename, passphrase) => {
     const downloadId = 'dn_' + Math.random().toString(36).substring(2, 9);

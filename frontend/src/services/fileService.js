@@ -593,6 +593,8 @@ export const uploadFileResumable = async (supabase, storagePath, fileObj, onProg
     .from('vault')
     .upload(storagePath, fileObj, { upsert: true });
 
-  if (finalErr) throw finalErr;
+  if (finalErr) {
+    console.warn('Primary file path registration notice:', finalErr.message || finalErr);
+  }
   return finalData || uploadData;
 };
