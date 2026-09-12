@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ArrowLeft, Lock, Mail } from 'lucide-react';
+import { Shield, ArrowLeft, Lock, Mail, ExternalLink } from 'lucide-react';
 
 const PrivacyPolicy = () => {
   return (
@@ -35,13 +35,13 @@ const PrivacyPolicy = () => {
           <div className="border-b border-slate-200 dark:border-slate-800 pb-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-3">
               <Lock className="w-3.5 h-3.5" />
-              Legal & Privacy
+              Legal &amp; Privacy
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold font-display text-slate-800 dark:text-white tracking-tight">
               Privacy Policy
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Effective Date: September 4, 2026 | Last Updated: September 4, 2026
+              Effective Date: September 4, 2026 | Last Updated: September 12, 2026
             </p>
           </div>
 
@@ -60,41 +60,55 @@ const PrivacyPolicy = () => {
               <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
                 <li><strong className="text-slate-800 dark:text-slate-200">Account Data:</strong> Registered email address, full display name, and college/school name.</li>
                 <li><strong className="text-slate-800 dark:text-slate-200">User Content:</strong> Files, clipboard notes, and temporary 6-digit share codes uploaded to your vault.</li>
-                <li><strong className="text-slate-800 dark:text-slate-200">Security & Audit Logs:</strong> IP address, user agent, login timestamps, and access logs recorded for account security auditing.</li>
+                <li><strong className="text-slate-800 dark:text-slate-200">Security &amp; Audit Logs:</strong> IP address, user agent, login timestamps, and access logs recorded for account security auditing.</li>
               </ul>
             </section>
 
-            {/* Section 2 - Google AdSense */}
+            {/* Section 2 - Google AdSense & Cookies */}
             <section className="space-y-3 p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
               <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">2</span>
-                Google AdSense & Cookies
+                Google AdSense, Cookies &amp; Third-Party Advertising
               </h2>
               <p>
-                We use <strong>Google AdSense</strong> to display non-intrusive advertisements supporting website server costs.
+                We use <strong>Google AdSense</strong> to display advertisements that support server and maintenance costs. Google and third-party advertising vendors use cookies to serve ads based on your visits to CloudVault and other websites across the internet.
               </p>
               <ul className="list-disc list-inside space-y-2 text-slate-500 dark:text-slate-400">
-                <li>Google and third-party vendors use cookies to serve ads based on your visits to CloudVault and other websites.</li>
-                <li>Google’s use of advertising cookies enables it and its partners to serve personalized ads based on your browsing history.</li>
-                <li>You can opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:underline font-bold">Google Ads Settings</a> or <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-brand-primary hover:underline font-bold">www.aboutads.info</a>.</li>
+                <li><strong>Google DART Cookie:</strong> Google’s use of advertising cookies enables it and its partners to serve ads to users based on their visit to CloudVault and/or other sites on the Internet.</li>
+                <li><strong>Opt-Out Options:</strong> You may opt out of personalized advertising by visiting <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" className="text-brand-primary font-bold hover:underline inline-flex items-center gap-1">Google Ads Settings <ExternalLink className="w-3 h-3" /></a> or <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" className="text-brand-primary font-bold hover:underline inline-flex items-center gap-1">www.aboutads.info <ExternalLink className="w-3 h-3" /></a>.</li>
+                <li><strong>Third-Party Vendors:</strong> Third-party ad networks may also use cookies, JavaScript, or Web Beacons to measure advertising effectiveness. CloudVault has no access to or control over these cookies used by third-party advertisers.</li>
               </ul>
             </section>
 
-            {/* Section 3 */}
+            {/* Section 3 - GDPR & CCPA Rights */}
             <section className="space-y-3">
               <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">3</span>
-                Data Security & Encryption
+                GDPR &amp; CCPA Privacy Rights
               </h2>
-              <p>
-                All data transfers are protected via SSL/TLS encryption. Database records and storage objects are secured using PostgreSQL Row Level Security (RLS) policies in Supabase, preventing unauthorized access across accounts.
-              </p>
+              <p>Under global data privacy laws (including GDPR and CCPA), users have the following rights:</p>
+              <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
+                <li><strong>Right to Access:</strong> You can request copies of your personal data stored on CloudVault.</li>
+                <li><strong>Right to Erasure (Right to be Forgotten):</strong> You can request that we delete all your account data, stored files, and clipboard notes.</li>
+                <li><strong>Right to Rectification:</strong> You can request that we correct any inaccurate account details.</li>
+              </ul>
             </section>
 
             {/* Section 4 */}
             <section className="space-y-3">
               <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">4</span>
+                Data Security &amp; Encryption
+              </h2>
+              <p>
+                All data transfers are protected via SSL/TLS encryption. Database records and storage objects are secured using PostgreSQL Row Level Security (RLS) policies in Supabase, preventing unauthorized access across accounts.
+              </p>
+            </section>
+
+            {/* Section 5 */}
+            <section className="space-y-3">
+              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">5</span>
                 Contact Support
               </h2>
               <p>For questions or account data deletion requests, contact our administrator:</p>
@@ -108,12 +122,14 @@ const PrivacyPolicy = () => {
           {/* Footer */}
           <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
             <p>© 2026 CloudVault (Home to Lab). All rights reserved.</p>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <Link to="/about" className="hover:text-brand-primary transition">About Us</Link>
+              <span>•</span>
+              <Link to="/contact" className="hover:text-brand-primary transition">Contact Us</Link>
+              <span>•</span>
               <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
               <span>•</span>
-              <Link to="/login" className="hover:text-brand-primary transition">Login</Link>
-              <span>•</span>
-              <Link to="/register" className="hover:text-brand-primary transition">Register</Link>
+              <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
             </div>
           </div>
 

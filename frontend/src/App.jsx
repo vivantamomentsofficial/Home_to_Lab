@@ -6,6 +6,8 @@ import { Settings, HelpCircle, ShieldAlert, Shield, Lock } from 'lucide-react';
 import PWAInstallBanner from './components/PWAInstallBanner';
 import OfflineBanner from './components/OfflineBanner';
 
+import CookieConsentBanner from './components/CookieConsentBanner';
+
 // Lazy load pages for code splitting
 
 const Home = React.lazy(() => import('./pages/Home'));
@@ -16,6 +18,9 @@ const Admin = React.lazy(() => import('./pages/Admin'));
 const AdminLogin = React.lazy(() => import('./pages/AdminLogin'));
 const PrivacyPolicy = React.lazy(() => import('./pages/PrivacyPolicy'));
 const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
+const About = React.lazy(() => import('./pages/About'));
+const Contact = React.lazy(() => import('./pages/Contact'));
+const Disclaimer = React.lazy(() => import('./pages/Disclaimer'));
 
 const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
   <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-white relative overflow-hidden font-sans select-none transition-colors duration-300">
@@ -180,6 +185,9 @@ const AppContent = () => {
       <React.Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/disclaimer" element={<Disclaimer />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -206,6 +214,7 @@ const AppContent = () => {
       </React.Suspense>
       <PWAInstallBanner />
       <OfflineBanner />
+      <CookieConsentBanner />
     </>
   );
 };

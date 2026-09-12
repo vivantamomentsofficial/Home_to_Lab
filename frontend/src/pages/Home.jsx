@@ -214,15 +214,18 @@ const Home = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link to="/about" className="text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+            About Us
+          </Link>
           <button onClick={() => scrollToSection('features')} className="text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
             Features
           </button>
           <button onClick={() => scrollToSection('how-it-works')} className="text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
             How It Works
           </button>
-          <button onClick={() => scrollToSection('retrieve-section')} className="text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
-            Retrieve File
-          </button>
+          <Link to="/contact" className="text-sm font-semibold text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors">
+            Contact Us
+          </Link>
 
           {/* Theme Switcher Button */}
           <button
@@ -881,12 +884,16 @@ const Home = () => {
           <Shield className="w-4.5 h-4.5 text-brand-primary stroke-[2.5]" />
           <span className="font-display font-semibold text-slate-800 dark:text-slate-400">CloudVault</span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
+        <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+          <Link to="/about" className="hover:text-brand-primary transition">About Us</Link>
+          <span>•</span>
+          <Link to="/contact" className="hover:text-brand-primary transition">Contact Us</Link>
           <span>•</span>
           <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
           <span>•</span>
-          <a href="mailto:aayushparekh26@gmail.com" className="hover:text-brand-primary transition">Contact</a>
+          <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
+          <span>•</span>
+          <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
         </div>
         <div>
           &copy; 2026 CloudVault (Home to Lab). All rights reserved.
