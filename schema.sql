@@ -888,12 +888,14 @@ DECLARE
     ext TEXT;
     blocked_exts TEXT[] := ARRAY['.exe', '.bat', '.cmd', '.sh', '.bash', '.ps1', '.vbs', '.msi', '.scr', '.jar', '.com', '.pif', '.hta', '.cpl', '.apk', '.gadget', '.wsf'];
 BEGIN
-    file_name := LOWER(COALESCE(NEW.filename, NEW.name, ''));
-    FOREACH ext IN ARRAY blocked_exts LOOP
-        IF file_name LIKE '%' || ext THEN
-            RAISE EXCEPTION 'Upload blocked: Files with extension % are prohibited for security reasons.', ext;
-        END IF;
-    END LOOP;
+    file_name := LOWER(COALESCE(to_jsonb(NEW)->>'filename', to_jsonb(NEW)->>'name', ''));
+    IF file_name IS NOT NULL AND file_name <> '' THEN
+        FOREACH ext IN ARRAY blocked_exts LOOP
+            IF file_name LIKE '%' || ext THEN
+                RAISE EXCEPTION 'Upload blocked: Files with extension % are prohibited for security reasons.', ext;
+            END IF;
+        END LOOP;
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -902,14 +904,6 @@ DROP TRIGGER IF EXISTS trg_check_file_extension ON public.files;
 CREATE TRIGGER trg_check_file_extension
     BEFORE INSERT OR UPDATE ON public.files
     FOR EACH ROW EXECUTE FUNCTION public.check_blocked_file_extension();
-
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'storage' AND table_name = 'objects') THEN
-        EXECUTE 'DROP TRIGGER IF EXISTS trg_check_storage_object_extension ON storage.objects';
-        EXECUTE 'CREATE TRIGGER trg_check_storage_object_extension BEFORE INSERT OR UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION public.check_blocked_file_extension()';
-    END IF;
-END $$;
 
 
 

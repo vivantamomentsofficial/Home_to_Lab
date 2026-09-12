@@ -1402,7 +1402,7 @@ const Dashboard = () => {
         const corePayload = {
           user_id: user.id,
           filename: fileNameToSave,
-          storage_path: storagePath,
+          storage_path: finalStoragePath,
           file_type: fileCategory,
           size: fileToUpload.size,
         };
