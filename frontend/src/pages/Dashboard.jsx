@@ -610,7 +610,8 @@ const Dashboard = () => {
     }
 
     try {
-      // Update auth metadata (trigger will sync this to profiles table automatically)
+      showToast('Saving profile details...', 'info');
+      // Update auth metadata
       const { error: authErr } = await supabase.auth.updateUser({
         data: {
           full_name: fullName.trim(),
@@ -619,9 +620,23 @@ const Dashboard = () => {
       });
       if (authErr) throw authErr;
 
+      // Also update profiles table in database for instant sync across sessions
+      const { error: dbErr } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName.trim(),
+          college: college.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (dbErr) {
+        console.warn('Profiles DB sync warning:', dbErr.message);
+      }
+
       showToast('Profile details updated successfully!', 'success');
     } catch (err) {
-      console.error(err);
+      console.error('Profile update error:', err);
       showToast(err.message || 'Failed to update user profile.', 'danger');
     }
   };
@@ -3377,45 +3392,45 @@ const Dashboard = () => {
               </div>
             )}
             {/* Explorer Controls */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-              <div className="flex gap-2">
-                <button onClick={handleCreateFolder} className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5">
-                  <Plus className="w-4 h-4" /> New Folder
+            <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                <button onClick={handleCreateFolder} className="btn-secondary py-2.5 px-3.5 text-xs font-semibold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer">
+                  <Plus className="w-4 h-4 text-brand-primary" /> New Folder
                 </button>
-                <button onClick={handleOpenCreateTxtModal} className="btn-primary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
-                  <Plus className="w-4 h-4" /> Create TXT File
+                <button onClick={handleOpenCreateTxtModal} className="btn-primary py-2.5 px-3.5 text-xs font-bold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer shadow-sm">
+                  <Plus className="w-4 h-4" /> Create TXT
                 </button>
-                <button onClick={() => setShowRecordModal(true)} className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => setShowRecordModal(true)} className="btn-secondary py-2.5 px-3.5 text-xs font-semibold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer">
                   <Mic className="w-4 h-4 text-brand-primary" /> Record Memo
                 </button>
                 {currentFolderId === null && files.some(f => !f.is_deleted && !f.folder_id) && (
                   <button
                     onClick={handleAutoOrganizeFiles}
-                    className="btn-secondary py-2 px-3 text-xs flex items-center gap-1.5 cursor-pointer text-amber-600 dark:text-amber-400 font-bold border-amber-300/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                    title="Automatically sort root files into Lab, Lecture, & practical folders based on file names"
+                    className="btn-secondary py-2.5 px-3.5 text-xs font-bold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer text-amber-600 dark:text-amber-400 border-amber-300/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                    title="Automatically sort root files into Lab, Lecture, & practical folders"
                   >
-                    <Folder className="w-4 h-4 text-amber-500" /> Auto-Organize Files
+                    <Folder className="w-4 h-4 text-amber-500" /> Auto-Organize
                   </button>
                 )}
               </div>
               
-              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                <div className="relative flex-1 md:w-48">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                <div className="relative flex-1 min-w-[130px] sm:min-w-[160px]">
                   <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     type="text"
-                    placeholder="Search filename..."
+                    placeholder="Search files..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input-field pl-9 py-2 text-xs"
                   />
                 </div>
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-initial">
                   <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   <select
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
                     title="Filter by date range"
                   >
                     <option value="all">All Time</option>
@@ -3424,24 +3439,24 @@ const Dashboard = () => {
                     <option value="30days">Past 30 Days</option>
                   </select>
                 </div>
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-initial">
                   <Folder className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   <select
                     value={folderScope}
                     onChange={(e) => setFolderScope(e.target.value)}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
                     title="Filter folder scope"
                   >
                     <option value="current">Current Folder</option>
                     <option value="all">All Folders</option>
                   </select>
                 </div>
-                <div className="relative">
+                <div className="relative flex-1 sm:flex-initial">
                   <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   <select
                     value={sortOption}
                     onChange={(e) => setSortOption(e.target.value)}
-                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
                   >
                     <option value="newest">Newest First</option>
                     <option value="oldest">Oldest First</option>
@@ -3451,7 +3466,7 @@ const Dashboard = () => {
                 </div>
                 <button
                   onClick={handleToggleLayout}
-                  className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300"
+                  className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 shrink-0 cursor-pointer"
                   title="Toggle layout"
                 >
                   {layoutMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
@@ -4071,43 +4086,32 @@ const Dashboard = () => {
 
               <form onSubmit={handleProfileSave} className="space-y-4 pt-2">
                 <div>
-                  <label className="label-title">Display Name</label>
+                  <label className="label-title">Display Name *</label>
                   <input
                     type="text"
+                    placeholder="Enter your full display name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     className="input-field"
                     required
-                    disabled={isProfileLocked}
                   />
                 </div>
                 <div>
                   <label className="label-title">College / Institution</label>
                   <input
                     type="text"
+                    placeholder="E.g. XYZ Institute of Technology"
                     value={college}
                     onChange={(e) => setCollege(e.target.value)}
                     className="input-field"
-                    disabled={isProfileLocked}
                   />
                 </div>
-                {isProfileLocked ? (
-                  <div className="text-center pt-2">
-                    <p className="text-[11px] text-slate-550 dark:text-slate-400 mb-3 leading-relaxed">
-                      Display name and college can only be changed by requesting the administrator.
-                    </p>
-                    <a
-                      href={`mailto:aayushparekh26@gmail.com?subject=Profile Change Request for ${encodeURIComponent(user?.email)}&body=Hello Admin,%0A%0AI would like to request a change to my profile details.%0A%0ACurrent Name: ${encodeURIComponent(fullName)}%0ACurrent College: ${encodeURIComponent(college)}%0A%0ANew Name: %0ANew College: %0A%0AThank you!`}
-                      className="w-full btn-secondary py-2 text-xs flex items-center justify-center gap-1 border border-brand-primary/10 text-brand-primary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-brand-primary-hover"
-                    >
-                      Request Profile Change
-                    </a>
-                  </div>
-                ) : (
-                  <button type="submit" className="w-full btn-primary py-2.5 text-sm">
-                    Save Name
-                  </button>
-                )}
+                <button 
+                  type="submit" 
+                  className="w-full btn-primary py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Check className="w-4 h-4" /> Save Profile Details
+                </button>
               </form>
             </div>
 
