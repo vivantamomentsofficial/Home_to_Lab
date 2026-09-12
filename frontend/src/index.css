@@ -110,28 +110,59 @@
   }
 }
 
-/* Glassmorphism background glowing orbs */
+/* Glassmorphism background glowing orbs with 60fps GPU Ambient Motion */
 .glow-orb {
   position: absolute;
-  width: 300px;
-  height: 300px;
   border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.12;
+  filter: blur(100px);
+  opacity: 0.18;
   z-index: 0;
   pointer-events: none;
 }
 
+@keyframes floatOrb1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(45px, -35px, 0) scale(1.08); }
+}
+
+@keyframes floatOrb2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-40px, 45px, 0) scale(1.12); }
+}
+
+@keyframes floatOrb3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(30px, 30px, 0) scale(0.94); }
+}
+
 .glow-orb-primary {
   @apply bg-brand-primary;
-  top: 10%;
-  left: 20%;
+  top: 5%;
+  left: 10%;
+  width: 480px;
+  height: 480px;
+  animation: floatOrb1 14s ease-in-out infinite;
+  will-change: transform;
 }
 
 .glow-orb-accent {
+  @apply bg-sky-500;
+  bottom: 12%;
+  right: 8%;
+  width: 420px;
+  height: 420px;
+  animation: floatOrb2 16s ease-in-out infinite;
+  will-change: transform;
+}
+
+.glow-orb-secondary {
   @apply bg-indigo-500;
-  bottom: 20%;
-  right: 15%;
+  top: 48%;
+  left: 45%;
+  width: 380px;
+  height: 380px;
+  animation: floatOrb3 18s ease-in-out infinite;
+  will-change: transform;
 }
 
 /* Custom styles for Lucide icons */
