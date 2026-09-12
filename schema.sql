@@ -355,16 +355,22 @@ CREATE POLICY "Allow users to view their own login logs" ON public.login_logs
 -- 3. STORAGE SETUP & STORAGE POLICIES
 -- =========================================================================
 
--- Create the private 'vault' storage bucket if it doesn't exist
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('vault', 'vault', false)
-ON CONFLICT (id) DO NOTHING;
+-- Ensure storage schema exists
+CREATE SCHEMA IF NOT EXISTS storage;
 
--- Drop any accidentally attached triggers on storage.objects
+-- Create the private 'vault' storage bucket if it doesn't exist
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('vault', 'vault', false, NULL, NULL)
+ON CONFLICT (id) DO UPDATE SET public = false;
+
+-- Drop any legacy or custom triggers on storage.objects that cause Schema Mismatch (503)
 DROP TRIGGER IF EXISTS check_storage_before_file_insert ON storage.objects;
 DROP TRIGGER IF EXISTS check_upload_lock_before_insert ON storage.objects;
 DROP TRIGGER IF EXISTS check_user_storage_limit ON storage.objects;
 DROP TRIGGER IF EXISTS check_upload_lock ON storage.objects;
+
+-- Enable RLS on storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 
 -- Remove old/restrictive policies on storage.objects for bucket 'vault'
 DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.objects;
