@@ -375,8 +375,8 @@ const Home = () => {
         </div>
 
         {/* Hero Title */}
-        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold font-display max-w-4xl leading-[1.15] mb-6 bg-gradient-to-r from-slate-900 via-brand-primary to-sky-500 dark:from-white dark:via-brand-primary-light dark:to-cyan-400 bg-clip-text text-transparent">
-          Transfer Files & Code Snippets Between Home & College Labs.
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold font-display max-w-4xl leading-[1.15] mb-6 bg-gradient-to-r from-slate-900 via-brand-primary to-sky-500 dark:from-white dark:via-brand-primary-light dark:to-cyan-400 bg-clip-text text-transparent">
+          Home to Lab, Instantly.
         </h1>
 
         {/* Hero Subtitle */}
