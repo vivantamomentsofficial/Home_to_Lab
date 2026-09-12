@@ -365,8 +365,7 @@ DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.o
 CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
     FOR INSERT TO authenticated WITH CHECK (
         bucket_id = 'vault' AND
-        (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        name LIKE 'uploads/' || auth.uid()::text || '/%'
     );
 
 -- Allow users to view/select their own uploaded files
@@ -374,8 +373,7 @@ DROP POLICY IF EXISTS "Allow users to view their own storage files" ON storage.o
 CREATE POLICY "Allow users to view their own storage files" ON storage.objects
     FOR SELECT TO authenticated USING (
         bucket_id = 'vault' AND
-        (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        name LIKE 'uploads/' || auth.uid()::text || '/%'
     );
 
 -- Allow users to update files in their own folder (for upsert operations)
@@ -384,13 +382,11 @@ CREATE POLICY "Allow users to update their own storage files" ON storage.objects
     FOR UPDATE TO authenticated 
     USING (
         bucket_id = 'vault' AND
-        (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        name LIKE 'uploads/' || auth.uid()::text || '/%'
     )
     WITH CHECK (
         bucket_id = 'vault' AND
-        (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        name LIKE 'uploads/' || auth.uid()::text || '/%'
     );
 
 -- Allow users to delete files from their own folder
@@ -398,8 +394,7 @@ DROP POLICY IF EXISTS "Allow users to delete their own storage files" ON storage
 CREATE POLICY "Allow users to delete their own storage files" ON storage.objects
     FOR DELETE TO authenticated USING (
         bucket_id = 'vault' AND
-        (storage.foldername(name))[1] = 'uploads' AND
-        (storage.foldername(name))[2] = auth.uid()::text
+        name LIKE 'uploads/' || auth.uid()::text || '/%'
     );
 
 -- ADMIN ACCESS: Allow Admin full bypass on all storage files in the vault bucket
@@ -413,6 +408,9 @@ CREATE POLICY "Admin can manage all storage files" ON storage.objects
         bucket_id = 'vault' AND
         public.is_admin()
     );
+
+-- Flush PostgREST & Storage schema cache
+NOTIFY pgrst, 'reload schema';
 
 
 -- =========================================================================
