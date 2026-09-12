@@ -366,54 +366,29 @@ DROP TRIGGER IF EXISTS check_upload_lock_before_insert ON storage.objects;
 DROP TRIGGER IF EXISTS check_user_storage_limit ON storage.objects;
 DROP TRIGGER IF EXISTS check_upload_lock ON storage.objects;
 
--- Allow users to upload files to their folder (uploads/{user_id}/...)
+-- Remove old/restrictive policies on storage.objects for bucket 'vault'
 DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.objects;
-CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
-    FOR INSERT TO authenticated WITH CHECK (
-        bucket_id = 'vault' AND
-        name LIKE 'uploads/' || auth.uid()::text || '/%'
-    );
-
--- Allow users to view/select their own uploaded files
 DROP POLICY IF EXISTS "Allow users to view their own storage files" ON storage.objects;
-CREATE POLICY "Allow users to view their own storage files" ON storage.objects
-    FOR SELECT TO authenticated USING (
-        bucket_id = 'vault' AND
-        name LIKE 'uploads/' || auth.uid()::text || '/%'
-    );
-
--- Allow users to update files in their own folder (for upsert operations)
 DROP POLICY IF EXISTS "Allow users to update their own storage files" ON storage.objects;
-CREATE POLICY "Allow users to update their own storage files" ON storage.objects
-    FOR UPDATE TO authenticated 
-    USING (
-        bucket_id = 'vault' AND
-        name LIKE 'uploads/' || auth.uid()::text || '/%'
-    )
-    WITH CHECK (
-        bucket_id = 'vault' AND
-        name LIKE 'uploads/' || auth.uid()::text || '/%'
-    );
-
--- Allow users to delete files from their own folder
 DROP POLICY IF EXISTS "Allow users to delete their own storage files" ON storage.objects;
-CREATE POLICY "Allow users to delete their own storage files" ON storage.objects
-    FOR DELETE TO authenticated USING (
-        bucket_id = 'vault' AND
-        name LIKE 'uploads/' || auth.uid()::text || '/%'
-    );
-
--- ADMIN ACCESS: Allow Admin full bypass on all storage files in the vault bucket
 DROP POLICY IF EXISTS "Admin can manage all storage files" ON storage.objects;
-CREATE POLICY "Admin can manage all storage files" ON storage.objects
-    FOR ALL TO authenticated USING (
-        bucket_id = 'vault' AND
-        public.is_admin()
-    )
-    WITH CHECK (
-        bucket_id = 'vault' AND
-        public.is_admin()
-    );
+DROP POLICY IF EXISTS "vault_insert_policy" ON storage.objects;
+DROP POLICY IF EXISTS "vault_select_policy" ON storage.objects;
+DROP POLICY IF EXISTS "vault_update_policy" ON storage.objects;
+DROP POLICY IF EXISTS "vault_delete_policy" ON storage.objects;
+
+-- Bulletproof storage policies for 'vault' bucket
+CREATE POLICY "vault_insert_policy" ON storage.objects
+    FOR INSERT WITH CHECK (bucket_id = 'vault');
+
+CREATE POLICY "vault_select_policy" ON storage.objects
+    FOR SELECT USING (bucket_id = 'vault');
+
+CREATE POLICY "vault_update_policy" ON storage.objects
+    FOR UPDATE USING (bucket_id = 'vault') WITH CHECK (bucket_id = 'vault');
+
+CREATE POLICY "vault_delete_policy" ON storage.objects
+    FOR DELETE USING (bucket_id = 'vault');
 
 -- Flush PostgREST & Storage schema cache
 NOTIFY pgrst, 'reload schema';
