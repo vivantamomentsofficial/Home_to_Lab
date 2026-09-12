@@ -11,6 +11,7 @@ import {
   AlertTriangle, UploadCloud, ShieldCheck, CheckCircle2, Zap, BookOpen, QrCode, Lock, Key,
   Check, Copy, ShieldAlert, Smartphone
 } from 'lucide-react';
+import PublicFooter from '../components/PublicFooter';
 
 const formatBytes = (bytes, decimals = 2) => {
   if (!bytes || bytes === 0) return '0 Bytes';
@@ -1108,33 +1109,7 @@ const Home = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-8 px-4 sm:px-6 lg:px-[8%] bg-white dark:bg-slate-950 border-t border-slate-200/80 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 z-10 text-xs text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-2.5">
-          <div className="bg-brand-primary/10 w-7 h-7 rounded-lg flex items-center justify-center text-brand-primary">
-            <Shield className="w-4 h-4 stroke-[2.5]" />
-          </div>
-          <span className="font-display font-bold text-slate-900 dark:text-slate-300">CloudVault</span>
-          <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-mono text-[10px] font-bold rounded-full ml-1">
-            ● Online
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          <Link to="/about" className="hover:text-brand-primary transition">About Us</Link>
-          <span>•</span>
-          <Link to="/contact" className="hover:text-brand-primary transition">Contact Us</Link>
-          <span>•</span>
-          <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
-          <span>•</span>
-          <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
-          <span>•</span>
-          <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
-        </div>
-
-        <div>
-          &copy; {new Date().getFullYear()} CloudVault. Home to Lab Bridge.
-        </div>
-      </footer>
+      <PublicFooter />
 
       {/* Verified File Download Modal */}
       {showRetrieveModal && retrievedFile && (
