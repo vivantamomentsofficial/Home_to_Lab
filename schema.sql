@@ -360,6 +360,9 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('vault', 'vault', false)
 ON CONFLICT (id) DO NOTHING;
 
+-- Ensure RLS is enabled on storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
 -- Allow users to upload files to their folder (uploads/{user_id}/...)
 DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.objects;
 CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
@@ -378,10 +381,16 @@ CREATE POLICY "Allow users to view their own storage files" ON storage.objects
         (storage.foldername(name))[2] = auth.uid()::text
     );
 
--- Allow users to update files in their own folder
+-- Allow users to update files in their own folder (for upsert operations)
 DROP POLICY IF EXISTS "Allow users to update their own storage files" ON storage.objects;
 CREATE POLICY "Allow users to update their own storage files" ON storage.objects
-    FOR UPDATE TO authenticated USING (
+    FOR UPDATE TO authenticated 
+    USING (
+        bucket_id = 'vault' AND
+        (storage.foldername(name))[1] = 'uploads' AND
+        (storage.foldername(name))[2] = auth.uid()::text
+    )
+    WITH CHECK (
         bucket_id = 'vault' AND
         (storage.foldername(name))[1] = 'uploads' AND
         (storage.foldername(name))[2] = auth.uid()::text
