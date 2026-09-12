@@ -150,28 +150,33 @@ const Home = () => {
     const mailtoUrl = `mailto:aayushparekh26@gmail.com?subject=${encodeURIComponent(`[${cleanTopic}] Feedback from ${cleanName}`)}&body=${encodeURIComponent(`Name: ${cleanName}\nEmail: ${cleanEmail}\nTopic: ${cleanTopic}\n\nMessage:\n${cleanMessage}`)}`;
 
     try {
-      const serviceId = 'service_98oq29o';
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_v0fdm9h';
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+      const response = await fetch('https://formspree.io/f/mnpajoyg', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: cleanName,
+          email: cleanEmail,
+          topic: cleanTopic,
+          message: cleanMessage
+        })
+      });
 
-      const templateParams = {
-        from_name: cleanName,
-        from_email: cleanEmail,
-        topic: cleanTopic,
-        message: cleanMessage,
-      };
-
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
-
-      showToast('Thank you! Your feedback has been sent.', 'success');
-      setFeedbackName('');
-      setFeedbackEmail('');
-      setFeedbackTopic('Feature Request');
-      setFeedbackMessage('');
+      if (response.ok) {
+        showToast('Thank you! Your feedback has been submitted successfully.', 'success');
+        setFeedbackName('');
+        setFeedbackEmail('');
+        setFeedbackTopic('Feature Request');
+        setFeedbackMessage('');
+      } else {
+        throw new Error('Formspree delivery failed');
+      }
     } catch (err) {
-      console.warn('EmailJS fallback to mailto:', err);
+      console.warn('Formspree delivery failed, falling back to mailto client:', err);
       window.location.href = mailtoUrl;
-      showToast('Opened email client to deliver your message to aayushparekh26@gmail.com!', 'success');
+      showToast('Opened email client to send your message to aayushparekh26@gmail.com!', 'info');
     } finally {
       setFeedbackSending(false);
     }

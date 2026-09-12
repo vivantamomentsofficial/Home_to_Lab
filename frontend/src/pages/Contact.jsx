@@ -32,28 +32,33 @@ const Contact = () => {
     const mailtoUrl = `mailto:aayushparekh26@gmail.com?subject=${encodeURIComponent(`[${subject}] Contact Request from ${name}`)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\nMessage:\n${message}`)}`;
 
     try {
-      const serviceId = 'service_98oq29o';
-      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID || 'template_v0fdm9h';
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY || 'YOUR_PUBLIC_KEY';
+      const response = await fetch('https://formspree.io/f/mnpajoyg', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          subject: subject,
+          message: message.trim()
+        })
+      });
 
-      const templateParams = {
-        from_name: name,
-        from_email: email,
-        topic: subject,
-        message: message,
-      };
-
-      await emailjs.send(serviceId, templateId, templateParams, publicKey);
-
-      setSubmitted(true);
-      showToast('Your message has been sent successfully!', 'success');
-      setName('');
-      setEmail('');
-      setMessage('');
+      if (response.ok) {
+        setSubmitted(true);
+        showToast('Your message has been sent successfully!', 'success');
+        setName('');
+        setEmail('');
+        setMessage('');
+      } else {
+        throw new Error('Formspree delivery failed');
+      }
     } catch (err) {
-      console.warn('EmailJS delivery failed, falling back to mailto client:', err);
+      console.warn('Formspree delivery failed, falling back to mailto client:', err);
       window.location.href = mailtoUrl;
-      showToast('Opened email client to send your message to aayushparekh26@gmail.com!', 'success');
+      showToast('Opened email client to send your message to aayushparekh26@gmail.com!', 'info');
       setSubmitted(true);
     } finally {
       setSending(false);
