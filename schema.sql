@@ -360,6 +360,12 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('vault', 'vault', false)
 ON CONFLICT (id) DO NOTHING;
 
+-- Drop any accidentally attached triggers on storage.objects
+DROP TRIGGER IF EXISTS check_storage_before_file_insert ON storage.objects;
+DROP TRIGGER IF EXISTS check_upload_lock_before_insert ON storage.objects;
+DROP TRIGGER IF EXISTS check_user_storage_limit ON storage.objects;
+DROP TRIGGER IF EXISTS check_upload_lock ON storage.objects;
+
 -- Allow users to upload files to their folder (uploads/{user_id}/...)
 DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.objects;
 CREATE POLICY "Allow users to upload files to their folder" ON storage.objects

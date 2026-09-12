@@ -1,4 +1,4 @@
-const CACHE_NAME = 'cloudvault-v6-cache';
+const CACHE_NAME = 'cloudvault-v8-cache';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
