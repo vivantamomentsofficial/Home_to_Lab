@@ -1,11 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import emailjs from '@emailjs/browser';
-import { Shield, ArrowLeft, Mail, Send, MessageSquare, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Send, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 const Contact = () => {
   const { showToast } = useToast();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -55,32 +61,12 @@ const Contact = () => {
   };
 
   return (
-    <div className="min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
-      {/* Background Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
-
-      {/* Header / Nav */}
-      <header className="border-b border-brand-border-light dark:border-brand-border-dark bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-xl text-slate-800 dark:text-white">
-              Cloud<span className="text-brand-primary">Vault</span>
-            </span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-brand-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-        </div>
-      </header>
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <PublicNavbar />
 
       {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12 relative z-10">
-        <div className="glass-card p-8 md:p-12 shadow-2xl space-y-10 animate-scale-up">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">
+        <div className="glass-card p-6 sm:p-12 shadow-2xl space-y-10 animate-scale-up border-slate-200/80 dark:border-slate-800">
           
           {/* Header Title */}
           <div className="border-b border-slate-200 dark:border-slate-800 pb-6">
@@ -234,22 +220,10 @@ const Contact = () => {
 
           </div>
 
-          {/* Footer Navigation */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© 2026 CloudVault (Home to Lab). All rights reserved.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link to="/about" className="hover:text-brand-primary transition">About Us</Link>
-              <span>•</span>
-              <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
-              <span>•</span>
-              <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
-              <span>•</span>
-              <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
-            </div>
-          </div>
-
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 };

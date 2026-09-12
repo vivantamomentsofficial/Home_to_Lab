@@ -1,35 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ArrowLeft, Lock, Mail, ExternalLink } from 'lucide-react';
+import { Lock, Mail, ExternalLink } from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 const PrivacyPolicy = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
-      {/* Background Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <PublicNavbar />
 
-      {/* Header / Nav */}
-      <header className="border-b border-brand-border-light dark:border-brand-border-dark bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-xl text-slate-800 dark:text-white">
-              Cloud<span className="text-brand-primary">Vault</span>
-            </span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-brand-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12 relative z-10">
-        <div className="glass-card p-8 md:p-12 shadow-2xl space-y-8 animate-scale-up">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">
+        <div className="glass-card p-6 sm:p-12 shadow-2xl space-y-8 animate-scale-up border-slate-200/80 dark:border-slate-800">
           
           {/* Title Header */}
           <div className="border-b border-slate-200 dark:border-slate-800 pb-6">
@@ -45,14 +30,14 @@ const PrivacyPolicy = () => {
             </p>
           </div>
 
-          <div className="space-y-6 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <div className="space-y-6 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
             <p>
               Welcome to <strong>CloudVault</strong> (also known as <em>Home to Lab</em>). We are committed to protecting your privacy, securing your personal assignment files, and ensuring transparent data management practices. This Privacy Policy explains how we collect, use, and protect your information when using our website at <code className="text-brand-primary font-mono text-xs bg-brand-primary/10 px-1.5 py-0.5 rounded">https://hometolab.vercel.app</code>.
             </p>
 
             {/* Section 1 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">1</span>
                 Information We Collect
               </h2>
@@ -66,7 +51,7 @@ const PrivacyPolicy = () => {
 
             {/* Section 2 - Google AdSense & Cookies */}
             <section className="space-y-3 p-6 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">2</span>
                 Google AdSense, Cookies &amp; Third-Party Advertising
               </h2>
@@ -82,7 +67,7 @@ const PrivacyPolicy = () => {
 
             {/* Section 3 - GDPR & CCPA Rights */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">3</span>
                 GDPR &amp; CCPA Privacy Rights
               </h2>
@@ -96,7 +81,7 @@ const PrivacyPolicy = () => {
 
             {/* Section 4 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">4</span>
                 Data Security &amp; Encryption
               </h2>
@@ -107,7 +92,7 @@ const PrivacyPolicy = () => {
 
             {/* Section 5 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">5</span>
                 Contact Support
               </h2>
@@ -119,22 +104,10 @@ const PrivacyPolicy = () => {
             </section>
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© 2026 CloudVault (Home to Lab). All rights reserved.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link to="/about" className="hover:text-brand-primary transition">About Us</Link>
-              <span>•</span>
-              <Link to="/contact" className="hover:text-brand-primary transition">Contact Us</Link>
-              <span>•</span>
-              <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
-              <span>•</span>
-              <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
-            </div>
-          </div>
-
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 };

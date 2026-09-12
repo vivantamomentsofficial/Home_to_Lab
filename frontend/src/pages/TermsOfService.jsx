@@ -1,87 +1,89 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ArrowLeft, FileText, Mail } from 'lucide-react';
+import { FileText, Mail, ShieldCheck } from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 const TermsOfService = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
-      {/* Background Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <PublicNavbar />
 
-      {/* Header / Nav */}
-      <header className="border-b border-brand-border-light dark:border-brand-border-dark bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-xl text-slate-800 dark:text-white">
-              Cloud<span className="text-brand-primary">Vault</span>
-            </span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-brand-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12 relative z-10">
-        <div className="glass-card p-8 md:p-12 shadow-2xl space-y-8 animate-scale-up">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">
+        <div className="glass-card p-6 sm:p-12 shadow-2xl space-y-8 animate-scale-up border-slate-200/80 dark:border-slate-800">
           
           {/* Title Header */}
           <div className="border-b border-slate-200 dark:border-slate-800 pb-6">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 text-brand-primary text-xs font-bold uppercase tracking-wider mb-3">
               <FileText className="w-3.5 h-3.5" />
-              Terms of Service
+              Legal Terms
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold font-display text-slate-800 dark:text-white tracking-tight">
               Terms of Service
             </h1>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-              Effective Date: September 4, 2026 | Last Updated: September 4, 2026
+              Effective Date: September 4, 2026 | Last Updated: September 12, 2026
             </p>
           </div>
 
-          <div className="space-y-6 text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+          <div className="space-y-6 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
             <p>
-              By accessing or creating an account on <strong>CloudVault</strong> (Home to Lab), you agree to comply with and be bound by the following Terms of Service.
+              By creating an account or retrieving files on <strong>CloudVault</strong> (Home to Lab), you agree to comply with and be bound by the following Terms of Service.
             </p>
 
             {/* Section 1 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">1</span>
-                Acceptable Use Policy
+                User Account & Responsibilities
               </h2>
-              <p>CloudVault is designed as a student cloud storage bridge. Users agree NOT to upload or share:</p>
-              <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
-                <li>Malware, viruses, ransomware, or malicious scripts.</li>
-                <li>Copyrighted material without authorization.</li>
-                <li>Illegal, fraudulent, or harmful content.</li>
-              </ul>
+              <p>
+                Users are responsible for maintaining the confidentiality of their credentials and for all activities conducted under their account. CloudVault provides temporary storage intended for educational assignments and personal code snippets.
+              </p>
             </section>
 
             {/* Section 2 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">2</span>
-                Storage Quotas & Share Codes
+                Prohibited Conduct & File Rules
               </h2>
-              <p>
-                Default account storage quota is set to 100MB per account. Temporary 6-digit share codes expire automatically after 30 minutes for security purposes.
-              </p>
+              <p>Users must comply with our <Link to="/acceptable-use-policy" className="text-brand-primary font-bold hover:underline">Acceptable Use Policy</Link>. Uploading executable malware (.exe, .bat), copyrighted content, or illegal materials will result in immediate account termination.</p>
             </section>
 
             {/* Section 3 */}
             <section className="space-y-3">
-              <h2 className="text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">3</span>
-                Contact & Support
+                Service Availability & Storage Limits
               </h2>
-              <p>If you have any questions or account issues, please contact support:</p>
+              <p>
+                Default student storage is set to 100MB. Temporary 6-digit access codes expire automatically based on selected duration (1 minute to 7 days). Self-destruct items auto-delete permanently upon download.
+              </p>
+            </section>
+
+            {/* Section 4 */}
+            <section className="space-y-3">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">4</span>
+                Limitation of Liability
+              </h2>
+              <p>
+                CloudVault is provided "as is" without warranty of any kind. While we maintain 99.9% uptime and high security, users are encouraged to maintain local backups of critical files.
+              </p>
+            </section>
+
+            {/* Section 5 */}
+            <section className="space-y-3">
+              <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">5</span>
+                Contact Support
+              </h2>
+              <p>For questions or account inquiries, please contact system administration:</p>
               <div className="flex items-center gap-2 text-brand-primary font-bold">
                 <Mail className="w-4 h-4" />
                 <a href="mailto:aayushparekh26@gmail.com" className="hover:underline">aayushparekh26@gmail.com</a>
@@ -89,20 +91,10 @@ const TermsOfService = () => {
             </section>
           </div>
 
-          {/* Footer */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© 2026 CloudVault (Home to Lab). All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
-              <span>•</span>
-              <Link to="/login" className="hover:text-brand-primary transition">Login</Link>
-              <span>•</span>
-              <Link to="/register" className="hover:text-brand-primary transition">Register</Link>
-            </div>
-          </div>
-
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 };

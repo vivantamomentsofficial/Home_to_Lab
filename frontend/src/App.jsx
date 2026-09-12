@@ -7,6 +7,7 @@ import PWAInstallBanner from './components/PWAInstallBanner';
 import OfflineBanner from './components/OfflineBanner';
 
 import CookieConsentBanner from './components/CookieConsentBanner';
+import AdSenseLoader from './components/AdSenseLoader';
 
 // Lazy load pages for code splitting
 
@@ -21,6 +22,9 @@ const TermsOfService = React.lazy(() => import('./pages/TermsOfService'));
 const About = React.lazy(() => import('./pages/About'));
 const Contact = React.lazy(() => import('./pages/Contact'));
 const Disclaimer = React.lazy(() => import('./pages/Disclaimer'));
+const Blog = React.lazy(() => import('./pages/Blog'));
+const BlogPost = React.lazy(() => import('./pages/BlogPost'));
+const AcceptableUsePolicy = React.lazy(() => import('./pages/AcceptableUsePolicy'));
 
 const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
   <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-white relative overflow-hidden font-sans select-none transition-colors duration-300">
@@ -182,16 +186,21 @@ const AppContent = () => {
 
   return (
     <>
+      <AdSenseLoader />
       <React.Suspense fallback={<LoadingFallback />}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/disclaimer" element={<Disclaimer />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/acceptable-use-policy" element={<AcceptableUsePolicy />} />
+          <Route path="/aup" element={<AcceptableUsePolicy />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route
             path="/dashboard"
             element={

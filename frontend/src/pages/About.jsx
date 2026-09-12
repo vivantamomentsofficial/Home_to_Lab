@@ -1,35 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, ArrowLeft, Info, Server, Cpu, Lock, CheckCircle2, Mail, Users, HardDrive } from 'lucide-react';
+import { Shield, Info, Server, Cpu, Lock, CheckCircle2, Mail, Users, HardDrive } from 'lucide-react';
+import PublicNavbar from '../components/PublicNavbar';
+import PublicFooter from '../components/PublicFooter';
 
 const About = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
-      {/* Dynamic Background Glow Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <PublicNavbar />
 
-      {/* Header / Nav */}
-      <header className="border-b border-brand-border-light dark:border-brand-border-dark bg-white/70 dark:bg-slate-900/60 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-xl text-slate-800 dark:text-white">
-              Cloud<span className="text-brand-primary">Vault</span>
-            </span>
-          </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-brand-primary transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" /> Back to Home
-          </Link>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-12 relative z-10">
-        <div className="glass-card p-8 md:p-12 shadow-2xl space-y-10 animate-scale-up">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">
+        <div className="glass-card p-6 sm:p-12 shadow-2xl space-y-10 animate-scale-up border-slate-200/80 dark:border-slate-800">
           
           {/* Header Title */}
           <div className="border-b border-slate-200 dark:border-slate-800 pb-6">
@@ -72,7 +57,7 @@ const About = () => {
                   Personal Student Vault
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Store up to 100MB of assignment code, zip archives, PDFs, and documentation securely isolated behind Supabase Row Level Security (RLS).
+                  Store up to 100MB of assignment code, zip archives, PDFs, and documentation securely isolated behind database policies.
                 </p>
               </div>
 
@@ -108,22 +93,6 @@ const About = () => {
             </div>
           </section>
 
-          {/* Technology Architecture */}
-          <section className="space-y-4">
-            <h2 className="text-xl font-bold font-display text-slate-800 dark:text-white">
-              Technology Stack
-            </h2>
-            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-              CloudVault is engineered with modern high-performance technologies for speed, security, and responsiveness:
-            </p>
-            <ul className="list-disc list-inside space-y-1.5 text-xs text-slate-500 dark:text-slate-400 pl-2">
-              <li><strong className="text-slate-700 dark:text-slate-200">Frontend:</strong> React 18, Vite, TailwindCSS, Lucide Icons</li>
-              <li><strong className="text-slate-700 dark:text-slate-200">Backend &amp; Database:</strong> Supabase PostgreSQL, Row Level Security (RLS)</li>
-              <li><strong className="text-slate-700 dark:text-slate-200">Security:</strong> SSL/TLS 256-bit encryption, Cloudflare Turnstile CAPTCHA</li>
-              <li><strong className="text-slate-700 dark:text-slate-200">Hosting &amp; Edge Network:</strong> Vercel Global CDN</li>
-            </ul>
-          </section>
-
           {/* Contact Support */}
           <section className="p-6 rounded-2xl bg-brand-primary/5 border border-brand-primary/20 space-y-2">
             <h2 className="text-base font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
@@ -138,22 +107,10 @@ const About = () => {
             </div>
           </section>
 
-          {/* Footer Navigation */}
-          <div className="border-t border-slate-200 dark:border-slate-800 pt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <p>© 2026 CloudVault (Home to Lab). All rights reserved.</p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Link to="/contact" className="hover:text-brand-primary transition">Contact Us</Link>
-              <span>•</span>
-              <Link to="/privacy-policy" className="hover:text-brand-primary transition">Privacy Policy</Link>
-              <span>•</span>
-              <Link to="/terms" className="hover:text-brand-primary transition">Terms of Service</Link>
-              <span>•</span>
-              <Link to="/disclaimer" className="hover:text-brand-primary transition">Disclaimer</Link>
-            </div>
-          </div>
-
         </div>
       </main>
+
+      <PublicFooter />
     </div>
   );
 };
