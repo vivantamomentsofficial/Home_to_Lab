@@ -360,9 +360,6 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('vault', 'vault', false)
 ON CONFLICT (id) DO NOTHING;
 
--- Ensure RLS is enabled on storage.objects
-ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
-
 -- Allow users to upload files to their folder (uploads/{user_id}/...)
 DROP POLICY IF EXISTS "Allow users to upload files to their folder" ON storage.objects;
 CREATE POLICY "Allow users to upload files to their folder" ON storage.objects
