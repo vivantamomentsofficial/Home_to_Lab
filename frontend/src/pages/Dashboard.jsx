@@ -47,7 +47,7 @@ import {
   ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
-  History, UploadCloud, Clipboard, FolderKanban
+  History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles
 } from 'lucide-react';
 
 
@@ -1716,7 +1716,7 @@ const Dashboard = () => {
       }
 
       if (organizedCount > 0) {
-        showToast(`⚡ Successfully auto-organized ${organizedCount} files into folders!`, 'success');
+        showToast(`Successfully auto-organized ${organizedCount} files into folders!`, 'success');
         fetchVaultFiles();
       } else {
         showToast('No matching files found for auto-organization rules.', 'warning');
@@ -2979,10 +2979,10 @@ const Dashboard = () => {
                     onChange={(e) => setUploadTargetFolderId(e.target.value || null)}
                     className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none w-full md:w-64 focus:border-brand-primary font-medium cursor-pointer"
                   >
-                    <option value="">🏠 Vault Root (Uncategorized)</option>
+                    <option value="">Vault Root (Uncategorized)</option>
                     {folders.filter(f => !f.is_deleted).map((folder) => (
                       <option key={folder.id} value={folder.id}>
-                        📁 {folder.name}
+                        {folder.name}
                       </option>
                     ))}
                   </select>
@@ -3164,8 +3164,8 @@ const Dashboard = () => {
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           {note.is_encrypted && (
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded">
-                              🔒 Encrypted
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded inline-flex items-center gap-1">
+                              <Lock className="w-2.5 h-2.5" /> Encrypted
                             </span>
                           )}
                         </div>
@@ -3331,36 +3331,45 @@ const Dashboard = () => {
                     className="input-field pl-9 py-2 text-xs"
                   />
                 </div>
-                <select
-                  value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none"
-                  title="Filter by date range"
-                >
-                  <option value="all">📅 All Time</option>
-                  <option value="today">Today (24h)</option>
-                  <option value="7days">Past 7 Days</option>
-                  <option value="30days">Past 30 Days</option>
-                </select>
-                <select
-                  value={folderScope}
-                  onChange={(e) => setFolderScope(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none"
-                  title="Filter folder scope"
-                >
-                  <option value="current">📁 Current Folder</option>
-                  <option value="all">🌐 All Folders</option>
-                </select>
-                <select
-                  value={sortOption}
-                  onChange={(e) => setSortOption(e.target.value)}
-                  className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="name">Name A-Z</option>
-                  <option value="size">Largest First</option>
-                </select>
+                <div className="relative">
+                  <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                    title="Filter by date range"
+                  >
+                    <option value="all">All Time</option>
+                    <option value="today">Today (24h)</option>
+                    <option value="7days">Past 7 Days</option>
+                    <option value="30days">Past 30 Days</option>
+                  </select>
+                </div>
+                <div className="relative">
+                  <Folder className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                  <select
+                    value={folderScope}
+                    onChange={(e) => setFolderScope(e.target.value)}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                    title="Filter folder scope"
+                  >
+                    <option value="current">Current Folder</option>
+                    <option value="all">All Folders</option>
+                  </select>
+                </div>
+                <div className="relative">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                  <select
+                    value={sortOption}
+                    onChange={(e) => setSortOption(e.target.value)}
+                    className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="name">Name A-Z</option>
+                    <option value="size">Largest First</option>
+                  </select>
+                </div>
                 <button
                   onClick={handleToggleLayout}
                   className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300"
@@ -3517,7 +3526,8 @@ const Dashboard = () => {
                 {getFilteredFiles().length === 0 ? (
                   currentFolderId === null && folders.length > 0 ? (
                     <div className="text-center py-6 px-4 text-slate-500 dark:text-slate-400 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
-                      <span>📁 All your files are safely organized inside the folders above. Click any folder to open it!</span>
+                      <Folder className="w-4 h-4 text-brand-primary shrink-0" />
+                      <span>All your files are safely organized inside the folders above. Click any folder to open it!</span>
                     </div>
                   ) : (
                     <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
@@ -3633,8 +3643,15 @@ const Dashboard = () => {
                             </div>
                           </div>
                           
-                          <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate" title={file.filename}>
-                            {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
+                          <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate flex items-center gap-1.5" title={file.filename}>
+                            {file.filename.startsWith('[encrypted]_') ? (
+                              <>
+                                <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                <span>{file.filename.replace('[encrypted]_', '')}</span>
+                              </>
+                            ) : (
+                              file.filename
+                            )}
                           </h4>
                           <div className="flex items-center justify-between mt-1">
                             <p className="text-[10px] text-slate-400">
@@ -3649,7 +3666,8 @@ const Dashboard = () => {
                                 className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded cursor-pointer hover:underline font-semibold"
                                 title="Open folder"
                               >
-                                📁 {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
+                                <Folder className="w-3 h-3 text-amber-500" />
+                                {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
                               </span>
                             )}
                           </div>
@@ -3685,8 +3703,15 @@ const Dashboard = () => {
                             {getFileIcon(file.filename)}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate" title={file.filename}>
-                              {file.filename.startsWith('[encrypted]_') ? `🔒 ${file.filename.replace('[encrypted]_', '')}` : file.filename}
+                            <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-1.5" title={file.filename}>
+                              {file.filename.startsWith('[encrypted]_') ? (
+                                <>
+                                  <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                                  <span>{file.filename.replace('[encrypted]_', '')}</span>
+                                </>
+                              ) : (
+                                file.filename
+                              )}
                             </h4>
                             <p className="text-[10px] text-slate-400 flex items-center gap-1.5 flex-wrap">
                               <span>{formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}</span>
@@ -3699,7 +3724,8 @@ const Dashboard = () => {
                                   className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded cursor-pointer hover:underline font-semibold"
                                   title="Open folder"
                                 >
-                                  📁 {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
+                                  <Folder className="w-3 h-3 text-amber-500" />
+                                  {folders.find(f => f.id === file.folder_id)?.name || 'Folder'}
                                 </span>
                               )}
                             </p>
@@ -5019,8 +5045,9 @@ const Dashboard = () => {
               <p>
                 The file <span className="font-bold text-amber-600 dark:text-amber-400">"{duplicateModalData.file.name}"</span> has identical content to an existing file:
               </p>
-              <div className="mt-2 font-mono text-[11px] bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg truncate">
-                📄 {duplicateModalData.existingDup.filename} ({formatBytes(duplicateModalData.existingDup.size)})
+              <div className="mt-2 font-mono text-[11px] bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg truncate flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                <span>{duplicateModalData.existingDup.filename} ({formatBytes(duplicateModalData.existingDup.size)})</span>
               </div>
             </div>
 
@@ -5093,7 +5120,7 @@ const Dashboard = () => {
               >
                 <div className="flex items-center gap-2.5">
                   <Shield className="w-4 h-4 text-brand-primary" />
-                  <span className="text-xs font-semibold">🏠 Vault Root (Uncategorized)</span>
+                  <span className="text-xs font-semibold">Vault Root (Uncategorized)</span>
                 </div>
                 {selectedDestinationFolderId === null && <Check className="w-4 h-4 text-brand-primary" />}
               </div>
@@ -5111,7 +5138,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center gap-2.5">
                     <Folder className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs font-semibold">📁 {folder.name}</span>
+                    <span className="text-xs font-semibold">{folder.name}</span>
                   </div>
                   {selectedDestinationFolderId === folder.id && <Check className="w-4 h-4 text-amber-500" />}
                 </div>

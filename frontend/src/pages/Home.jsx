@@ -7,7 +7,7 @@ import { useToast } from '../context/ToastContext';
 import {
   Shield, Sparkles, ArrowRight, DownloadCloud, Download, Plus, Folder, ClipboardCopy, LogOut,
   FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Sun, Moon, Menu,
-  AlertTriangle
+  AlertTriangle, Users, GraduationCap, UploadCloud, ShieldCheck
 } from 'lucide-react';
 
 const formatBytes = (bytes, decimals = 2) => {
@@ -543,21 +543,21 @@ const Home = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
             <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-users text-brand-primary text-xl"></i>
+                <Users className="w-6 h-6 text-brand-primary" />
               </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Daily Visitors</div>
             </div>
             <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-graduation-cap text-brand-primary text-xl"></i>
+                <GraduationCap className="w-6 h-6 text-brand-primary" />
               </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Registered Students</div>
             </div>
             <div className="glass-card p-6 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-cloud-arrow-up text-brand-primary text-xl"></i>
+                <UploadCloud className="w-6 h-6 text-brand-primary" />
               </div>
               <div className="text-3xl font-black font-display text-brand-primary">25+</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">File Transfers</div>
@@ -566,7 +566,7 @@ const Home = () => {
           <div className="text-sm font-semibold text-slate-600 dark:text-slate-400 flex items-center gap-1.5 mt-2">
             <span>Share CloudVault and</span>
             <button onClick={() => scrollToSection('developer-feedback')} className="text-brand-primary hover:underline flex items-center gap-1.5">
-              Add Your Friends Now! <i className="fa-solid fa-paper-plane text-xs"></i>
+              Add Your Friends Now! <Send className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -583,7 +583,7 @@ const Home = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
           <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
-              <i className="fa-solid fa-cloud-arrow-up text-xl"></i>
+              <UploadCloud className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Drag & Drop Upload</h3>
@@ -592,7 +592,7 @@ const Home = () => {
           </div>
           <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
-              <i className="fa-solid fa-clipboard text-xl"></i>
+              <Clipboard className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Instant Clipboard Sync</h3>
@@ -601,7 +601,7 @@ const Home = () => {
           </div>
           <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
-              <i className="fa-solid fa-shield-halved text-xl"></i>
+              <ShieldCheck className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Security Built-In</h3>
@@ -610,7 +610,7 @@ const Home = () => {
           </div>
           <div className="glass-card p-6 flex gap-4 hover:border-brand-primary/30 transition-all">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center">
-              <i className="fa-solid fa-right-from-bracket text-xl"></i>
+              <LogOut className="w-6 h-6" />
             </div>
             <div>
               <h3 className="font-bold text-slate-800 dark:text-white text-base">Lab Session Self-Destruct</h3>

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
+import { ArrowLeft, Sun, Moon, Shield, User, GraduationCap, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 
 const Register = () => {
   const { register, user } = useAuth();
@@ -144,7 +145,7 @@ const Register = () => {
           to="/"
           className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-xs"
         >
-          <i className="fa-solid fa-arrow-left text-xs"></i> Back to Home
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
         <button
           onClick={toggleTheme}
@@ -153,9 +154,9 @@ const Register = () => {
           aria-label="Toggle color theme"
         >
           {theme === 'dark' ? (
-            <i className="fa-solid fa-sun text-amber-400"></i>
+            <Sun className="w-4.5 h-4.5 text-amber-400" />
           ) : (
-            <i className="fa-solid fa-moon text-slate-600"></i>
+            <Moon className="w-4.5 h-4.5 text-slate-600" />
           )}
         </button>
       </div>
@@ -165,7 +166,7 @@ const Register = () => {
         <div className="flex justify-center mb-6">
           <Link to="/" className="flex items-center gap-2.5 group">
             <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
-              <i className="fa-solid fa-shield-halved text-xl text-brand-primary"></i>
+              <Shield className="w-6 h-6 text-brand-primary stroke-[2.5]" />
             </div>
             <span className="font-display font-black text-2xl text-slate-900 dark:text-white tracking-tight">
               Cloud<span className="text-brand-primary">Vault</span>
@@ -184,7 +185,7 @@ const Register = () => {
           <div>
             <label className="label-title">FULL NAME</label>
             <div className="relative">
-              <i className="fa-solid fa-user text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
+              <User className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 placeholder="John Doe"
@@ -199,7 +200,7 @@ const Register = () => {
           <div>
             <label className="label-title">COLLEGE / SCHOOL</label>
             <div className="relative">
-              <i className="fa-solid fa-graduation-cap text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
+              <GraduationCap className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 placeholder="State College University"
@@ -214,7 +215,7 @@ const Register = () => {
           <div>
             <label className="label-title">EMAIL ADDRESS</label>
             <div className="relative">
-              <i className="fa-solid fa-envelope text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
+              <Mail className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type="email"
                 placeholder="student@college.edu"
@@ -229,7 +230,7 @@ const Register = () => {
           <div>
             <label className="label-title">PASSWORD</label>
             <div className="relative">
-              <i className="fa-solid fa-lock text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
+              <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Minimum 6 characters"
@@ -244,7 +245,7 @@ const Register = () => {
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-3 top-2.5 cursor-pointer"
                 aria-label="Toggle password visibility"
               >
-                <i className={`fa-solid ${showPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`}></i>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -252,7 +253,7 @@ const Register = () => {
           <div>
             <label className="label-title">CONFIRM PASSWORD</label>
             <div className="relative">
-              <i className="fa-solid fa-lock text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5 text-xs"></i>
+              <Lock className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3.5 top-3.5" />
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="Re-enter password"
@@ -267,7 +268,7 @@ const Register = () => {
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 absolute right-3 top-2.5 cursor-pointer"
                 aria-label="Toggle confirm password visibility"
               >
-                <i className={`fa-solid ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'} text-xs`}></i>
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
