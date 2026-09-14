@@ -227,3 +227,22 @@ svg {
   animation: glowRing 1.5s ease-in-out infinite;
 }
 
+/* Full Screen / Modal Earthquake Shake Animation */
+@keyframes screenEarthquake {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  10% { transform: translate3d(-10px, 8px, 0) rotate(-1.5deg); }
+  20% { transform: translate3d(12px, -8px, 0) rotate(1.5deg); }
+  30% { transform: translate3d(-14px, -6px, 0) rotate(-2deg); }
+  40% { transform: translate3d(14px, 6px, 0) rotate(2deg); }
+  50% { transform: translate3d(-12px, 8px, 0) rotate(-1.5deg); }
+  60% { transform: translate3d(10px, -6px, 0) rotate(1deg); }
+  70% { transform: translate3d(-8px, 5px, 0) rotate(-1deg); }
+  80% { transform: translate3d(6px, -4px, 0) rotate(0.5deg); }
+  90% { transform: translate3d(-3px, 2px, 0) rotate(-0.5deg); }
+}
+
+.animate-screen-shake {
+  animation: screenEarthquake 0.3s ease-in-out infinite;
+}
+
+
