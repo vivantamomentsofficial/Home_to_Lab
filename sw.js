@@ -1,9 +1,9 @@
 self.options = {
-    "domain": "5gvci.com",
-    "zoneId": 11825701
+    "domain": "3nbf4.com",
+    "zoneId": 11825724
 };
 self.lary = "";
-importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw');
+importScripts('https://3nbf4.com/act/files/service-worker.min.js?r=sw');
 
 const CACHE_NAME = 'cloudvault-v8-cache';
 const STATIC_ASSETS = [
@@ -51,7 +51,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // Skip external APIs, Monetag, AdSense & CDN fonts - never cache these in SW fetch interceptor
-  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', 'quge5.com', 'monetag.com'];
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', '3nbf4.com', 'quge5.com', 'monetag.com'];
   if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(
