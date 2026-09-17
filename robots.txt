@@ -6,6 +6,7 @@ Allow: /contact
 Allow: /privacy-policy
 Allow: /terms
 Allow: /disclaimer
+Allow: /blog
 Allow: /login
 Allow: /register
 Disallow: /dashboard
@@ -19,4 +20,4 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
-Sitemap: https://hometolab.vercel.app/sitemap.xml
+Sitemap: https://www.hometolab.in/sitemap.xml

@@ -59,16 +59,6 @@ const PublicNavbar = () => {
             Contact
           </Link>
 
-          {/* Theme Switcher */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer"
-            title="Toggle Light/Dark Theme"
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-600" />}
-          </button>
-          
           {user ? (
             <Link to="/dashboard" className="btn-primary py-2 px-5 text-sm font-bold shadow-md hover:shadow-brand-primary/20">
               Dashboard
@@ -87,14 +77,6 @@ const PublicNavbar = () => {
 
         {/* Mobile Header Buttons */}
         <div className="flex md:hidden items-center gap-2">
-          <button
-            onClick={toggleTheme}
-            className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer"
-            title="Toggle Light/Dark Theme"
-            aria-label="Toggle Theme"
-          >
-            {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-600" />}
-          </button>
           <button
             onClick={() => setIsDrawerOpen(true)}
             className="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-700 dark:text-slate-300 cursor-pointer"

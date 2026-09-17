@@ -119,18 +119,6 @@ const AdminLogin = () => {
         >
           <i className="fa-solid fa-arrow-left text-xs"></i> Back to User Login
         </Link>
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary-light transition-all shadow-xs cursor-pointer"
-          title="Toggle color theme"
-          aria-label="Toggle color theme"
-        >
-          {theme === 'dark' ? (
-            <i className="fa-solid fa-sun text-amber-400"></i>
-          ) : (
-            <i className="fa-solid fa-moon text-slate-600"></i>
-          )}
-        </button>
       </div>
 
       <div className="glass-card max-w-sm w-full p-8 shadow-2xl relative z-10 animate-scale-up border-red-500/25 dark:border-red-500/40 bg-white/90 dark:bg-slate-900/85">

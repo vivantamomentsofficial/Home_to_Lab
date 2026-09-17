@@ -8,7 +8,6 @@ import OfflineBanner from './components/OfflineBanner';
 
 import CookieConsentBanner from './components/CookieConsentBanner';
 import AdSenseLoader from './components/AdSenseLoader';
-import AwsMigrationModal from './components/AwsMigrationModal';
 
 // Lazy load pages for code splitting
 
@@ -225,7 +224,6 @@ const AppContent = () => {
       <PWAInstallBanner />
       <OfflineBanner />
       <CookieConsentBanner />
-      <AwsMigrationModal />
     </>
   );
 };

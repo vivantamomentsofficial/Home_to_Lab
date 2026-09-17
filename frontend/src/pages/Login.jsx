@@ -300,18 +300,6 @@ const Login = () => {
         >
           <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
         </Link>
-        <button
-          onClick={toggleTheme}
-          className="p-2.5 rounded-xl bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border border-slate-200/60 dark:border-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-brand-primary-light transition-all shadow-xs cursor-pointer"
-          title="Toggle color theme"
-          aria-label="Toggle color theme"
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-4.5 h-4.5 text-amber-400" />
-          ) : (
-            <Moon className="w-4.5 h-4.5 text-slate-600" />
-          )}
-        </button>
       </div>
       <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up border-brand-border-light dark:border-brand-border-dark bg-white/90 dark:bg-slate-900/85">
         {/* Header Icon */}

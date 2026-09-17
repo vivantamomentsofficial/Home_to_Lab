@@ -33,7 +33,7 @@ const Disclaimer = () => {
 
           <div className="space-y-6 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
             <p>
-              The information and services provided on <strong>CloudVault</strong> (available at <code className="text-brand-primary font-mono text-xs bg-brand-primary/10 px-1.5 py-0.5 rounded">https://hometolab.vercel.app</code>) are for general educational, personal student file storage, and transient clipboard synchronization purposes only.
+              The information and services provided on <strong>CloudVault</strong> (available at <code className="text-brand-primary font-mono text-xs bg-brand-primary/10 px-1.5 py-0.5 rounded">https://hometolab.in</code>) are for general educational, personal student file storage, and transient clipboard synchronization purposes only.
             </p>
 
             {/* Section 1 */}

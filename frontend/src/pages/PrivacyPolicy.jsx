@@ -32,7 +32,7 @@ const PrivacyPolicy = () => {
 
           <div className="space-y-6 text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed font-sans">
             <p>
-              Welcome to <strong>CloudVault</strong> (also known as <em>Home to Lab</em>). We are committed to protecting your privacy, securing your personal assignment files, and ensuring transparent data management practices. This Privacy Policy explains how we collect, use, and protect your information when using our website at <code className="text-brand-primary font-mono text-xs bg-brand-primary/10 px-1.5 py-0.5 rounded">https://hometolab.vercel.app</code>.
+              Welcome to <strong>CloudVault</strong> (also known as <em>Home to Lab</em>). We are committed to protecting your privacy, securing your personal assignment files, and ensuring transparent data management practices. This Privacy Policy explains how we collect, use, and protect your information when using our website at <code className="text-brand-primary font-mono text-xs bg-brand-primary/10 px-1.5 py-0.5 rounded">https://hometolab.in</code>.
             </p>
 
             {/* Section 1 */}
