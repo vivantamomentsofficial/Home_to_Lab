@@ -50,8 +50,8 @@ self.addEventListener('fetch', (e) => {
 
   const url = new URL(e.request.url);
 
-  // Skip external APIs, Monetag, AdSense & CDN fonts - never cache these in SW fetch interceptor
-  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', '3nbf4.com', 'quge5.com', 'monetag.com'];
+  // Skip external APIs, Monetag, Adsterra, AdSense & CDN fonts - never cache these in SW fetch interceptor
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', '3nbf4.com', 'quge5.com', 'monetag.com', 'profitableratecpmnetwork.com'];
   if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(
