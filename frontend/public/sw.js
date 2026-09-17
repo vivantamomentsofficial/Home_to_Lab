@@ -1,6 +1,6 @@
 self.options = {
     "domain": "5gvci.com",
-    "zoneId": 11825630
+    "zoneId": 11825701
 };
 self.lary = "";
 importScripts('https://5gvci.com/act/files/service-worker.min.js?r=sw');
@@ -51,7 +51,7 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
 
   // Skip external APIs, Monetag, AdSense & CDN fonts - never cache these in SW fetch interceptor
-  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', 'monetag.com'];
+  const skipOrigins = ['supabase.co', 'onrender.com', 'cloudflare.com', 'emailjs.com', 'ipify.org', 'googleapis.com', 'gstatic.com', 'cdnfonts.com', 'googlesyndication.com', 'doubleclick.net', 'googleadservices.com', 'google.com', 'adtrafficquality.google', 'ampproject.org', '5gvci.com', 'quge5.com', 'monetag.com'];
   if (skipOrigins.some((o) => url.hostname.includes(o))) return;
 
   e.respondWith(
