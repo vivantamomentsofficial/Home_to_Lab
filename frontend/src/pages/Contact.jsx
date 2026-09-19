@@ -5,6 +5,7 @@ import { Mail, Send, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const Contact = () => {
   const { showToast } = useToast();
@@ -22,8 +23,8 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name || !email || !message) {
-      showToast('Please fill out all required fields.', 'warning');
+    if (!name.trim() || !email.trim() || !message.trim()) {
+      showToast('Please fill out all required fields.', 'error');
       return;
     }
 
@@ -59,7 +60,6 @@ const Contact = () => {
       console.warn('Formspree delivery failed, falling back to mailto client:', err);
       window.location.href = mailtoUrl;
       showToast('Opened email client to send your message to aayushparekh26@gmail.com!', 'info');
-      setSubmitted(true);
     } finally {
       setSending(false);
     }
@@ -67,6 +67,12 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title="Contact Us - CloudVault (Home to Lab)" 
+        description="Get in touch with CloudVault (hometolab.in) team for support, feature requests, or inquiries." 
+        keywords="contact hometolab, cloudvault contact, home to lab support" 
+        canonical="https://www.hometolab.in/contact" 
+      />
       <PublicNavbar />
 
       {/* Main Content */}

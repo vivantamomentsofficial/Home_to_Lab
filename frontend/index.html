@@ -59,15 +59,16 @@
     <!-- Cloudflare Turnstile CAPTCHA SDK -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 
-    <!-- Monetag Multitag / Epic Tag Snippet -->
-    <script src="https://5gvci.com/act/files/tag.min.js?z=11825724" data-cfasync="false" async></script>
-
-    <!-- Adsterra Monetization Scripts -->
-    <script src="https://pl31389693.profitableratecpmnetwork.com/25/58/7f/25587fc728f8ad8ef2bb1ab39b1e93f8.js"></script>
-    <script src="https://pl31389694.profitableratecpmnetwork.com/a1/54/79/a15479cf56c133635c1183a8ca77b50a.js"></script>
 
     <!-- FontAwesome 6 Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Domain Canonical Auto-Redirect -->
+    <script>
+      if (window.location.hostname === 'hometolab.vercel.app' || window.location.hostname === 'hometolab.in') {
+        window.location.replace('https://www.hometolab.in' + window.location.pathname + window.location.search + window.location.hash);
+      }
+    </script>
 
     <!-- Schema.org Structured Data (JSON-LD) for SEO -->
     <script type="application/ld+json">
@@ -78,8 +79,9 @@
           "@type": "WebSite",
           "@id": "https://www.hometolab.in/#website",
           "url": "https://www.hometolab.in/",
-          "name": "CloudVault",
-          "description": "Student Personal Cloud & Online Clipboard Bridge",
+          "name": "CloudVault - Home to Lab",
+          "alternateName": ["hometolab", "Home to Lab", "hometolab.in", "CloudVault"],
+          "description": "Student Personal Cloud Storage & Online Clipboard Bridge between home and college computer lab terminals.",
           "publisher": {
             "@id": "https://www.hometolab.in/#organization"
           }
@@ -90,12 +92,16 @@
           "name": "CloudVault - Home to Lab",
           "url": "https://www.hometolab.in/",
           "logo": "https://www.hometolab.in/assets/favicon.svg",
+          "sameAs": [
+            "https://www.hometolab.in",
+            "https://hometolab.in"
+          ],
           "email": "aayushparekh26@gmail.com"
         },
         {
           "@type": "SoftwareApplication",
           "@id": "https://www.hometolab.in/#application",
-          "name": "CloudVault",
+          "name": "CloudVault (Home to Lab)",
           "operatingSystem": "All",
           "applicationCategory": "UtilitiesApplication",
           "description": "Transient student personal cloud storage and online clipboard bridge between home and college computer lab terminals.",

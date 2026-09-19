@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertTriangle, ExternalLink } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const Disclaimer = () => {
   useEffect(() => {
@@ -11,6 +12,12 @@ const Disclaimer = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title="Disclaimer - CloudVault (Home to Lab)" 
+        description="Disclaimer for CloudVault (hometolab.in) - regarding temporary file storage, liability, and third-party services." 
+        keywords="hometolab disclaimer, cloudvault disclaimer" 
+        canonical="https://www.hometolab.in/disclaimer" 
+      />
       <PublicNavbar />
 
       {/* Main Content */}

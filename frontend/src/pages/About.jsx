@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Shield, Info, Server, Cpu, Lock, CheckCircle2, Mail, Users, HardDrive } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const About = () => {
   useEffect(() => {
@@ -11,6 +12,12 @@ const About = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title="About Us - CloudVault (Home to Lab)" 
+        description="Learn about CloudVault (hometolab.in) - the student personal cloud storage and online clipboard bridge designed for seamless computer lab file sync." 
+        keywords="about hometolab, cloudvault about, home to lab platform, student cloud mission" 
+        canonical="https://www.hometolab.in/about" 
+      />
       <PublicNavbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">

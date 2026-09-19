@@ -4,6 +4,7 @@ import { BLOG_POSTS } from '../data/blogData';
 import { ArrowLeft, Clock, Calendar, User, Share2, BookOpen, Shield, CheckCircle2, ArrowRight } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const BlogPost = () => {
   const { slug } = useParams();
@@ -19,13 +20,10 @@ const BlogPost = () => {
     return (
       <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100">
         <PublicNavbar />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <BookOpen className="w-12 h-12 text-brand-primary mb-3" />
-          <h1 className="text-2xl font-bold font-display text-slate-900 dark:text-white mb-2">Article Not Found</h1>
-          <p className="text-xs text-slate-500 mb-6">The requested article slug does not exist.</p>
-          <Link to="/blog" className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> Back to Blog
-          </Link>
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center pt-32">
+          <h1 className="text-3xl font-bold text-slate-800 dark:text-white mb-4">Post Not Found</h1>
+          <p className="text-slate-500 dark:text-slate-400 mb-6">The blog article you are looking for does not exist.</p>
+          <Link to="/blog" className="px-6 py-2.5 rounded-xl bg-brand-primary text-white font-semibold">Back to Blog</Link>
         </div>
         <PublicFooter />
       </div>
@@ -36,7 +34,13 @@ const BlogPost = () => {
   const relatedPosts = BLOG_POSTS.filter(p => p.slug !== slug).slice(0, 2);
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title={`${post.title} | CloudVault (Home to Lab)`} 
+        description={post.summary || post.subtitle} 
+        keywords={`hometolab, cloudvault, ${post.category}, ${post.title}`} 
+        canonical={`https://www.hometolab.in/blog/${post.slug}`} 
+      />
       
       {/* Navbar */}
       <PublicNavbar />

@@ -203,5 +203,96 @@ export const BLOG_POSTS = [
 
       Taking a few seconds to verify your digital footprint after every lab session ensures your academic work remains strictly your own.
     `
+  },
+  {
+    id: '5',
+    slug: 'cloud-security-best-practices-students-developers',
+    title: 'Cloud Security Best Practices for Students & Developers',
+    subtitle: 'Understanding encryption in transit, at rest, and zero-knowledge data isolation for cloud file transfers.',
+    category: 'Cybersecurity',
+    date: 'September 15, 2026',
+    readTime: '6 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Cloud security is no longer just for enterprise DevOps teams. Discover how modern transport encryption, Row Level Security (RLS), and ephemeral cloud bridges keep student code and documents secure.',
+    content: `
+      ## The Importance of Data Security in Modern Student Workflows
+
+      As cloud computing becomes the backbone of software engineering and academic project submission, understanding basic cloud security principles is vital for every tech student. When you transfer files or store snippets online, your data passes across multiple networks and servers.
+
+      Without proper encryption and authorization rules, confidential project data, proprietary assignment code, or personal notes can be exposed to unauthorized sniffing or interception.
+
+      ---
+
+      ## Core Layers of Cloud Security
+
+      ### 1. Encryption in Transit (SSL/TLS 1.3)
+      All data moving between your local computer browser and the cloud server must be encrypted using Secure Sockets Layer / Transport Layer Security (SSL/TLS). This prevents third parties on public Wi-Fi networks (like campus or coffee shop networks) from inspecting or modifying your web traffic.
+
+      ### 2. Encryption at Rest (AES-256)
+      When files and notes are stored on database servers or cloud storage buckets, they must be encrypted using advanced encryption standards (AES-256). Even if storage media is physically accessed, unencrypted raw data cannot be read without cryptographic keys.
+
+      ### 3. Database Row Level Security (RLS)
+      In multi-tenant applications, Row Level Security ensures that database queries are constrained by user identity. User A can never query or mutate User B's files, even if they guess file IDs or query parameters.
+
+      ---
+
+      ## How CloudVault Implements End-to-End Safety
+
+      - **Collision-Free 6-Digit Codes**: Access codes expire automatically and use cryptographic entropy to prevent brute-force guessing.
+      - **Client-Side AES Encryption**: Sensitive text notes can be encrypted with a local passphrase before being transmitted to the cloud.
+      - **Automatic Storage Expiry**: Temporary files are purged automatically from cloud storage after expiry, leaving zero residual footprint.
+
+      By leveraging robust architectural principles, CloudVault provides students with a secure environment to transfer work between home laptops and college workstations.
+    `
+  },
+  {
+    id: '6',
+    slug: 'how-hometolab-accelerates-college-computer-lab-workflow',
+    title: 'How Home to Lab Accelerates College Computer Lab Workflows',
+    subtitle: 'Streamlining assignments, code execution, and lab report printing without login friction.',
+    category: 'Guides & Tutorials',
+    date: 'September 18, 2026',
+    readTime: '5 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'College computer lab sessions have tight time limits. Learn how CloudVault eliminates 5-minute login rituals and USB setup headaches so students can focus on completing practicals.',
+    content: `
+      ## Maximizing Productivity During Limited Lab Hours
+
+      Most university computer lab practicals last between 1 to 2 hours. During this short window, students must boot up shared lab terminals, open programming IDEs, write or test code, generate output screenshots, and print or upload assignment reports.
+
+      Spending 10 to 15 minutes at the start of every session just logging into personal emails, two-factor authentication prompts, or mounting buggy flash drives wastes valuable time.
+
+      ---
+
+      ## The "Home to Lab" Workflow Transformation
+
+      ### Step 1: Prepare at Home
+      Beforeheading to college, upload your starter code templates, datasets, or reference PDFs onto **CloudVault** (\`hometolab.in\`).
+
+      ### Step 2: One-Click Fetch at Lab
+      When seated at your assigned computer lab workstation:
+      1. Open \`https://www.hometolab.in\` in any browser.
+      2. Type your 6-digit access code into the quick retrieval box.
+      3. Click Download.
+
+      Your file is immediately ready on your lab desktop within 3 seconds, without entering passwords or confirming 2FA push notifications on shared screens.
+
+      ---
+
+      ## Key Features Built for Students
+
+      - **Code Snippet Bridge**: Copy text or source code directly from your phone or laptop and paste it into the lab terminal without creating intermediate files.
+      - **QR Code Instant Fetch**: Scan the generated QR code with your mobile camera for rapid code lookup.
+      - **Burn-After-Reading**: Ensure temporary files delete immediately after download so your work stays private.
+
+      ---
+
+      ## Conclusion
+
+      By simplifying how files move across campus devices, CloudVault (Home to Lab) helps students save time, protect their credentials, and perform at their best during college practicals.
+    `
   }
 ];
+

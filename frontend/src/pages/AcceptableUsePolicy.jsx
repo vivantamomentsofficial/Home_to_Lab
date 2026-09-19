@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Shield, AlertTriangle, CheckCircle2, XCircle, Mail } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const AcceptableUsePolicy = () => {
   useEffect(() => {
@@ -10,6 +11,12 @@ const AcceptableUsePolicy = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
+      <SEO 
+        title="Acceptable Use Policy - CloudVault (Home to Lab)" 
+        description="Acceptable Use Policy for CloudVault (hometolab.in) - outlining guidelines for acceptable content, security, and usage." 
+        keywords="hometolab acceptable use policy, cloudvault policy" 
+        canonical="https://www.hometolab.in/acceptable-use" 
+      />
       <PublicNavbar />
 
       <header className="pt-28 sm:pt-36 pb-10 px-4 sm:px-6 lg:px-[8%] text-center relative overflow-hidden">

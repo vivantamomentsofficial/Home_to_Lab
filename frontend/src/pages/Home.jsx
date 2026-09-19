@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import PublicFooter from '../components/PublicFooter';
 
+import SEO from '../components/SEO';
+
 const formatBytes = (bytes, decimals = 2) => {
   if (!bytes || bytes === 0) return '0 Bytes';
   const k = 1024;
@@ -33,6 +35,9 @@ const Home = () => {
 
   // Share Code Retrieval State
   const [shareCode, setShareCode] = useState('');
+
+  // ... rest of state
+
   const [loading, setLoading] = useState(false);
   const [retrievedFile, setRetrievedFile] = useState(null);
   const [showRetrieveModal, setShowRetrieveModal] = useState(false);
@@ -216,6 +221,12 @@ const Home = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
+      <SEO 
+        title="CloudVault (Home to Lab) - Student Personal Cloud & Online Clipboard" 
+        description="CloudVault (hometolab.in) is a student personal cloud storage and online clipboard bridge. Transfer project files and code notes between home and college computer lab terminals using temporary 6-digit sharing codes." 
+        keywords="hometolab, home to lab, hometolab.in, cloudvault, student cloud storage, online clipboard, temporary file sharing, college computer lab file transfer" 
+        canonical="https://www.hometolab.in/" 
+      />
       
       {/* Dynamic 60fps GPU Floating Background Orbs */}
       <div className="glow-orb glow-orb-primary"></div>

@@ -4,6 +4,7 @@ import { BLOG_POSTS } from '../data/blogData';
 import { BookOpen, Search, ArrowRight, Shield, Clock, Calendar, User, Tag, Sparkles } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const Blog = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,7 +21,13 @@ const Blog = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title="CloudVault Blog - Student Productivity, Lab Hacks & Tech Guides | Home to Lab" 
+        description="Explore articles, tutorials, and security guides for students transferring files between home and college computer lab terminals." 
+        keywords="cloudvault blog, hometolab blog, student tech guides, college lab hacks, file transfer tips" 
+        canonical="https://www.hometolab.in/blog" 
+      />
       
       {/* Navbar */}
       <PublicNavbar />

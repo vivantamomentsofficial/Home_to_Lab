@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { FileText, Mail, ShieldCheck } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
+import SEO from '../components/SEO';
 
 const TermsOfService = () => {
   useEffect(() => {
@@ -11,6 +12,12 @@ const TermsOfService = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
+      <SEO 
+        title="Terms of Service - CloudVault (Home to Lab)" 
+        description="Terms of Service for CloudVault (hometolab.in) - detailing conditions of use, user responsibilities, and service availability." 
+        keywords="hometolab terms, cloudvault terms of service, terms of use" 
+        canonical="https://www.hometolab.in/terms" 
+      />
       <PublicNavbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12 pt-28 sm:pt-36 relative z-10 flex-1 w-full">
