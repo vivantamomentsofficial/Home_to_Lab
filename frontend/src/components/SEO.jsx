@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SEO = ({ title, description, canonical, keywords }) => {
+const SEO = ({ title, description, canonical, keywords, jsonLd }) => {
   useEffect(() => {
     // Document Title
     if (title) {
@@ -55,7 +55,19 @@ const SEO = ({ title, description, canonical, keywords }) => {
     let twitterUrl = document.querySelector('meta[name="twitter:url"]');
     if (twitterUrl) twitterUrl.content = currentUrl;
 
-  }, [title, description, canonical, keywords]);
+    // JSON-LD Structured Data
+    if (jsonLd) {
+      let scriptTag = document.querySelector('script[data-seo-jsonld="true"]');
+      if (!scriptTag) {
+        scriptTag = document.createElement('script');
+        scriptTag.type = 'application/ld+json';
+        scriptTag.setAttribute('data-seo-jsonld', 'true');
+        document.head.appendChild(scriptTag);
+      }
+      scriptTag.textContent = JSON.stringify(jsonLd);
+    }
+
+  }, [title, description, canonical, keywords, jsonLd]);
 
   return null;
 };

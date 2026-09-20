@@ -293,6 +293,528 @@ export const BLOG_POSTS = [
 
       By simplifying how files move across campus devices, CloudVault (Home to Lab) helps students save time, protect their credentials, and perform at their best during college practicals.
     `
+  },
+  {
+    id: '7',
+    slug: 'how-to-send-files-to-college-lab-computer-without-usb-drive',
+    title: 'How to Send Files to a College Lab Computer Without a USB Drive',
+    subtitle: 'A step-by-step practical guide for students to transfer assignment code, PDFs, and lab manuals safely across campus workstations.',
+    category: 'Guides & Tutorials',
+    date: 'September 20, 2026',
+    readTime: '7 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Stuck without a USB drive in your college computer lab? Learn 4 safe methods to transfer assignment files and code scripts to public lab terminals without risking your personal accounts or malware infection.',
+    content: `
+      ## The College Computer Lab Transfer Dilemma
+
+      Every computer science and engineering student has experienced this frustrating scenario: you arrive at the college computer lab for a practical session or exam, sit down at your assigned workstation, and realize you forgot your USB flash drive at home—or the lab terminal has disabled USB ports to prevent malware infections.
+
+      You need to get your starter code, reference PDF manuals, or project files onto the lab computer quickly. In the past, students resorted to emailing files to themselves or logging into personal cloud drives on shared terminals. However, both methods leave active browser sessions and personal credentials vulnerable to keyloggers or subsequent users.
+
+      ---
+
+      ## Method 1: No-Login Quick Send via 6-Digit Access Codes (Recommended)
+
+      The fastest and safest way to move files from your personal laptop or smartphone to a public lab computer is by using a transient, no-login file transfer service like **CloudVault Quick Send** (/blog/send-files-without-sign-up-5-methods-compared).
+
+      ### How Quick Send Works:
+      1. **Open CloudVault on Your Phone or Laptop**: Visit \`https://www.hometolab.in\` and select the **Send (No Login)** tab.
+      2. **Select Your File or Text**: Upload any document, PDF, ZIP archive, or code file up to 25 MB (or paste code snippets up to 100 KB).
+      3. **Configure Expiration**: Choose how long the code remains active—10 minutes, 30 minutes (default), 1 hour, 6 hours, or 24 hours. Optionally turn on **Single-Use Code** for instant expiration after first retrieval.
+      4. **Get Your 6-Digit Code**: The system generates a cryptographically secure 6-character access code (e.g., \`K7M2P9\`).
+      5. **Retrieve on Lab Computer**: On the shared lab terminal, open \`https://www.hometolab.in\`, type the code into the **Receive Code** box, and download your work in seconds.
+
+      Because Quick Send requires no login credentials on the receiving terminal, your personal email, GitHub, and cloud storage accounts remain completely untouched.
+
+      ---
+
+      ## Method 2: Online Clipboard for Code Snippets & Commands
+
+      When you only need to move terminal commands, SQL scripts, or source code functions (rather than binary files), an **Online Clipboard** (/blog/online-clipboard-copy-text-code-between-computers-instantly) is even faster.
+
+      Instead of typing out long lines of code manually from your phone screen onto the lab terminal:
+      - Paste the code into CloudVault Quick Send (Text mode).
+      - Generate a 6-digit access code.
+      - Retrieve the code on the lab PC to view and copy the code text formatted cleanly with syntax intact.
+
+      ---
+
+      ## Method 3: Disposable Web Uploads (With Caution)
+
+      If you use temporary web file transfer sites, ensure you verify their security policies before uploading coursework:
+      - Check file size limits and retention times.
+      - Ensure the platform blocks executable file formats (\`.exe\`, \`.bat\`, \`.cmd\`) to prevent accidental virus distribution on campus networks.
+      - Avoid uploading unencrypted sensitive personal documents like ID cards or passwords to public file hosts.
+
+      ---
+
+      ## Method 4: Registered Student Cloud Vault (For Larger Files)
+
+      For larger files up to 100 MB or semester-long project storage, registering a free CloudVault account gives you a persistent personal vault with folder organization. You can create 6-digit share codes directly from your private vault dashboard whenever you need to access files during lab hours.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Do I need to create an account to transfer files using Quick Send?
+      No account is required. Anyone can use Quick Send to transfer files up to 25 MB or text snippets up to 100 KB anonymously.
+
+      ### What happens if I forget to close the tab on the lab computer?
+      Quick Send requires no login, so there are no credentials or account cookies stored in the lab browser. Your main account remains completely safe.
+
+      ### What file types are allowed on Quick Send?
+      You can upload PDFs, images, ZIP archives, lab manuals, and code scripts (\`.py\`, \`.java\`, \`.cpp\`, \`.js\`, \`.sql\`). Executable file formats like \`.exe\` and \`.bat\` are blocked automatically.
+
+      ---
+
+      ## Try Quick Send Now
+      Ready to move your assignment files to the lab terminal? Try **[CloudVault Quick Send](https://www.hometolab.in/)** right now—no sign-up required.
+    `
+  },
+  {
+    id: '8',
+    slug: 'online-clipboard-copy-text-code-between-computers-instantly',
+    title: 'Online Clipboard: Copy Text and Code Between Two Computers Instantly',
+    subtitle: 'How an online text clipboard eliminates manual typing, email clutter, and chat app logins in computer lab practicals.',
+    category: 'Productivity',
+    date: 'September 20, 2026',
+    readTime: '6 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Need to copy a 50-line code snippet, Git terminal command, or database connection string from your laptop to a college lab PC? Discover how online clipboard bridges save time without leaving personal login footprints.',
+    content: `
+      ## The Problem with Transferring Snippets in College Labs
+
+      During computer science practical exams and programming lab sessions, students frequently need to copy short text blocks between devices:
+      - Complex Git terminal commands (\`git clone https://github.com/...\`)
+      - Long SQL database connection strings
+      - Python, C++, or Java boilerplate functions prepared at home
+      - Exam seat numbers, IP addresses, or lab server hostnames
+
+      Manually retyping 50 lines of code from a mobile phone screen onto a lab computer keyboard is slow and prone to syntax errors like missed semicolons or mistyped variable names. On the flip side, logging into personal WhatsApp Web, Telegram, or email accounts on public lab terminals risks leaving your personal chat history exposed to the next student using the machine.
+
+      ---
+
+      ## What is an Online Clipboard Bridge?
+
+      An **Online Clipboard** is a transient web utility that lets you paste text on one device and retrieve it on another using a temporary 6-digit access code—without signing into any personal account.
+
+      ### How CloudVault Online Clipboard Works:
+      1. **Paste Text on Device A**: Open \`https://www.hometolab.in\` on your phone or laptop, select **Send - No Login**, and switch to **Text / Code**.
+      2. **Add Optional Title**: Give your snippet a descriptive title (e.g., \`Lab_3_Query.sql\` or \`Git_Commands.txt\`).
+      3. **Select Code Expiry**: Set the code duration from 10 minutes up to 24 hours.
+      4. **Retrieve on Device B**: Enter the 6-digit code on the receiving terminal to view the text block with a single-click **Copy Text** button.
+
+      ---
+
+      ## Key Benefits of Using an Online Clipboard
+
+      ### 1. Zero Login Footprint
+      Because you don't sign into personal accounts, your email and messaging credentials are never cached in the lab browser memory.
+
+      ### 2. Syntax & Indentation Preservation
+      Copying code via standard text clipboards preserves tab spaces, newlines, and special characters, preventing Python indentation errors or C++ syntax bugs.
+
+      ### 3. Single-Use Code Expiration
+      Enable **Single-Use Code** mode to ensure your snippet code expires immediately after you retrieve it on the lab terminal.
+
+      ---
+
+      ## Real-World Student Workflows
+
+      - **Coding Practicals**: Copy solution starter code from your personal notes directly into IDEs like VS Code or Code::Blocks on lab machines.
+      - **Database Exams**: Pass PostgreSQL or MySQL connection strings to lab terminals without sharing credentials with classmates.
+      - **Documentation & Command Handoff**: Quick-copy complex Docker commands or package installation commands during lab setup.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Is there a character limit for text clipboard snippets?
+      CloudVault Quick Send supports text snippets up to 100 KB, which accommodates several thousand lines of source code or notes.
+
+      ### Can I protect sensitive code snippets with a passphrase?
+      Yes! Registered CloudVault users can save encrypted notes in their dashboard using client-side passphrase encryption (/blog/protecting-code-notes-public-terminals).
+
+      ### Does the online clipboard work on mobile browsers?
+      Yes, CloudVault is fully responsive and works smoothly on mobile Safari, Chrome, and desktop browsers.
+
+      ---
+
+      ## Start Copying Code Instantly
+      Streamline your lab workflow with **[CloudVault Online Clipboard](https://www.hometolab.in/)**.
+    `
+  },
+  {
+    id: '9',
+    slug: 'how-to-transfer-code-between-computers-without-logging-in',
+    title: 'How to Transfer Code Between Computers Without Logging In',
+    subtitle: 'Protect your GitHub, email, and cloud storage credentials while sharing Python, Java, C++, and Web code scripts.',
+    category: 'Cybersecurity',
+    date: 'September 20, 2026',
+    readTime: '7 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Logging into personal developer accounts on public lab computers creates risk of session hijacking. Learn how no-login transient 6-digit access codes let you transfer code scripts safely in seconds.',
+    content: `
+      ## The Cybersecurity Threat of Public Terminal Logins
+
+      When developing software or studying computer science, your developer accounts—GitHub, GitLab, personal email, cloud databases—contain valuable intellectual property, personal access tokens, and private repositories.
+
+      In university computer labs and public library terminals, logging into these accounts poses serious security risks:
+      - **Hardware Keyloggers**: Malicious hardware adapters placed between keyboard cables and PC ports can record passwords silently.
+      - **Browser Credential Caching**: Clicking "Remember Me" or allowing Chrome/Edge to save passwords leaves active credentials accessible to future lab users.
+      - **Unclosed Browser Sessions**: Leaving a computer quickly when lab time ends can leave GitHub or email tabs open for session hijacking.
+
+      To maintain high cybersecurity hygiene (/blog/public-computer-safety-checklist-logout-leave-no-traces), developers should avoid logging into primary accounts on public machines whenever possible.
+
+      ---
+
+      ## The Solution: Transient No-Login Code Transfer
+
+      By utilizing **CloudVault Quick Send**, you can transfer Python, Java, C++, JavaScript, and SQL code files to any public workstation without logging into your account.
+
+      ### Step-by-Step Secure Handoff:
+      1. On your personal laptop, open \`https://www.hometolab.in\` and go to **Send - No Login**.
+      2. Upload your source code file (\`.py\`, \`.java\`, \`.cpp\`, \`.js\`, \`.sql\`) or paste code text.
+      3. Set code validity (e.g., 30 minutes) and click **Get 6-Digit Access Code**.
+      4. On the public computer, open the homepage, enter the 6-digit code, and download your source code file.
+
+      ---
+
+      ## What File Formats Are Supported?
+
+      CloudVault Quick Send supports all standard developer source code formats:
+      - Python (\`.py\`), Java (\`.java\`), C/C++ (\`.c\`, \`.cpp\`, \`.h\`)
+      - Web Development (\`.html\`, \`.css\`, \`.js\`, \`.ts\`, \`.jsx\`, \`.json\`)
+      - Database & Scripts (\`.sql\`, \`.xml\`, \`.yaml\`, \`.md\`, \`.txt\`)
+      - Compressed Archives (\`.zip\`, \`.tar.gz\`, \`.7z\`)
+
+      *Note*: Executable file extensions (\`.exe\`, \`.bat\`, \`.cmd\`, \`.sh\`, \`.vbs\`, \`.msi\`) are automatically blocked to comply with campus security policies and prevent malware execution.
+
+      ---
+
+      ## Best Practices for Developer Code Handoffs
+
+      - **Clean Up Workspace**: After running your code in the lab IDE, delete temporary files from \`C:\\Users\\Public\` or \`~/Downloads\` before leaving.
+      - **Use Single-Use Share Codes**: Turn on Single-Use Mode so your share code expires immediately after retrieval.
+      - **Never Commit Secrets**: Ensure API keys, database passwords, and environment variables are excluded before sharing code scripts.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Can someone guess my 6-digit access code?
+      Access codes use an unambiguous 32-character alphabet generated with cryptographic entropy, combined with server-side rate limiting to prevent brute-force attempts.
+
+      ### What is the maximum file size for no-login file transfers?
+      No-login file transfers support single files up to 25 MB. Registered free accounts support up to 100 MB per file.
+
+      ---
+
+      ## Keep Your Credentials Safe
+      Transfer code scripts safely without logging in using **[CloudVault Quick Send](https://www.hometolab.in/)**.
+    `
+  },
+  {
+    id: '10',
+    slug: 'send-files-without-sign-up-5-methods-compared',
+    title: 'Send Files Without Sign-Up: 5 Methods Compared',
+    subtitle: 'A detailed breakdown comparing Emailing Yourself, WhatsApp Web, Google Drive, USB Drives, and Home to Lab Quick Send.',
+    category: 'Productivity',
+    date: 'September 20, 2026',
+    readTime: '8 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Which file transfer method is best for college computer labs? We compare 5 popular techniques on setup speed, file size limits, security risks, and public browser friction.',
+    content: `
+      ## Finding the Best File Transfer Method for College Labs
+
+      College students need to move assignment documents, lab reports, code files, and presentation slides between home computers and lab terminals every single day. But which method provides the best balance of speed, convenience, and cybersecurity?
+
+      In this comprehensive guide, we compare 5 popular methods across critical criteria: setup time, login requirement, security risk, file size limit, and suitability for public workstations.
+
+      ---
+
+      ## Method Comparison Matrix
+
+      | Transfer Method | Login Required on Public PC? | File Size Limit | Public PC Security Risk | Setup Speed |
+      | :--- | :--- | :--- | :--- | :--- |
+      | **1. Emailing Yourself** | Yes (Gmail/Outlook) | 25 MB | High (Leftover logins) | Slow (2FA prompts) |
+      | **2. WhatsApp Web** | Yes (QR Phone Link) | 100 MB | High (Chat history exposed) | Medium |
+      | **3. Google Drive / Dropbox** | Yes | 15 GB free | High (Saved account cookies) | Slow |
+      | **4. Physical USB Drive** | No | Disk size | High (Hardware malware) | Medium |
+      | **5. Home to Lab Quick Send** | **No** | **25 MB (Guest)** | **Very Low (Zero credentials)** | **Instant (3 secs)** |
+
+      ---
+
+      ## Deep-Dive Analysis of Each Method
+
+      ### 1. Emailing Yourself
+      - **Pros**: Familiar, accessible anywhere.
+      - **Cons**: Requires logging into personal email on a shared PC. Passing 2FA prompts on public screens is slow, and forgetting to log out exposes your entire inbox.
+
+      ### 2. WhatsApp Web / Telegram Web
+      - **Pros**: Easy to send files directly from your phone.
+      - **Cons**: Linking WhatsApp Web displays your personal message threads on a large lab monitor for everyone to see. If you leave without disconnecting the linked device, your chats remain accessible.
+
+      ### 3. Google Drive / Cloud Storage
+      - **Pros**: Excellent for permanent storage and large video files.
+      - **Cons**: Heavy login friction. Public browsers often request to save Google account credentials or sync browser profiles.
+
+      ### 4. Physical USB Flash Drives
+      - **Pros**: Works offline without internet connectivity.
+      - **Cons**: Misplaced easily in lab rooms (/blog/why-usb-drives-are-risky-shared-computers). High risk of catching autorun malware from infected lab PCs and transferring it to your home laptop.
+
+      ### 5. Home to Lab (CloudVault Quick Send)
+      - **Pros**: Designed specifically for public lab workstations. Zero sign-up or login required on either device. 6-digit access codes transfer files in seconds with automatic expiration.
+      - **Cons**: Requires internet connection on both devices.
+
+      ---
+
+      ## Conclusion & Recommendation
+
+      For personal cloud storage and managing semester coursework long-term, cloud drives like Google Drive or CloudVault Vault accounts are ideal. But for **rapid, safe file handoffs in college computer labs**, **[CloudVault Quick Send](https://www.hometolab.in/)** is the clear winner.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Is Quick Send completely free?
+      Yes, Quick Send is 100% free for all students and developers.
+
+      ### How long do Quick Send files stay online?
+      You can select expiry times of 10 minutes, 30 minutes, 1 hour, 6 hours, or 24 hours. Files automatically delete permanently after expiration.
+    `
+  },
+  {
+    id: '11',
+    slug: 'how-to-share-file-from-phone-to-pc-with-qr-code',
+    title: 'How to Share a File From Phone to PC With a QR Code',
+    subtitle: 'Seamless mobile-to-desktop transfer workflows for lab reports, project photos, and assignment code.',
+    category: 'Guides & Tutorials',
+    date: 'September 20, 2026',
+    readTime: '6 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Transferring photos of handwritten notes or PDF assignment reports from your smartphone to a college library computer can be tricky. Learn how instant QR code sharing simplifies mobile-to-PC file transfer.',
+    content: `
+      ## The Challenge of Mobile-to-Desktop File Handoffs
+
+      Students frequently capture assignment diagrams, whiteboard notes, or document scans using their smartphones. When you arrive at a college library or printing terminal, getting those photos or PDF files onto the desktop computer quickly can be a hassle.
+
+      Connecting your phone via USB cable requires carrying charging cords and granting MTP file access permissions on public PCs. Sending files via messaging apps requires logging into desktop web clients on shared screens.
+
+      A far cleaner solution is using **QR Code Instant Transfer**.
+
+      ---
+
+      ## How Phone-to-PC Transfer Works with QR Codes
+
+      By combining temporary 6-digit access codes with downloadable QR codes, CloudVault makes mobile-to-PC transfer instantaneous.
+
+      ### Step-by-Step Guide:
+      1. **Upload File on Mobile**: Open \`https://www.hometolab.in\` on your smartphone browser (iOS Safari or Android Chrome) and select **Send - No Login**.
+      2. **Choose Photo or PDF**: Select your assignment image, PDF scan, or text document (up to 25 MB).
+      3. **Generate Access Code & QR**: Tap **Get 6-Digit Access Code**. The screen displays your 6-digit code and a downloadable QR code image.
+      4. **Retrieve on Computer**:
+         - **Option A**: Type the 6-character code directly into the lab PC browser.
+         - **Option B**: Display the QR code modal on your phone screen and scan it using a webcam or mobile camera linked to the computer.
+
+      ---
+
+      ## Use Cases for Students & Instructors
+
+      - **Handwritten Assignment Scans**: Scan lab assignment sheets on your phone and download PDFs directly onto library printing PCs.
+      - **Code Snippets from Mobile**: Copy code snippets saved on mobile notes apps and transfer them to lab IDEs.
+      - **Demonstration & Class Presentations**: Teachers and lab assistants can project QR codes on classroom screens so students can download lab manuals instantly on their own devices.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Do I need to install a special mobile app?
+      No mobile app installation is required. CloudVault works directly in standard mobile web browsers (Safari, Chrome, Firefox, Edge).
+
+      ### Can I share files back from PC to Phone using QR codes?
+      Yes! When you create a share code on a lab PC, click the **QR Code** button to display a QR code on the monitor. Scan it with your phone camera to download the file directly to your smartphone.
+
+      ---
+
+      ## Experience Instant Mobile Transfer
+      Try instant phone-to-PC file sharing with **[CloudVault](https://www.hometolab.in/)**.
+    `
+  },
+  {
+    id: '12',
+    slug: 'temporary-file-sharing-explained-expiring-links-codes',
+    title: 'Temporary File Sharing Explained: Expiring Links and Codes',
+    subtitle: 'Why time-bound file links and single-use codes are essential for short-term campus and developer file handoffs.',
+    category: 'Security',
+    date: 'September 20, 2026',
+    readTime: '7 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Ever left an open file sharing link on Google Drive or Dropbox by mistake? Learn how temporary file sharing with configurable expiration times (10m to 24h) protects sensitive files from unintended public exposure.',
+    content: `
+      ## What is Temporary File Sharing?
+
+      Unlike traditional cloud storage designed for long-term archiving, **temporary file sharing** (also known as transient file transfer) focuses on short-term data handoffs. Shared files and access codes are assigned a strict expiration timer after which they automatically expire and purge permanently from cloud storage.
+
+      For students and developers moving code or documents between workstations, temporary sharing provides crucial privacy and storage management advantages.
+
+      ---
+
+      ## Why Permanent Share Links Are Risky
+
+      When you share a file via permanent cloud storage links (e.g., "Anyone with the link can view"), several risks arise over time:
+      - **Forgotten Public Links**: Links posted in group chats or discussion forums remain active for months or years, accessible to unintended visitors.
+      - **Uncontrolled Redistribution**: Recipients can forward permanent links to third parties without your knowledge.
+      - **Cluttered Cloud Storage**: Old assignment drafts accumulate in storage buckets, consuming free storage quotas.
+
+      ---
+
+      ## How Configurable Expiration Protects Your Data
+
+      CloudVault Quick Send provides flexible time-bound expiration options tailored for different campus scenarios:
+
+      - **10 Minutes / 30 Minutes**: Ideal for quick lab terminal downloads or printing documents in college libraries.
+      - **1 Hour / 6 Hours**: Perfect for multi-hour lab practical sessions or group project meetings.
+      - **24 Hours**: Suitable for submitting assignments to lab instructors or classmates overnight.
+
+      Once the expiration countdown reaches zero, background cleanup routines delete storage objects and database records automatically.
+
+      ---
+
+      ## Single-Use (Burn-After-Reading) Share Codes
+
+      For high-sensitivity handoffs (such as private code solutions or exam submission files), enabling **Single-Use Code** mode ensures maximum privacy.
+
+      Once the recipient enters the 6-digit access code and retrieves the file or text on their screen, the access code is invalidated atomically. Any subsequent attempt to re-enter the code returns a "Code consumed or expired" message.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Can an expired file be recovered?
+      No. Once a temporary file or single-use share code expires, background cleanup routines permanently remove the storage object and database row. Always keep a primary copy of important files on your local device.
+
+      ### What is the maximum expiration duration allowed for no-login quick shares?
+      No-login quick shares support durations up to 24 hours. Registered accounts support custom code validity up to 7 days.
+
+      ---
+
+      ## Share Files Safely with Automatic Expiry
+      Set custom expiration times on your file handoffs with **[CloudVault Quick Send](https://www.hometolab.in/)**.
+    `
+  },
+  {
+    id: '13',
+    slug: 'practical-exam-day-checklist-files-code-backups',
+    title: 'Practical Exam Day Checklist: Files, Code and Backups',
+    subtitle: 'The ultimate prep list for CS and IT students to avoid exam panic, lost code scripts, and terminal setup errors.',
+    category: 'Guides & Tutorials',
+    date: 'September 20, 2026',
+    readTime: '8 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Practical exam day in college can be stressful. Follow this battle-tested checklist for organizing starter code, pre-loading database scripts, managing time, and backing up your final submission.',
+    content: `
+      ## Reducing Practical Exam Stress
+
+      For computer science, IT, and engineering students, practical laboratory exams are high-pressure events. You have a strict 1-to-2-hour countdown to write working code, configure database schemas, debug runtime errors, and present execution output to external examiners.
+
+      Fumbling with misplaced USB drives, forgotten passwords, or corrupt file archives during the first 15 minutes of an exam creates unnecessary panic. Following a structured prep checklist ensures smooth performance under exam conditions.
+
+      ---
+
+      ## The Practical Exam Day Checklist
+
+      ### 1. Pre-Exam Preparation (Night Before)
+      - [ ] **Organize Starter Code**: Review key algorithm implementations (Data Structures, SQL queries, OOP patterns) and organize reference snippets.
+      - [ ] **Prepare No-Login Quick Shares**: Upload reference code templates or cheat sheets to CloudVault Quick Send (/blog/online-clipboard-copy-text-code-between-computers-instantly) so you can fetch them instantly without logging into email on exam PCs.
+      - [ ] **Verify File Formats**: Ensure project files are saved in standard extension formats (\`.py\`, \`.java\`, \`.cpp\`, \`.sql\`, \`.zip\`).
+
+      ### 2. Arrival & Station Setup (First 5 Minutes)
+      - [ ] **Inspect Terminal Hardware**: Verify keyboard, mouse, and monitor cables are securely connected.
+      - [ ] **Open CloudVault Retrieval**: Open \`https://www.hometolab.in\` in the browser to retrieve pre-prepared code snippets or reference notes using your 6-digit access code.
+      - [ ] **Set Up Working Folder**: Create an organized exam folder on the local drive (e.g., \`C:\\Users\\Public\\Exam_[RollNo]\`).
+
+      ### 3. During the Exam (Coding & Execution)
+      - [ ] **Incremental Saves**: Press \`Ctrl+S\` (\`Cmd+S\`) after every working function or algorithm block.
+      - [ ] **Keep Output Screenshots Ready**: Save execution output screenshots in your working folder as required by lab evaluators.
+
+      ### 4. Wrap-Up & Submission (Final 10 Minutes)
+      - [ ] **Compress Working Files**: Zip your final source files into a structured archive named with your roll number (e.g., \`CS101_Roll104_Exam.zip\`).
+      - [ ] **Upload Backup Copy**: Upload a backup of your final submission to CloudVault Quick Send or your personal Vault so you have proof of completion.
+      - [ ] **Clean Up Workspace**: Follow public computer safety guidelines (/blog/public-computer-safety-checklist-logout-leave-no-traces) to delete working files from the shared terminal before leaving.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Why should I upload a backup of my exam submission?
+      If a lab PC crashes right after evaluation or if there is a discrepancy in practical marks, having a timestamped cloud backup copy serves as verifiable proof of your submitted code.
+
+      ---
+
+      ## Ace Your Next Practical Exam
+      Keep your exam code organized and accessible with **[CloudVault](https://www.hometolab.in/)**.
+    `
+  },
+  {
+    id: '14',
+    slug: 'public-computer-safety-checklist-logout-leave-no-traces',
+    title: 'Public Computer Safety Checklist: How to Log Out and Leave No Traces',
+    subtitle: 'Essential steps to wipe browser history, download caches, and session cookies on shared library and lab terminals.',
+    category: 'Cybersecurity',
+    date: 'September 20, 2026',
+    readTime: '7 min read',
+    author: 'Aayush Parekh',
+    authorRole: 'Platform Architect & Developer',
+    summary: 'Shared college lab terminals are used by hundreds of students daily. Follow this quick 5-step exit checklist to ensure your accounts, downloads, and personal notes remain completely safe when you walk away.',
+    content: `
+      ## Why Leaving Traces on Public Computers Is Dangerous
+
+      In college computer labs, library workstations, and campus print shops, terminals are shared by dozens of students every day. When you finish your work and stand up to leave, leaving your digital footprint behind poses significant cybersecurity risks:
+      - **Account Impersonation**: Active browser sessions for email, college portals, or GitHub allow subsequent users to send messages or alter data under your identity.
+      - **Code & Assignment Theft**: Leaving solution files in the \`Downloads\` folder or Recycle Bin makes it easy for other students to copy your work and risk plagiarism penalties (/blog/protecting-code-notes-public-terminals).
+      - **Exposed Personal Data**: Saved passwords or autofill forms can leak phone numbers, addresses, or credentials.
+
+      ---
+
+      ## The 5-Step Public PC Exit Checklist
+
+      Follow these 5 simple steps before walking away from any shared workstation:
+
+      ### 1. Close All Browser Windows Completely
+      Web applications (including CloudVault) use session storage to manage authentication. Closing all open browser tabs and window instances triggers automatic session clearing, revoking active session tokens.
+
+      ### 2. Clear Download History & Local Files
+      Delete all downloaded assignment files, PDFs, and code scripts from the local \`Downloads\`, \`Desktop\`, and \`C:\\Users\\Public\` folders. Empty the Recycle Bin / Trash.
+
+      ### 3. Clear Recent Browser Caches & Cookies
+      Press \`Ctrl+Shift+Delete\` (\`Cmd+Shift+Delete\`) in Chrome, Edge, or Firefox. Select **Cookies and other site data** and **Cached images and files**, then click **Clear Data**.
+
+      ### 4. Remove Saved Credentials & Autofill
+      If you accidentally clicked "Save Password" during your session, open browser settings (\`chrome://settings/passwords\`), search for any saved entries under your name, and delete them.
+
+      ### 5. Use No-Login Transfer Tools Next Time
+      Prevent future security worries altogether by using no-login transient transfer tools like **[CloudVault Quick Send](https://www.hometolab.in/)**. When you transfer files using 6-digit access codes without signing into personal accounts, there are zero account credentials cached on the public machine in the first place.
+
+      ---
+
+      ## Frequently Asked Questions
+
+      ### Does pressing "Log Out" on a website guarantee complete security on a public PC?
+      Logging out invalidates server session tokens, but local browser caches, downloaded files, and saved form autofill entries may still remain on the hard drive. You should always clear downloads and close browser windows completely.
+
+      ---
+
+      ## Maintain 100% Security on Campus Terminals
+      Protect your credentials and transfer files safely with **[CloudVault](https://www.hometolab.in/)**.
+    `
   }
 ];
 

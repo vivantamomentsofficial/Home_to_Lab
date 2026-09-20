@@ -33,6 +33,24 @@ const BlogPost = () => {
   // Related posts (excluding current)
   const relatedPosts = BLOG_POSTS.filter(p => p.slug !== slug).slice(0, 2);
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    'headline': post.title,
+    'description': post.summary || post.subtitle,
+    'author': {
+      '@type': 'Person',
+      'name': post.author,
+    },
+    'datePublished': post.date,
+    'publisher': {
+      '@type': 'Organization',
+      'name': 'CloudVault - Home to Lab',
+      'url': 'https://www.hometolab.in',
+    },
+    'mainEntityOfPage': `https://www.hometolab.in/blog/${post.slug}`,
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-200 font-sans relative overflow-x-hidden transition-colors duration-300">
       <SEO 
@@ -40,6 +58,7 @@ const BlogPost = () => {
         description={post.summary || post.subtitle} 
         keywords={`hometolab, cloudvault, ${post.category}, ${post.title}`} 
         canonical={`https://www.hometolab.in/blog/${post.slug}`} 
+        jsonLd={articleJsonLd}
       />
       
       {/* Navbar */}
