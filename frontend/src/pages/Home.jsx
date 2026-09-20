@@ -190,7 +190,13 @@ const Home = () => {
       
       let captchaToken = sendCaptchaToken;
       if (!captchaToken && window.turnstile) {
-        captchaToken = window.turnstile.getResponse() || '';
+        try {
+          if (typeof window.turnstile.getResponse === 'function') {
+            captchaToken = window.turnstile.getResponse() || '';
+          }
+        } catch (tErr) {
+          // Ignore if no widget instance is active
+        }
       }
 
       if (sendKind === 'text') {
@@ -790,8 +796,12 @@ const Home = () => {
                     </div>
                   </div>
 
-                  {/* Hidden Cloudflare Turnstile widget placeholder if available */}
-                  <div id="cf-turnstile-container" className="hidden"></div>
+                  {/* Cloudflare Turnstile widget container */}
+                  <div
+                    id="cf-turnstile-container"
+                    className="cf-turnstile flex justify-center my-2 min-h-[65px]"
+                    data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAEQ7vjk7zY4vqXlLDBjua2_6gOc'}
+                  ></div>
 
                   <button
                     type="submit"
