@@ -1,7 +1,5 @@
-const CACHE_NAME = 'cloudvault-v10-cache';
+const CACHE_NAME = 'cloudvault-v11-cache';
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/fonts/InstagramSans-Regular.woff',
   '/fonts/InstagramSans-Medium.woff',
