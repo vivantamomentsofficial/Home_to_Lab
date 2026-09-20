@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { track } from '@vercel/analytics';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useTheme } from '../context/ThemeContext';
 import { sanitizeInput } from '../utils/sanitize';
 import { checkBlockedExtension } from '../utils/fileSecurity';
 import {
@@ -27,6 +29,8 @@ const formatBytes = (bytes, decimals = 2) => {
 const Home = () => {
   const { user, supabase } = useAuth();
   const { showToast } = useToast();
+  const { theme } = useTheme();
+  const sendCaptchaRef = useRef(null);
 
   // Mobile Drawer State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -791,12 +795,24 @@ const Home = () => {
                           onChange={(e) => setSendSelfDestruct(e.target.checked)}
                           className="rounded text-brand-primary focus:ring-brand-primary"
                         />
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Single-Use Code</span>
                       </label>
                     </div>
                   </div>
 
-
+                  {/* hCaptcha Widget for Quick Send */}
+                  <div className="flex justify-center my-3 min-h-[78px]">
+                    <HCaptcha
+                      ref={sendCaptchaRef}
+                      sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+                      onVerify={(token) => setSendCaptchaToken(token)}
+                      onExpire={() => setSendCaptchaToken('')}
+                      onError={(err) => {
+                        console.error('hCaptcha error:', err);
+                        setSendCaptchaToken('');
+                      }}
+                      theme={theme === 'dark' ? 'dark' : 'light'}
+                    />
+                  </div>
 
                   <button
                     type="submit"

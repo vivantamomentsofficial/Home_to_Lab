@@ -34,23 +34,14 @@ const generateSecureCode = () => {
  * Does NOT enforce 'eyJ' token prefix check since new sb_secret keys work directly with createClient.
  */
 const getSupabaseAdmin = () => {
-  const url = process.env.SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY;
-
-  if (!url || !serviceKey) {
-    throw new Error('Supabase URL or Key is missing from server environment.');
-  }
+  const url = process.env.SUPABASE_URL || 'https://gxccllaqtdiuvnrialta.supabase.co';
+  const anonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
 
   return createClient(url, serviceKey, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
-    },
-    global: {
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-      },
     },
   });
 };
