@@ -194,7 +194,7 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
 
       if (insertErr || !newRow) {
         console.error('Insert text quick share error:', insertErr);
-        return res.status(500).json({ error: 'Failed to create text share.' });
+        return res.status(500).json({ error: insertErr?.message ? `Database error: ${insertErr.message}` : 'Failed to create text share.' });
       }
 
       return res.status(201).json({
@@ -265,7 +265,7 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
 
       if (insertErr || !pendingRow) {
         console.error('Insert file quick share error:', insertErr);
-        return res.status(500).json({ error: 'Failed to initialize file share.' });
+        return res.status(500).json({ error: insertErr?.message ? `Database error: ${insertErr.message}` : 'Failed to initialize file share.' });
       }
 
       // Create signed upload URL for browser direct upload
