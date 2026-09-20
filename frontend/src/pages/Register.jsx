@@ -238,7 +238,7 @@ const Register = () => {
           <div className="flex justify-center mb-4 min-h-[78px]">
             <HCaptcha
               ref={captchaRef}
-              sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056"}
+              sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-4358-4bfa-810e-fe50c19eebba"}
               onVerify={(token) => setCaptchaToken(token)}
               onExpire={() => setCaptchaToken('')}
               onError={(err) => {
