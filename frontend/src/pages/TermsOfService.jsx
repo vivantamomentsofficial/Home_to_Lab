@@ -69,7 +69,7 @@ const TermsOfService = () => {
                 Service Availability & Storage Limits
               </h2>
               <p>
-                Default student storage is set to 100MB. Temporary 6-digit access codes expire automatically based on selected duration (1 minute to 7 days). Self-destruct items auto-delete permanently upon download.
+                Default student storage is set to 100MB. Temporary 6-digit access codes expire automatically based on selected duration (1 minute to 7 days). Single-use share codes expire immediately upon download.
               </p>
             </section>
 

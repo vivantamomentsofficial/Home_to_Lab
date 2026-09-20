@@ -48,7 +48,7 @@ CloudVault V4/
 ### 1. 🔏 Code & File Sharing via 6-Digit Access Codes
 - **Instant Code Share**: Generate cryptographically secure, collision-free 6-character access codes for any file or code snippet.
 - **Custom Expiry**: Set code validity from 1 minute up to 7 days.
-- **Burn-After-Reading (Self-Destruct)**: Create single-use download links that auto-delete permanently from database and storage upon first retrieval.
+- **Single-Use Codes**: Create single-use download links where access codes expire immediately after the first retrieval.
 - **QR Code Modal**: Generate downloadable QR codes for instant mobile device camera scanning and one-tap downloading.
 - **Public Retrieval**: Recipients can enter the 6-digit code or scan the QR link on the landing page to view metadata and download files without needing an account.
 

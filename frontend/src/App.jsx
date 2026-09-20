@@ -60,7 +60,7 @@ const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
       {/* Encrypted Security Badge */}
       <div className="mt-6 flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest bg-slate-100 dark:bg-slate-900 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800">
         <Lock className="w-3 h-3 text-brand-primary" />
-        <span>AES-256 Encrypted Session</span>
+        <span>Secure HTTPS Connection</span>
       </div>
     </div>
   </div>

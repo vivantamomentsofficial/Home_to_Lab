@@ -500,7 +500,7 @@ const Home = () => {
                 }`}
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Zero-Trace Privacy</span>
+                <span>Session Privacy</span>
               </button>
 
               <div className="hidden md:flex items-center gap-2 px-3 py-2 text-slate-400 text-xs font-semibold mt-auto opacity-70">
@@ -706,7 +706,7 @@ const Home = () => {
               <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-brand-primary">
                 <ShieldCheck className="w-5.5 h-5.5 stroke-[2.5]" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">Zero-Trace</div>
+              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">Session Clear</div>
               <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Session Auto-Clear</div>
             </div>
 
@@ -756,7 +756,7 @@ const Home = () => {
             </div>
             <h3 className="font-bold text-slate-900 dark:text-white text-base">Self-Destruct Links</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Create single-use links that automatically delete permanently from storage right after the first download.
+              Create single-use links where the share code works only once and expires immediately upon first download.
             </p>
           </div>
 
@@ -952,7 +952,7 @@ const Home = () => {
               },
               {
                 q: 'What is a "Self-Destruct" share link?',
-                a: 'A self-destruct link automatically deletes the file permanently from storage immediately after it is downloaded once.'
+                a: 'A single-use link invalidates the access code immediately after it is downloaded once so it cannot be reused.'
               },
               {
                 q: 'What is the file size limit?',
@@ -1134,7 +1134,7 @@ const Home = () => {
               <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
                 <div>
-                  <span className="font-bold">Self-Destruct Enabled:</span> This file will automatically delete from storage right after this download.
+                  <span className="font-bold">Single-Use Code:</span> This access code will expire immediately after this download.
                 </div>
               </div>
             )}

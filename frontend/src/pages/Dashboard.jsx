@@ -3093,7 +3093,7 @@ const Dashboard = () => {
                       className="w-4 h-4 text-brand-primary border-slate-300 rounded focus:ring-brand-primary cursor-pointer"
                     />
                     <label htmlFor="enable-encryption" className="text-xs font-bold text-slate-700 dark:text-slate-350 cursor-pointer select-none">
-                      Encrypt Upload (Zero-Knowledge AES-GCM)
+                      Encrypt before upload (AES-256-GCM, passphrase never leaves your browser)
                     </label>
                   </div>
                   
@@ -4813,7 +4813,7 @@ const Dashboard = () => {
                 <div className="flex flex-col gap-0.5">
                   <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Burn-After-Reading</span>
                   <span className="text-[10px] text-slate-400 leading-normal">
-                    Automatically delete the file and access code permanently after the very first download/view.
+                    Ensure the code works only once for single-use access.
                   </span>
                 </div>
               </label>

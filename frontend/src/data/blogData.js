@@ -48,7 +48,7 @@ export const BLOG_POSTS = [
       ## Essential Safety Checklist for Campus Terminals
 
       - **Never Save Passwords**: Always select "No" when browsers ask to save passwords on shared computers.
-      - **Use Burn-After-Reading Links**: For sensitive files, enable self-destruct share options so the file deletes permanently after the first download.
+      - **Use Burn-After-Reading Links**: For sensitive files, enable single-use share options so the access code works only once.
       - **Check Extension Restrictions**: Avoid downloading or opening executable files (.exe, .bat, .cmd) on shared networks.
       - **Close Browser Tabs Completely**: When finished, close all open browser windows to trigger session clearing routines.
 
@@ -192,7 +192,7 @@ export const BLOG_POSTS = [
       If you downloaded your starter code or submitted files through a browser, open browser settings and clear your download history and cached files before logging off.
 
       ### 3. Use Burn-After-Reading Single Download Links
-      When transferring code scripts from your personal laptop to the lab terminal using CloudVault, enable **Burn-After-Reading**. Once the file is fetched onto the lab screen, the download link and cloud storage record automatically self-destruct permanently.
+      When transferring code scripts from your personal laptop to the lab terminal using CloudVault, enable **Burn-After-Reading**. Once the file is fetched onto the lab screen, the single-use access code is invalidated so it cannot be reused.
 
       ### 4. Encrypt Personal Passwords & Notes
       For notes containing private tokens or exam seat numbers, use client-side passphrase encryption. Even if someone views your note list, the content remains encrypted without your secret password.
@@ -208,7 +208,7 @@ export const BLOG_POSTS = [
     id: '5',
     slug: 'cloud-security-best-practices-students-developers',
     title: 'Cloud Security Best Practices for Students & Developers',
-    subtitle: 'Understanding encryption in transit, at rest, and zero-knowledge data isolation for cloud file transfers.',
+    subtitle: 'Understanding encryption in transit, at rest, and client-side encryption options for cloud file transfers.',
     category: 'Cybersecurity',
     date: 'September 15, 2026',
     readTime: '6 min read',
@@ -237,11 +237,11 @@ export const BLOG_POSTS = [
 
       ---
 
-      ## How CloudVault Implements End-to-End Safety
+      ## How CloudVault Implements File & Data Safety
 
       - **Collision-Free 6-Digit Codes**: Access codes expire automatically and use cryptographic entropy to prevent brute-force guessing.
-      - **Client-Side AES Encryption**: Sensitive text notes can be encrypted with a local passphrase before being transmitted to the cloud.
-      - **Automatic Storage Expiry**: Temporary files are purged automatically from cloud storage after expiry, leaving zero residual footprint.
+      - **Client-Side AES Encryption**: Sensitive text notes and files can be encrypted with a local passphrase before being transmitted.
+      - **Multi-Layer Protection**: Secure HTTPS in transit, provider-level encryption at rest, RLS database isolation, and temporary access codes.
 
       By leveraging robust architectural principles, CloudVault provides students with a secure environment to transfer work between home laptops and college workstations.
     `
@@ -285,7 +285,7 @@ export const BLOG_POSTS = [
 
       - **Code Snippet Bridge**: Copy text or source code directly from your phone or laptop and paste it into the lab terminal without creating intermediate files.
       - **QR Code Instant Fetch**: Scan the generated QR code with your mobile camera for rapid code lookup.
-      - **Burn-After-Reading**: Ensure temporary files delete immediately after download so your work stays private.
+      - **Burn-After-Reading**: Ensure single-use codes expire immediately after download so your access code cannot be reused.
 
       ---
 

@@ -54,7 +54,7 @@ const Disclaimer = () => {
               </p>
               <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
                 <li>Temporary 6-digit share codes automatically expire after 30 minutes.</li>
-                <li>Files marked as "Burn-After-Reading" are purged permanently upon download.</li>
+                <li>Share codes marked as single-use expire immediately upon download.</li>
                 <li>Users are advised to keep personal backups of all critical files and project assignments. CloudVault shall not be held liable for accidental file loss or expired share links.</li>
               </ul>
             </section>

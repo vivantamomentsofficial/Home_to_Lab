@@ -84,7 +84,7 @@ const About = () => {
                   Burn-After-Reading Shares
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Single-use file sharing option that automatically purges the file from storage immediately after it is downloaded.
+                  Single-use file sharing option that automatically invalidates the share code immediately after it is downloaded once.
                 </p>
               </div>
 
