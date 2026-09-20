@@ -905,6 +905,39 @@ CREATE TRIGGER trg_check_file_extension
     BEFORE INSERT OR UPDATE ON public.files
     FOR EACH ROW EXECUTE FUNCTION public.check_blocked_file_extension();
 
+-- =========================================================================
+-- QUICK SEND (NO-LOGIN TRANSIENT SHARING) SETUP
+-- =========================================================================
+
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES ('quick', 'quick', false, 26214400, NULL)
+ON CONFLICT (id) DO UPDATE SET public = false, file_size_limit = 26214400;
+
+CREATE TABLE IF NOT EXISTS public.quick_shares (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(6) UNIQUE NOT NULL,
+    kind VARCHAR(10) NOT NULL CHECK (kind IN ('file', 'text')),
+    filename TEXT,
+    size BIGINT DEFAULT 0,
+    mime TEXT,
+    storage_path TEXT,
+    text_content TEXT,
+    self_destruct BOOLEAN DEFAULT false NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'active', 'consumed')),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    consumed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    ip_hash TEXT
+);
+
+ALTER TABLE public.quick_shares ENABLE ROW LEVEL SECURITY;
+
+CREATE INDEX IF NOT EXISTS idx_quick_shares_code ON public.quick_shares(code);
+CREATE INDEX IF NOT EXISTS idx_quick_shares_expires_at ON public.quick_shares(expires_at);
+CREATE INDEX IF NOT EXISTS idx_quick_shares_status ON public.quick_shares(status);
+CREATE INDEX IF NOT EXISTS idx_quick_shares_created_at ON public.quick_shares(created_at);
+
+
 
 
 

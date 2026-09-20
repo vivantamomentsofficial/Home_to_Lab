@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import emailjs from '@emailjs/browser';
+import { Link } from 'react-router-dom';
+import { track } from '@vercel/analytics';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { sanitizeInput } from '../utils/sanitize';
+import { checkBlockedExtension } from '../utils/fileSecurity';
 import {
   Shield, Sparkles, ArrowRight, DownloadCloud, Download, Plus, Folder, LogOut,
-  FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Sun, Moon, Menu,
+  FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X, FileCheck, Menu,
   AlertTriangle, UploadCloud, ShieldCheck, CheckCircle2, Zap, BookOpen, QrCode, Lock, Key,
-  Check, Copy, ShieldAlert, Smartphone
+  Check, Copy, ShieldAlert, Smartphone, RefreshCw
 } from 'lucide-react';
 import PublicFooter from '../components/PublicFooter';
-
 import SEO from '../components/SEO';
+import QRCodeModal from '../components/QRCodeModal';
 
 const formatBytes = (bytes, decimals = 2) => {
   if (!bytes || bytes === 0) return '0 Bytes';
@@ -26,23 +26,36 @@ const formatBytes = (bytes, decimals = 2) => {
 
 const Home = () => {
   const { user, supabase } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
-  const navigate = useNavigate();
 
   // Mobile Drawer State
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Tab State for Quick Card: 'receive' vs 'send'
+  const [activeTab, setActiveTab] = useState('receive');
+
   // Share Code Retrieval State
   const [shareCode, setShareCode] = useState('');
-
-  // ... rest of state
-
   const [loading, setLoading] = useState(false);
   const [retrievedFile, setRetrievedFile] = useState(null);
   const [showRetrieveModal, setShowRetrieveModal] = useState(false);
   const [shareTimeLeft, setShareTimeLeft] = useState(0);
   const countdownIntervalRef = useRef(null);
+
+  // Quick Send Form State (No Account Needed)
+  const [sendKind, setSendKind] = useState('file'); // 'file' | 'text'
+  const [sendFile, setSendFile] = useState(null);
+  const [sendText, setSendText] = useState('');
+  const [sendTitle, setSendTitle] = useState('');
+  const [sendExpiry, setSendExpiry] = useState('30m');
+  const [sendSelfDestruct, setSendSelfDestruct] = useState(false);
+  const [sendCaptchaToken, setSendCaptchaToken] = useState('');
+  const [sendLoading, setSendLoading] = useState(false);
+  const [sendResult, setSendResult] = useState(null);
+  const [sendTimeLeft, setSendTimeLeft] = useState(0);
+  const [showSendQR, setShowSendQR] = useState(false);
+  const [copiedTextContent, setCopiedTextContent] = useState(false);
+  const sendCountdownIntervalRef = useRef(null);
 
   // FAQ Accordion Active Index State
   const [activeFaq, setActiveFaq] = useState(0);
@@ -80,9 +93,12 @@ const Home = () => {
           fileData = await res.json();
         } else if (res.status === 429) {
           throw new Error('Too many lookup attempts. Please wait a moment.');
+        } else if (res.status === 404) {
+          const errRes = await res.json();
+          throw new Error(errRes.error || 'Code not found, expired, or already used.');
         }
       } catch (apiErr) {
-        if (apiErr.message?.includes('limit')) throw apiErr;
+        if (apiErr.message?.includes('limit') || apiErr.message?.includes('found')) throw apiErr;
         console.warn('Backend API unavailable, executing RPC fallback:', apiErr);
       }
 
@@ -96,6 +112,7 @@ const Home = () => {
           console.error('RPC Error:', rpcErr);
         } else if (rpcData && rpcData.length > 0) {
           fileData = rpcData[0];
+          fileData.kind = 'file';
         }
       }
 
@@ -123,6 +140,10 @@ const Home = () => {
         });
       }, 1000);
 
+      try {
+        track('quick_receive_success', { kind: fileData.kind || 'file' });
+      } catch (trackErr) {}
+
       showToast('Code verified successfully!', 'success');
     } catch (err) {
       console.error(err);
@@ -130,6 +151,147 @@ const Home = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Quick Send Form Submit Handler (No Account Needed)
+  const handleQuickSendSubmit = async (e) => {
+    e.preventDefault();
+
+    if (sendKind === 'file') {
+      if (!sendFile) {
+        showToast('Please select a file to upload.', 'warning');
+        return;
+      }
+      if (sendFile.size > 25 * 1024 * 1024) {
+        showToast('File size exceeds maximum limit of 25 MB.', 'danger');
+        return;
+      }
+      const checkExt = checkBlockedExtension(sendFile.name);
+      if (checkExt.isBlocked) {
+        showToast(`Prohibited file format (${checkExt.extension}). Executable/script files cannot be shared.`, 'danger');
+        return;
+      }
+    }
+
+    if (sendKind === 'text') {
+      if (!sendText || sendText.trim().length === 0) {
+        showToast('Please enter text or code content to send.', 'warning');
+        return;
+      }
+      if (new Blob([sendText]).size > 100 * 1024) {
+        showToast('Text content exceeds maximum limit of 100 KB.', 'danger');
+        return;
+      }
+    }
+
+    setSendLoading(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || '';
+      
+      let captchaToken = sendCaptchaToken;
+      if (!captchaToken && window.turnstile) {
+        captchaToken = window.turnstile.getResponse() || '';
+      }
+
+      if (sendKind === 'text') {
+        const res = await fetch(`${apiUrl}/api/quick/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            kind: 'text',
+            filename: sendTitle.trim() || 'snippet.txt',
+            text_content: sendText,
+            expiry_option: sendExpiry,
+            self_destruct: sendSelfDestruct,
+            captchaToken,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to create quick text share.');
+
+        setSendResult(data);
+        startSendCountdown(data.expires_at);
+
+        try { track('quick_send_created', { kind: 'text' }); } catch (trackErr) {}
+        showToast('Quick text code generated successfully!', 'success');
+      } else {
+        // 1. Initialize file share
+        const initRes = await fetch(`${apiUrl}/api/quick/init`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            kind: 'file',
+            filename: sendFile.name,
+            size: sendFile.size,
+            mime: sendFile.type || 'application/octet-stream',
+            expiry_option: sendExpiry,
+            self_destruct: sendSelfDestruct,
+            captchaToken,
+          }),
+        });
+
+        const initData = await initRes.json();
+        if (!initRes.ok) throw new Error(initData.error || 'Failed to initialize file upload.');
+
+        // 2. Upload file directly to Supabase storage signed URL
+        const uploadRes = await fetch(initData.signed_upload_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': sendFile.type || 'application/octet-stream',
+          },
+          body: sendFile,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error('Direct file upload to storage failed. Please try again.');
+        }
+
+        // 3. Complete and activate upload
+        const compRes = await fetch(`${apiUrl}/api/quick/${initData.id}/complete`, {
+          method: 'POST',
+        });
+
+        const compData = await compRes.json();
+        if (!compRes.ok) throw new Error(compData.error || 'Failed to verify file upload.');
+
+        setSendResult({
+          code: compData.code,
+          kind: 'file',
+          filename: compData.filename,
+          size: compData.size,
+          expires_at: compData.expires_at,
+          self_destruct: sendSelfDestruct,
+        });
+
+        startSendCountdown(compData.expires_at);
+
+        try { track('quick_send_created', { kind: 'file' }); } catch (trackErr) {}
+        showToast('Quick file upload code generated successfully!', 'success');
+      }
+    } catch (err) {
+      console.error('Quick send error:', err);
+      showToast(err.message || 'Quick send failed. Please try again.', 'danger');
+    } finally {
+      setSendLoading(false);
+    }
+  };
+
+  const startSendCountdown = (expiresAt) => {
+    const expiryTime = new Date(expiresAt);
+    const remainingSeconds = Math.max(0, Math.floor((expiryTime - new Date()) / 1000));
+    setSendTimeLeft(remainingSeconds);
+
+    if (sendCountdownIntervalRef.current) clearInterval(sendCountdownIntervalRef.current);
+    sendCountdownIntervalRef.current = setInterval(() => {
+      setSendTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(sendCountdownIntervalRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const handleDownloadFile = () => {
@@ -216,15 +378,16 @@ const Home = () => {
 
     return () => {
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+      if (sendCountdownIntervalRef.current) clearInterval(sendCountdownIntervalRef.current);
     };
   }, []);
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
       <SEO 
-        title="CloudVault (Home to Lab) - Student Personal Cloud & Online Clipboard" 
-        description="CloudVault (hometolab.in) is a student personal cloud storage and online clipboard bridge. Transfer project files and code notes between home and college computer lab terminals using temporary 6-digit sharing codes." 
-        keywords="hometolab, home to lab, hometolab.in, cloudvault, student cloud storage, online clipboard, temporary file sharing, college computer lab file transfer" 
+        title="CloudVault (Home to Lab) - Send Files Without Login & Online Clipboard" 
+        description="Send files, code scripts, and text notes without login between home and college computer lab terminals. Instant 6-digit access codes and online clipboard bridge." 
+        keywords="hometolab, home to lab, send files without login, cloudvault, student cloud storage, online clipboard, no login file transfer, temporary file sharing, college lab files" 
         canonical="https://www.hometolab.in/" 
       />
       
@@ -247,10 +410,16 @@ const Home = () => {
         {/* Desktop Navbar Links */}
         <nav className="hidden md:flex items-center gap-6">
           <button 
-            onClick={() => scrollToSection('retrieve-section')} 
+            onClick={() => { setActiveTab('receive'); scrollToSection('retrieve-section'); }} 
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
           >
-            Retrieve Code
+            Receive Code
+          </button>
+          <button 
+            onClick={() => { setActiveTab('send'); scrollToSection('retrieve-section'); }} 
+            className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
+          >
+            Send (No Login)
           </button>
           <button 
             onClick={() => scrollToSection('features')} 
@@ -265,16 +434,16 @@ const Home = () => {
             How It Works
           </button>
           <Link 
+            to="/blog" 
+            className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors"
+          >
+            Blog
+          </Link>
+          <Link 
             to="/about" 
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors"
           >
-            About Us
-          </Link>
-          <Link 
-            to="/contact" 
-            className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors"
-          >
-            Contact
+            About
           </Link>
 
           {user ? (
@@ -323,8 +492,11 @@ const Home = () => {
             </div>
             
             <div className="flex flex-col gap-3 font-semibold text-sm text-slate-700 dark:text-slate-300">
-              <button onClick={() => scrollToSection('retrieve-section')} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
-                <DownloadCloud className="w-4 h-4 text-brand-primary" /> Retrieve Share Code
+              <button onClick={() => { setActiveTab('receive'); scrollToSection('retrieve-section'); }} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                <DownloadCloud className="w-4 h-4 text-brand-primary" /> Receive Share Code
+              </button>
+              <button onClick={() => { setActiveTab('send'); scrollToSection('retrieve-section'); }} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                <Send className="w-4 h-4 text-brand-primary" /> Send (No Sign-Up)
               </button>
               <button onClick={() => scrollToSection('features')} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-brand-primary" /> Features
@@ -332,11 +504,11 @@ const Home = () => {
               <button onClick={() => scrollToSection('how-it-works')} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
                 <Zap className="w-4 h-4 text-brand-primary" /> How It Works
               </button>
-              <Link to="/about" onClick={() => setIsDrawerOpen(false)} className="py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-brand-primary" /> About Us
+              <Link to="/blog" onClick={() => setIsDrawerOpen(false)} className="py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-brand-primary" /> Blog &amp; Guides
               </Link>
-              <Link to="/contact" onClick={() => setIsDrawerOpen(false)} className="py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-brand-primary" /> Contact Us
+              <Link to="/about" onClick={() => setIsDrawerOpen(false)} className="py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand-primary" /> About Us
               </Link>
             </div>
 
@@ -366,7 +538,7 @@ const Home = () => {
         {/* Pill Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-bold tracking-wider uppercase mb-6 animate-fade-in">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>Easy Home to Lab Transfer</span>
+          <span>No-Login Quick Send &amp; Receive</span>
         </div>
 
         {/* Hero Title */}
@@ -376,69 +548,269 @@ const Home = () => {
 
         {/* Hero Subtitle */}
         <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-8">
-          Send your assignment files, code snippets, or notes from home and open them in seconds on any college computer. No USB drives, no logging into personal accounts on shared PCs.
+          Send files, code snippets, or notes from home without signing in. Get a 6-digit code and open your work in seconds on any college computer. No USB drives, no left-over logins.
         </p>
 
-        {/* CTA Buttons */}
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 mb-12 w-full max-w-md">
-          {user ? (
-            <Link to="/dashboard" className="btn-primary py-3 px-6 text-sm font-bold shadow-lg shadow-brand-primary/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
-              Open Vault Dashboard <ArrowRight className="w-4.5 h-4.5" />
-            </Link>
-          ) : (
-            <Link to="/register" className="btn-primary py-3 px-6 text-sm font-bold shadow-lg shadow-brand-primary/25 hover:scale-[1.02] transition-transform w-full sm:w-auto">
-              Get Started Free <ArrowRight className="w-4.5 h-4.5" />
-            </Link>
-          )}
-          <button 
-            onClick={() => scrollToSection('retrieve-section')} 
-            className="btn-secondary py-3 px-6 text-sm font-semibold w-full sm:w-auto cursor-pointer"
-          >
-            Retrieve Code
-          </button>
-        </div>
-
-        {/* Share Code Quick Retrieval Card */}
+        {/* Dual Mode Card: Send vs Receive */}
         <div id="retrieve-section" className="glass-card max-w-lg w-full p-6 sm:p-7 shadow-2xl border-brand-primary/30 mb-16 text-left relative overflow-hidden group">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-xl">
-              <DownloadCloud className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Quick File Retrieval</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">No account required to download</p>
-            </div>
-          </div>
           
-          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
-            Enter your <strong>6-digit access code</strong> to download your file on any PC instantly:
-          </p>
-
-          <form onSubmit={handleRetrieveCode} className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              maxLength={6}
-              placeholder="XXXXXX"
-              value={shareCode}
-              onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-              className="w-full sm:w-40 text-center font-bold font-mono tracking-[6px] text-xl uppercase h-12 bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 focus:border-brand-primary dark:focus:border-brand-primary-light focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all"
-              required
-              aria-label="6-Digit Access Code"
-            />
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer"
+          {/* Main Mode Toggle Buttons */}
+          <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl mb-5 font-bold text-xs">
+            <button
+              onClick={() => setActiveTab('receive')}
+              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'receive'
+                  ? 'bg-white dark:bg-slate-800 text-brand-primary shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
             >
-              {loading ? (
-                <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
-              ) : (
-                <>
-                  <Download className="w-4 h-4" /> Verify & Download
-                </>
-              )}
+              <DownloadCloud className="w-4 h-4" /> Receive Code
             </button>
-          </form>
+
+            <button
+              onClick={() => setActiveTab('send')}
+              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'send'
+                  ? 'bg-brand-primary text-white shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              <Send className="w-4 h-4" /> Send - No Login
+            </button>
+          </div>
+
+          {activeTab === 'receive' ? (
+            /* RECEIVE TAB */
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-xl">
+                  <DownloadCloud className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">Quick Retrieval</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">No account required to download or copy</p>
+                </div>
+              </div>
+              
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
+                Enter your <strong>6-digit access code</strong> to download files or open text snippets on any PC instantly:
+              </p>
+
+              <form onSubmit={handleRetrieveCode} className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  maxLength={6}
+                  placeholder="XXXXXX"
+                  value={shareCode}
+                  onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
+                  className="w-full sm:w-40 text-center font-bold font-mono tracking-[6px] text-xl uppercase h-12 bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 focus:border-brand-primary dark:focus:border-brand-primary-light focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all"
+                  required
+                  aria-label="6-Digit Access Code"
+                />
+                <button 
+                  type="submit" 
+                  disabled={loading} 
+                  className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4" /> Verify &amp; Get
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+          ) : (
+            /* SEND TAB (NO ACCOUNT NEEDED) */
+            <div>
+              {sendResult ? (
+                /* Success Result Panel */
+                <div className="space-y-4 animate-fade-in">
+                  <div className="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl text-center">
+                    <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
+                    <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300">Access Code Created!</div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">No login needed. Type this code on your receiving PC.</p>
+                    
+                    <div className="my-3 font-mono font-black tracking-[8px] text-3xl text-brand-primary bg-white dark:bg-slate-900 py-2.5 px-4 rounded-xl border border-brand-primary/30 inline-block shadow-inner select-all">
+                      {sendResult.code}
+                    </div>
+
+                    <div className="flex items-center justify-center gap-2.5 mt-2">
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(sendResult.code);
+                          showToast('Access code copied to clipboard!', 'success');
+                        }}
+                        className="btn-primary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <Copy className="w-3.5 h-3.5" /> Copy Code
+                      </button>
+
+                      <button
+                        onClick={() => setShowSendQR(true)}
+                        className="btn-secondary py-2 px-3.5 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5 text-brand-primary" /> QR Code
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500 flex justify-between items-center px-1 font-mono">
+                    <span>Type: <strong className="uppercase">{sendResult.kind}</strong></span>
+                    <span>Expires in: <strong className="text-amber-500">{Math.floor(sendTimeLeft / 60)}m {sendTimeLeft % 60}s</strong></span>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSendResult(null);
+                      setSendFile(null);
+                      setSendText('');
+                      setSendTitle('');
+                    }}
+                    className="w-full btn-secondary py-2.5 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> Send Another File or Text
+                  </button>
+                </div>
+              ) : (
+                /* Creation Form */
+                <form onSubmit={handleQuickSendSubmit} className="space-y-4">
+                  
+                  {/* Kind Switcher */}
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSendKind('file')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        sendKind === 'file'
+                          ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <UploadCloud className="w-3.5 h-3.5" /> File (Max 25MB)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSendKind('text')}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                        sendKind === 'text'
+                          ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Text / Code
+                    </button>
+                  </div>
+
+                  {sendKind === 'file' ? (
+                    <div className="space-y-2">
+                      <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-primary rounded-xl p-5 text-center bg-slate-50/50 dark:bg-slate-900/40 transition-colors relative cursor-pointer group">
+                        <input
+                          type="file"
+                          onChange={(e) => {
+                            const selected = e.target.files[0];
+                            if (selected) {
+                              if (selected.size > 25 * 1024 * 1024) {
+                                showToast('File size exceeds 25 MB limit.', 'danger');
+                                return;
+                              }
+                              const check = checkBlockedExtension(selected.name);
+                              if (check.isBlocked) {
+                                showToast(`Executable format (${check.extension}) is blocked.`, 'danger');
+                                return;
+                              }
+                              setSendFile(selected);
+                            }
+                          }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                        />
+                        <UploadCloud className="w-8 h-8 text-brand-primary mx-auto mb-2 group-hover:scale-110 transition-transform" />
+                        {sendFile ? (
+                          <div>
+                            <span className="font-bold text-xs text-slate-900 dark:text-white block truncate">{sendFile.name}</span>
+                            <span className="text-[11px] text-slate-500">{formatBytes(sendFile.size)} • Click to change</span>
+                          </div>
+                        ) : (
+                          <div>
+                            <span className="font-bold text-xs text-slate-800 dark:text-slate-200 block">Click or Drag File Here</span>
+                            <span className="text-[10px] text-slate-400">Max 25 MB • Executable (.exe, .bat) blocked</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder="Title / Filename (e.g. Lab3_Code.py or snippet.txt)"
+                        value={sendTitle}
+                        onChange={(e) => setSendTitle(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-primary"
+                      />
+                      <textarea
+                        rows={4}
+                        placeholder="Paste your text or code snippets here (Max 100 KB)..."
+                        value={sendText}
+                        onChange={(e) => setSendText(e.target.value)}
+                        className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-primary font-mono resize-none"
+                        required
+                      ></textarea>
+                    </div>
+                  )}
+
+                  {/* Expiry & Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Code Duration</label>
+                      <select
+                        value={sendExpiry}
+                        onChange={(e) => setSendExpiry(e.target.value)}
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-primary"
+                      >
+                        <option value="10m">10 Minutes</option>
+                        <option value="30m">30 Minutes (Default)</option>
+                        <option value="1h">1 Hour</option>
+                        <option value="6h">6 Hours</option>
+                        <option value="24h">24 Hours</option>
+                      </select>
+                    </div>
+
+                    <div className="flex items-center pt-4">
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={sendSelfDestruct}
+                          onChange={(e) => setSendSelfDestruct(e.target.checked)}
+                          className="rounded text-brand-primary focus:ring-brand-primary"
+                        />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Single-Use Code</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Hidden Cloudflare Turnstile widget placeholder if available */}
+                  <div id="cf-turnstile-container" className="hidden"></div>
+
+                  <button
+                    type="submit"
+                    disabled={sendLoading}
+                    className="w-full btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer shadow-md"
+                  >
+                    {sendLoading ? (
+                      <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" /> Get 6-Digit Access Code
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
         </div>
 
         {/* Interactive App Window Mockup */}
@@ -458,7 +830,7 @@ const Home = () => {
             </div>
             
             <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
-              Private & Safe
+              Private &amp; Safe
             </div>
           </div>
           
@@ -488,7 +860,7 @@ const Home = () => {
                 }`}
               >
                 <Clipboard className="w-4 h-4" />
-                <span>Notes & Clipboard</span>
+                <span>Notes &amp; Clipboard</span>
               </button>
 
               <button
@@ -558,15 +930,15 @@ const Home = () => {
                     <div className="border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-900/40 hover:border-brand-primary/50 transition-colors group">
                       <div className="flex justify-between items-center">
                         <Archive className="w-6 h-6 text-amber-500" />
-                        <span className="px-2 py-0.5 bg-red-500/10 text-red-600 dark:text-red-400 text-[9px] font-bold rounded">BURN</span>
+                        <span className="px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 text-[9px] font-bold rounded">SINGLE USE</span>
                       </div>
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Assignment_Final.zip</span>
-                      <span className="text-[10px] text-slate-400">14.2 MB • Self-Destruct</span>
+                      <span className="text-[10px] text-slate-400">14.2 MB • Single-Use</span>
                       <button 
-                        onClick={() => handleDemoCopy('X9W4Q1', 'Burn Code X9W4Q1')}
-                        className="mt-2 text-[10px] font-bold text-red-500 hover:underline flex items-center gap-1"
+                        onClick={() => handleDemoCopy('X9W4Q1', 'Single-Use Code X9W4Q1')}
+                        className="mt-2 text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-1"
                       >
-                        <AlertTriangle className="w-3 h-3" /> Burn Code: X9W4Q1
+                        <Key className="w-3 h-3" /> Single-Use: X9W4Q1
                       </button>
                     </div>
                   </div>
@@ -594,10 +966,10 @@ const Home = () => {
                 <div className="space-y-4 animate-fade-in">
                   <div className="flex justify-between items-center gap-2">
                     <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
-                      <Clipboard className="w-4 h-4 text-amber-500" /> Quick Notes & Code Snippets
+                      <Clipboard className="w-4 h-4 text-amber-500" /> Quick Notes &amp; Code Snippets
                     </span>
                     <span className="px-2.5 py-1 bg-amber-500 text-white text-[10px] font-bold rounded-lg flex items-center gap-1">
-                      <Lock className="w-3 h-3" /> Password Protected
+                      <Lock className="w-3 h-3" /> Passphrase Protected
                     </span>
                   </div>
 
@@ -605,10 +977,10 @@ const Home = () => {
                     <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex justify-between items-center text-xs">
                       <div>
                         <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                          <Lock className="w-3.5 h-3.5 text-amber-500" /> Exam Seat & Terminal Details
+                          <Lock className="w-3.5 h-3.5 text-amber-500" /> Exam Seat &amp; Terminal Details
                         </div>
                         <div className="text-[11px] font-mono text-slate-600 dark:text-slate-300 mt-1">
-                          Lab 304 • Machine #18 • Password Protected Note
+                          Lab 304 • Machine #18 • Protected Note
                         </div>
                       </div>
                       <span className="px-2 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded-full shrink-0">Pinned</span>
@@ -672,7 +1044,7 @@ const Home = () => {
       <section className="py-12 bg-white dark:bg-slate-900/50 border-y border-slate-200/80 dark:border-slate-800 z-10 px-4 sm:px-6 lg:px-[8%]">
         <div className="max-w-5xl mx-auto flex flex-col gap-6 items-center">
           <div className="text-center mb-2">
-            <span className="text-xs font-bold text-brand-primary uppercase tracking-widest">Built for Convenience & Security</span>
+            <span className="text-xs font-bold text-brand-primary uppercase tracking-widest">Built for Convenience &amp; Security</span>
             <h2 className="text-2xl font-bold font-display text-slate-900 dark:text-white mt-1">Smart Features for College Labs</h2>
           </div>
 
@@ -688,18 +1060,18 @@ const Home = () => {
 
             <div className="glass-card p-5 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-brand-primary">
-                <Lock className="w-5.5 h-5.5 stroke-[2.5]" />
+                <Send className="w-5.5 h-5.5 stroke-[2.5]" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">Encrypted</div>
-              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Private Notes</div>
+              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">No Login</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Quick Send Bridge</div>
             </div>
 
             <div className="glass-card p-5 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-brand-primary">
                 <UploadCloud className="w-5.5 h-5.5 stroke-[2.5]" />
               </div>
-              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">100 MB</div>
-              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Single File Upload</div>
+              <div className="text-2xl sm:text-3xl font-black font-display text-brand-primary">25 MB</div>
+              <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-1">Quick File Send</div>
             </div>
 
             <div className="glass-card p-5 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
@@ -732,11 +1104,11 @@ const Home = () => {
           
           <div className="glass-card p-6 flex flex-col gap-3 hover:border-brand-primary/40 transition-all group">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <UploadCloud className="w-6 h-6" />
+              <Send className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Drag & Drop Upload</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">No-Login Quick Send</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Upload images, PDFs, ZIP archives, lab manuals, and code scripts up to 100MB with automatic format categories.
+              Send files up to 25MB or text code snippets instantly without creating an account. Get a 6-digit access code immediately.
             </p>
           </div>
 
@@ -746,17 +1118,17 @@ const Home = () => {
             </div>
             <h3 className="font-bold text-slate-900 dark:text-white text-base">6-Digit Access Codes</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Generate 6-character access codes valid from 1 minute up to 7 days. Anyone with the code can download directly.
+              Generate 6-character access codes valid from 10 minutes up to 24 hours (or 7 days for accounts). Anyone with the code can retrieve work directly.
             </p>
           </div>
 
           <div className="glass-card p-6 flex flex-col gap-3 hover:border-brand-primary/40 transition-all group">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <AlertTriangle className="w-6 h-6 text-red-500" />
+              <Zap className="w-6 h-6 text-amber-500" />
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Self-Destruct Links</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">Single-Use Code Links</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Create single-use links where the share code works only once and expires immediately upon first download.
+              Enable single-use mode to ensure your share code expires immediately after the first view or download.
             </p>
           </div>
 
@@ -764,9 +1136,9 @@ const Home = () => {
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Lock className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white text-base">Password Protected Notes</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-base">Passphrase Protected Notes</h3>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Lock sensitive text notes and code snippets with your personal passphrase. The server cannot read your secret text.
+              Lock sensitive text notes and code snippets with your personal passphrase. Passphrase never leaves your browser.
             </p>
           </div>
 
@@ -801,7 +1173,7 @@ const Home = () => {
               Useful Workflows
             </span>
             <h2 className="text-3xl font-bold font-display text-slate-900 dark:text-white mt-4">
-              Made for College Labs & Assignments
+              Made for College Labs &amp; Assignments
             </h2>
             <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm max-w-lg mx-auto">
               How CloudVault helps you complete assignments and practicals smoothly.
@@ -815,7 +1187,7 @@ const Home = () => {
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                   <FileCode className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Coding Labs & Scripts</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Coding Labs &amp; Scripts</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1">
                   Send Python, Java, C++, JS, or SQL code files directly from home to lab PCs without emailing yourself.
                 </p>
@@ -830,7 +1202,7 @@ const Home = () => {
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                   <Clipboard className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Commands & Seat Notes</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Commands &amp; Seat Notes</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1">
                   Save git commands, database connections, and seat details for fast single-click copying during practical exams.
                 </p>
@@ -845,13 +1217,13 @@ const Home = () => {
                 <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
                   <BookOpen className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Lab Manuals & PDFs</h3>
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white">Lab Manuals &amp; PDFs</h3>
                 <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-1">
                   Keep lab instruction manuals and reference PDFs ready on any computer screen in seconds.
                 </p>
               </div>
               <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                <FileCheck className="w-3.5 h-3.5 text-emerald-500" /> Up to 100MB
+                <FileCheck className="w-3.5 h-3.5 text-emerald-500" /> Up to 100MB (Accounts)
               </div>
             </div>
 
@@ -895,9 +1267,9 @@ const Home = () => {
               <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center font-display font-extrabold text-base shadow-md">
                 1
               </div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">Upload from Home</h3>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Send from Home</h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Sign into your CloudVault account from home. Upload assignment files or paste code snippets into your private vault.
+                Use Quick Send without login or sign into your vault account. Upload assignment files or paste code snippets.
               </p>
             </div>
 
@@ -907,7 +1279,7 @@ const Home = () => {
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Get 6-Digit Code</h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Click share to generate a <strong>6-digit access code</strong> or QR code. You can also turn on self-destruct or password protection.
+                Get an instant <strong>6-digit access code</strong> or QR code link. Enable single-use or expiration options as needed.
               </p>
             </div>
 
@@ -917,7 +1289,7 @@ const Home = () => {
               </div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Open in College Lab</h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Open CloudVault on any college lab computer, type the 6-digit code on the home page, and download your work instantly.
+                Open CloudVault on any college lab computer, enter your 6-digit code, and download your work or copy text instantly.
               </p>
             </div>
 
@@ -930,33 +1302,37 @@ const Home = () => {
         <div className="max-w-3xl mx-auto flex flex-col gap-10">
           <div>
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-xs font-bold rounded-full uppercase tracking-wider">
-              Help & FAQ
+              Help &amp; FAQ
             </span>
             <h2 className="text-3xl font-bold font-display text-slate-900 dark:text-white mt-4">
               Frequently Asked Questions
             </h2>
             <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm">
-              Got questions about file limits, safety, or access codes? Here are simple answers.
+              Got questions about Quick Send, file limits, or access codes? Here are simple answers.
             </p>
           </div>
 
           <div className="flex flex-col gap-3.5 text-left">
             {[
               {
+                q: 'Do I need an account to send or receive files?',
+                a: 'No account needed! Anyone can use Quick Send to send files up to 25MB or text snippets up to 100KB, and retrieve them on any PC using a 6-digit access code.'
+              },
+              {
                 q: 'Is it safe to use CloudVault on shared college computers?',
-                a: 'Yes! CloudVault is specifically designed for public lab terminals. If you do not select "Remember Me" during login, closing your browser tab automatically wipes your session so no one else can open your account.'
+                a: 'Yes! CloudVault is specifically designed for public lab terminals. Quick Send requires zero login credentials, and account logins auto-clear session data when you close the browser tab.'
               },
               {
-                q: 'Do I need to create an account to download a file with a 6-digit code?',
-                a: 'No account needed! Anyone with a valid 6-digit access code or QR code link can enter it directly on the home page and download the file immediately.'
+                q: 'What happens when a Quick Share code expires?',
+                a: 'Quick shares automatically delete permanently upon code expiration (or 5 minutes after consumption for single-use items), freeing up storage and ensuring your files do not remain online.'
               },
               {
-                q: 'What is a "Self-Destruct" share link?',
+                q: 'What is a "Single-Use Code" link?',
                 a: 'A single-use link invalidates the access code immediately after it is downloaded once so it cannot be reused.'
               },
               {
-                q: 'What is the file size limit?',
-                a: 'CloudVault lets you upload single files up to 100MB, covering code scripts, lab manuals, PDFs, images, and ZIP archives.'
+                q: 'What are the file size limits?',
+                a: 'Quick Send allows up to 25MB for guest users without an account. Registered free accounts can upload files up to 100MB in their personal vault.'
               },
               {
                 q: 'Are executable files allowed?',
@@ -992,7 +1368,7 @@ const Home = () => {
         <div className="max-w-4xl mx-auto flex flex-col gap-10">
           <div className="text-center">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-xs font-bold rounded-full uppercase tracking-wider">
-              Feedback & Suggestions
+              Feedback &amp; Suggestions
             </span>
             <h2 className="text-3xl font-bold font-display text-slate-900 dark:text-white mt-4">
               Help Us Make CloudVault Better
@@ -1021,11 +1397,11 @@ const Home = () => {
               <div className="space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span><strong>Private Notes:</strong> Password protect sensitive text notes.</span>
+                  <span><strong>No-Login Quick Send:</strong> Transfer files up to 25MB instantly.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span><strong>Auto Expire:</strong> Temporary share codes delete automatically.</span>
+                  <span><strong>Auto Expire:</strong> Quick shares auto-delete upon expiration.</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
@@ -1109,7 +1485,7 @@ const Home = () => {
       {/* Footer */}
       <PublicFooter />
 
-      {/* Verified File Download Modal */}
+      {/* Verified Retrieval Modal (Supports both File downloads & Text snippets) */}
       {showRetrieveModal && retrievedFile && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-fade-in">
           <div className="glass-card max-w-md w-full p-6 sm:p-7 shadow-2xl relative border-brand-primary/30">
@@ -1123,48 +1499,77 @@ const Home = () => {
             
             <div className="flex items-center gap-2.5 mb-2 text-emerald-600 dark:text-emerald-400 font-bold text-base">
               <FileCheck className="w-5.5 h-5.5 stroke-[2.5]" />
-              <h3>File Found!</h3>
+              <h3>{retrievedFile.kind === 'text' ? 'Text Snippet Found!' : 'File Found!'}</h3>
             </div>
             
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
-              Your 6-digit access code is valid. Here are your file details:
+              Your 6-digit access code is valid. Here are your details:
             </p>
 
             {retrievedFile.self_destruct && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/40 rounded-xl text-xs text-red-700 dark:text-red-300 flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
+              <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/40 rounded-xl text-xs text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
                 <div>
-                  <span className="font-bold">Single-Use Code:</span> This access code will expire immediately after this download.
+                  <span className="font-bold">Single-Use Code:</span> This code has been consumed and will expire immediately after closing.
                 </div>
               </div>
             )}
 
-            <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-5 flex flex-col gap-2.5 text-xs text-slate-700 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 font-mono">
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">File Name</span>
-                <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={retrievedFile.filename}>
-                  {retrievedFile.filename}
-                </span>
+            {retrievedFile.kind === 'text' ? (
+              /* Inline Text Display */
+              <div className="space-y-3 mb-5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-slate-800 dark:text-white truncate max-w-[200px]">{retrievedFile.filename || 'Text Snippet'}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">{formatBytes(retrievedFile.size)}</span>
+                </div>
+
+                <div className="relative">
+                  <pre className="bg-slate-900 text-slate-100 p-3.5 rounded-xl font-mono text-xs overflow-x-auto max-h-56 select-all border border-slate-800 whitespace-pre-wrap leading-relaxed">
+                    {retrievedFile.text_content}
+                  </pre>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(retrievedFile.text_content);
+                      setCopiedTextContent(true);
+                      showToast('Copied text to clipboard!', 'success');
+                      setTimeout(() => setCopiedTextContent(false), 2000);
+                    }}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-800 text-brand-primary hover:bg-slate-700 transition-colors cursor-pointer"
+                    title="Copy text"
+                  >
+                    {copiedTextContent ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Size</span>
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {formatBytes(retrievedFile.size)}
-                </span>
+            ) : (
+              /* File Details Box */
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-4 mb-5 flex flex-col gap-2.5 text-xs text-slate-700 dark:text-slate-300 bg-slate-50/50 dark:bg-slate-900/50 font-mono">
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">File Name</span>
+                  <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]" title={retrievedFile.filename}>
+                    {retrievedFile.filename}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Size</span>
+                  <span className="font-bold text-slate-900 dark:text-white">
+                    {formatBytes(retrievedFile.size)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Format</span>
+                  <span className="font-bold text-slate-900 dark:text-white uppercase">
+                    {retrievedFile.file_type || 'File'}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center gap-2">
+                  <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Code Expiry</span>
+                  <span className="font-bold text-amber-500">
+                    {Math.floor(shareTimeLeft / 60)}m {shareTimeLeft % 60}s remaining
+                  </span>
+                </div>
               </div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Format</span>
-                <span className="font-bold text-slate-900 dark:text-white uppercase">
-                  {retrievedFile.file_type}
-                </span>
-              </div>
-              <div className="flex justify-between items-center gap-2">
-                <span className="text-slate-500 dark:text-slate-400 font-sans font-semibold">Code Expiry</span>
-                <span className="font-bold text-amber-500">
-                  {Math.floor(shareTimeLeft / 60)}m {shareTimeLeft % 60}s remaining
-                </span>
-              </div>
-            </div>
+            )}
 
             <div className="flex gap-3 justify-end">
               <button
@@ -1173,15 +1578,38 @@ const Home = () => {
               >
                 Close
               </button>
-              <button
-                onClick={handleDownloadFile}
-                className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <Download className="w-4 h-4" /> Download File Now
-              </button>
+
+              {retrievedFile.kind === 'text' ? (
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(retrievedFile.text_content);
+                    showToast('Copied text snippet to clipboard!', 'success');
+                  }}
+                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Copy className="w-4 h-4" /> Copy Text Snippet
+                </button>
+              ) : (
+                <button
+                  onClick={handleDownloadFile}
+                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                >
+                  <Download className="w-4 h-4" /> Download File Now
+                </button>
+              )}
             </div>
           </div>
         </div>
+      )}
+
+      {/* QR Code Modal for Quick Send result */}
+      {showSendQR && sendResult && (
+        <QRCodeModal
+          isOpen={showSendQR}
+          onClose={() => setShowSendQR(false)}
+          code={sendResult.code}
+          filename={sendResult.filename}
+        />
       )}
 
     </div>

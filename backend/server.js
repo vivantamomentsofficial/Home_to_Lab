@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const shareRouter = require('./routes/share');
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
+const { router: quickRouter, cleanupQuickShares } = require('./routes/quick');
 
 // Fail fast if required environment variables are missing
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
@@ -78,8 +79,14 @@ app.get('/api/config', (req, res) => {
 
 // Mounting Router Modules
 app.use('/api/share', shareRouter);
+app.use('/api/quick', quickRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/auth', authRouter);
+
+// Background interval: Cleanup expired/consumed/stale quick shares every 10 minutes
+setInterval(() => {
+  cleanupQuickShares().catch(err => console.error('Periodic quick shares cleanup failed:', err));
+}, 10 * 60 * 1000);
 
 // Default status probe
 app.get('/api/health', (req, res) => {

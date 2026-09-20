@@ -52,6 +52,7 @@ const PrivacyPolicy = () => {
               <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
                 <li><strong className="text-slate-800 dark:text-slate-200">Account Data:</strong> Registered email address, full display name, and college/school name.</li>
                 <li><strong className="text-slate-800 dark:text-slate-200">User Content:</strong> Files, clipboard notes, and temporary 6-digit share codes uploaded to your vault.</li>
+                <li><strong className="text-slate-800 dark:text-slate-200">No-Login Quick Shares:</strong> Files and text shared without an account automatically delete permanently upon code expiration. Anonymized hashed IP addresses (SHA-256) are retained for 24 hours for rate limiting and abuse prevention.</li>
                 <li><strong className="text-slate-800 dark:text-slate-200">Security &amp; Audit Logs:</strong> IP address, user agent, login timestamps, and access logs recorded for account security auditing.</li>
               </ul>
             </section>

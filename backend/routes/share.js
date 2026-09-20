@@ -5,6 +5,8 @@ const rateLimit = require('express-rate-limit');
 const { createClient } = require('@supabase/supabase-js');
 const { requireAuth } = require('../middleware/auth');
 
+const { isBlockedExtension, getSupabaseAdmin } = require('../utils/security');
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
 
@@ -17,18 +19,7 @@ const shareLookupLimiter = rateLimit({
   message: { error: 'Too many share code lookup requests from this IP. Please try again in a minute.' },
 });
 
-// Helper function to generate cryptographically secure 6-character alphanumeric uppercase code
-const generateSecureShareCode = () => {
-  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // 32 unambiguous chars
-  const bytes = crypto.randomBytes(6);
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars[bytes[i] % chars.length];
-  }
-  return result;
-};
-
-// GET /api/share/:code - Securely retrieve shared file metadata via SECURITY DEFINER RPC
+// GET /api/share/:code - Securely retrieve shared file/text metadata (supports vault share_codes & quick_shares)
 router.get('/:code', shareLookupLimiter, async (req, res) => {
   const { code } = req.params;
 
@@ -41,31 +32,92 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-    // Call the SECURITY DEFINER RPC function (avoids exposing entire share_codes/files tables)
-    const { data, error } = await supabase.rpc('get_shared_file_by_code', {
+    // 1. Try vault RPC get_shared_file_by_code
+    const { data: rpcData } = await supabase.rpc('get_shared_file_by_code', {
       p_code: normalizedCode,
     });
 
-    if (error) {
-      console.error('Error in get_shared_file_by_code RPC:', error);
-      return res.status(500).json({ error: 'Failed to retrieve shared file.' });
+    if (rpcData && rpcData.length > 0) {
+      const fileRecord = rpcData[0];
+      return res.json({
+        kind: 'file',
+        file_id: fileRecord.file_id,
+        filename: fileRecord.filename,
+        size: fileRecord.size,
+        file_type: fileRecord.file_type,
+        signed_url: fileRecord.signed_url,
+        expires_at: fileRecord.expires_at,
+        self_destruct: fileRecord.self_destruct,
+      });
     }
 
-    if (!data || data.length === 0) {
+    // 2. Try quick_shares table if not found in vault share_codes
+    const supabaseAdmin = getSupabaseAdmin();
+    const nowIso = new Date().toISOString();
+
+    const { data: quickRow, error: quickErr } = await supabaseAdmin
+      .from('quick_shares')
+      .select('*')
+      .eq('code', normalizedCode)
+      .eq('status', 'active')
+      .gt('expires_at', nowIso)
+      .maybeSingle();
+
+    if (quickErr || !quickRow) {
       return res.status(404).json({ error: 'Sharing code not found, already consumed, or expired.' });
     }
 
-    const fileRecord = data[0];
+    // Atomic self-destruct check: flip status to 'consumed' so code only works once
+    if (quickRow.self_destruct) {
+      const { data: updated } = await supabaseAdmin
+        .from('quick_shares')
+        .update({ status: 'consumed', consumed_at: nowIso })
+        .eq('id', quickRow.id)
+        .eq('status', 'active')
+        .select();
 
-    return res.json({
-      file_id: fileRecord.file_id,
-      filename: fileRecord.filename,
-      size: fileRecord.size,
-      file_type: fileRecord.file_type,
-      signed_url: fileRecord.signed_url,
-      expires_at: fileRecord.expires_at,
-      self_destruct: fileRecord.self_destruct,
-    });
+      if (!updated || updated.length === 0) {
+        return res.status(404).json({ error: 'Sharing code already consumed or expired.' });
+      }
+    }
+
+    if (quickRow.kind === 'text') {
+      return res.json({
+        kind: 'text',
+        file_id: quickRow.id,
+        filename: quickRow.filename || 'snippet.txt',
+        size: quickRow.size,
+        file_type: 'text',
+        text_content: quickRow.text_content,
+        signed_url: null,
+        expires_at: quickRow.expires_at,
+        self_destruct: quickRow.self_destruct,
+      });
+    }
+
+    if (quickRow.kind === 'file') {
+      // Create a fresh 5-minute signed URL per lookup from 'quick' storage bucket
+      const { data: signedData, error: signedErr } = await supabaseAdmin.storage
+        .from('quick')
+        .createSignedUrl(quickRow.storage_path, 300, { download: quickRow.filename });
+
+      if (signedErr || !signedData?.signedUrl) {
+        return res.status(500).json({ error: 'Failed to generate download URL for file.' });
+      }
+
+      return res.json({
+        kind: 'file',
+        file_id: quickRow.id,
+        filename: quickRow.filename,
+        size: quickRow.size,
+        file_type: 'other',
+        signed_url: signedData.signedUrl,
+        expires_at: quickRow.expires_at,
+        self_destruct: quickRow.self_destruct,
+      });
+    }
+
+    return res.status(404).json({ error: 'Sharing code not found or expired.' });
   } catch (err) {
     console.error('Shared code resolution failed:', err);
     return res.status(500).json({ error: 'Internal server failure during code resolution.' });
