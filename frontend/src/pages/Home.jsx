@@ -796,12 +796,7 @@ const Home = () => {
                     </div>
                   </div>
 
-                  {/* Cloudflare Turnstile widget container */}
-                  <div
-                    id="cf-turnstile-container"
-                    className="cf-turnstile flex justify-center my-2 min-h-[65px]"
-                    data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAEQ7vtfVgOop_jfH'}
-                  ></div>
+
 
                   <button
                     type="submit"
