@@ -36,10 +36,10 @@ const dailyInitLimiter = rateLimit({
 });
 
 /**
- * Verify Cloudflare Turnstile CAPTCHA server-side
+ * Verify hCaptcha CAPTCHA server-side
  */
-async function verifyTurnstile(token, ip) {
-  const secretKey = process.env.TURNSTILE_SECRET_KEY || '0x4AAAAAAEQ7vjk7zY4vqXlLDBjua2_6gOc';
+async function verifyHCaptcha(token, ip) {
+  const secretKey = process.env.HCAPTCHA_SECRET_KEY;
   if (!secretKey || !token) {
     return true; // Allow if secret key or client token is not provided
   }
@@ -48,16 +48,18 @@ async function verifyTurnstile(token, ip) {
     const formData = new URLSearchParams();
     formData.append('secret', secretKey);
     formData.append('response', token);
+    formData.append('sitekey', 'c9706ec6-00e8-4d8c-a8b0-5ee4695ec056');
     if (ip) formData.append('remoteip', ip);
 
-    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    const res = await fetch('https://api.hcaptcha.com/siteverify', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData,
     });
     const outcome = await res.json();
     return outcome.success === true;
   } catch (err) {
-    console.error('Turnstile verification error:', err);
+    console.error('hCaptcha verification error:', err);
     return true; // Fallback to true on network error
   }
 }
@@ -145,8 +147,8 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
       captchaToken,
     } = req.body;
 
-    // 1. Verify Cloudflare Turnstile Captcha
-    const isCaptchaValid = await verifyTurnstile(captchaToken, req.ip);
+    // 1. Verify hCaptcha CAPTCHA
+    const isCaptchaValid = await verifyHCaptcha(captchaToken, req.ip);
     if (!isCaptchaValid) {
       return res.status(400).json({ error: 'CAPTCHA verification failed. Please try again.' });
     }

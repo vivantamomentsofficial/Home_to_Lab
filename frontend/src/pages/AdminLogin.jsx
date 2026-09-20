@@ -22,24 +22,24 @@ const AdminLogin = () => {
     let intervalId;
 
     const safeRemove = () => {
-      if (widgetIdRef.current !== null && window.turnstile) {
+      if (widgetIdRef.current !== null && window.hcaptcha) {
         try {
-          window.turnstile.remove(widgetIdRef.current);
+          window.hcaptcha.remove(widgetIdRef.current);
         } catch (e) {
-          // Suppress turnstile internal cleanup warnings
+          // Suppress hcaptcha internal cleanup warnings
         }
         widgetIdRef.current = null;
       }
     };
 
     const tryRender = () => {
-      if (!window.turnstile || !turnstileRef.current) return false;
+      if (!window.hcaptcha || !turnstileRef.current) return false;
       try {
         if (turnstileRef.current.querySelector('iframe')) return true;
         safeRemove();
         turnstileRef.current.innerHTML = '';
-        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-          sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
+        widgetIdRef.current = window.hcaptcha.render(turnstileRef.current, {
+          sitekey: import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056",
           theme: theme === 'dark' ? 'dark' : 'light',
         });
         return true;
@@ -81,8 +81,8 @@ const AdminLogin = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
-                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+    const captchaToken = document.getElementsByName('h-captcha-response')[0]?.value || 
+                         (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
     if (!captchaToken) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
@@ -174,11 +174,11 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            {/* Cloudflare Turnstile CAPTCHA Widget */}
+            {/* hCaptcha Widget */}
             <div 
               ref={turnstileRef}
-              className="cf-turnstile flex justify-center py-2" 
-              data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
+              className="h-captcha flex justify-center py-2" 
+              data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056"}
             ></div>
 
             <button

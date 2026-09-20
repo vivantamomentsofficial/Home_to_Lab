@@ -160,8 +160,8 @@ const Login = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
-                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
+    const captchaToken = document.getElementsByName('h-captcha-response')[0]?.value || 
+                         (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
     if (!captchaToken) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
@@ -426,11 +426,11 @@ const Login = () => {
                 </div>
               </div>
 
-              {/* Cloudflare Turnstile CAPTCHA Widget */}
+              {/* hCaptcha Widget */}
               <div 
                 ref={turnstileRef}
-                className="cf-turnstile flex justify-center mb-4" 
-                data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
+                className="h-captcha flex justify-center mb-4" 
+                data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056"}
               ></div>
 
               <button
@@ -538,11 +538,11 @@ const Login = () => {
                 </label>
               </div>
 
-              {/* Cloudflare Turnstile CAPTCHA Widget */}
+              {/* hCaptcha Widget */}
               <div 
                 ref={turnstileRef}
-                className="cf-turnstile flex justify-center mb-4" 
-                data-sitekey="0x4AAAAAAEQ7vtfVgOop_jfH"
+                className="h-captcha flex justify-center mb-4" 
+                data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056"}
               ></div>
 
               <button
