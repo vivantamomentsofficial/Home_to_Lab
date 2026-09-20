@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
@@ -21,6 +22,10 @@ const Register = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // hCaptcha state & ref
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef(null);
+
   // Redirect logged in sessions
   useEffect(() => {
     if (user) {
@@ -31,54 +36,6 @@ const Register = () => {
       }
     }
   }, [user, navigate]);
-
-  const turnstileRef = useRef(null);
-  const widgetIdRef = useRef(null);
-
-  // Safe Cloudflare Turnstile widget manager
-  useEffect(() => {
-    let intervalId;
-
-    const safeRemove = () => {
-      if (widgetIdRef.current !== null && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch (e) {
-          // Suppress turnstile internal cleanup warnings
-        }
-        widgetIdRef.current = null;
-      }
-    };
-
-    const tryRender = () => {
-      if (!window.turnstile || !turnstileRef.current) return false;
-      try {
-        if (turnstileRef.current.querySelector('iframe')) return true;
-        safeRemove();
-        turnstileRef.current.innerHTML = '';
-        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-          sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-          theme: theme === 'dark' ? 'dark' : 'light',
-        });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    };
-
-    if (!tryRender()) {
-      intervalId = setInterval(() => {
-        if (tryRender()) {
-          clearInterval(intervalId);
-        }
-      }, 150);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      safeRemove();
-    };
-  }, [theme]);
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -100,16 +57,15 @@ const Register = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('h-captcha-response')[0]?.value || 
-                         (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
-    if (!captchaToken) {
+    const token = captchaToken || document.getElementsByName('h-captcha-response')[0]?.value || (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
+    if (!token) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
     }
 
     setLoading(true);
     try {
-      const signUpData = await register(email, password, fullName, college, captchaToken);
+      const signUpData = await register(email, password, fullName, college, token);
 
       // Check if session is logged in immediately, otherwise require confirmation
       if (signUpData.session) {
@@ -122,13 +78,8 @@ const Register = () => {
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Registration failed.', 'danger');
-      if (window.turnstile && widgetIdRef.current !== null) {
-        try {
-          window.turnstile.reset(widgetIdRef.current);
-        } catch (resetErr) {
-          console.warn('Turnstile reset error:', resetErr);
-        }
-      }
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -284,11 +235,19 @@ const Register = () => {
           </div>
 
           {/* hCaptcha Widget */}
-          <div 
-            ref={turnstileRef}
-            className="h-captcha flex justify-center mb-4" 
-            data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
-          ></div>
+          <div className="flex justify-center mb-4 min-h-[78px]">
+            <HCaptcha
+              ref={captchaRef}
+              sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+              onVerify={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken('')}
+              onError={(err) => {
+                console.error('hCaptcha error:', err);
+                setCaptchaToken('');
+              }}
+              theme={theme === 'dark' ? 'dark' : 'light'}
+            />
+          </div>
 
           <button
             type="submit"

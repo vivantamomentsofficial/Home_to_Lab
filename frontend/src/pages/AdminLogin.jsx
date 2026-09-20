@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
@@ -14,53 +15,9 @@ const AdminLogin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const turnstileRef = useRef(null);
-  const widgetIdRef = useRef(null);
-
-  // Safe Cloudflare Turnstile widget manager
-  useEffect(() => {
-    let intervalId;
-
-    const safeRemove = () => {
-      if (widgetIdRef.current !== null && window.hcaptcha) {
-        try {
-          window.hcaptcha.remove(widgetIdRef.current);
-        } catch (e) {
-          // Suppress hcaptcha internal cleanup warnings
-        }
-        widgetIdRef.current = null;
-      }
-    };
-
-    const tryRender = () => {
-      if (!window.hcaptcha || !turnstileRef.current) return false;
-      try {
-        if (turnstileRef.current.querySelector('iframe')) return true;
-        safeRemove();
-        turnstileRef.current.innerHTML = '';
-        widgetIdRef.current = window.hcaptcha.render(turnstileRef.current, {
-          sitekey: import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056",
-          theme: theme === 'dark' ? 'dark' : 'light',
-        });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    };
-
-    if (!tryRender()) {
-      intervalId = setInterval(() => {
-        if (tryRender()) {
-          clearInterval(intervalId);
-        }
-      }, 150);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      safeRemove();
-    };
-  }, [theme]);
+  // hCaptcha state & ref
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef(null);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -81,9 +38,8 @@ const AdminLogin = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('h-captcha-response')[0]?.value || 
-                         (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
-    if (!captchaToken) {
+    const token = captchaToken || document.getElementsByName('h-captcha-response')[0]?.value || (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
+    if (!token) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
     }
@@ -92,12 +48,14 @@ const AdminLogin = () => {
     try {
       // Direct Admin account authentication via Supabase Auth
       const email = 'aayushparekh26@gmail.com';
-      await login(email, password, captchaToken);
+      await login(email, password, token);
       showToast('Super Admin authenticated successfully!', 'success');
       navigate('/admin');
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Incorrect administrative credentials.', 'danger');
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -175,11 +133,19 @@ const AdminLogin = () => {
             </div>
 
             {/* hCaptcha Widget */}
-            <div 
-              ref={turnstileRef}
-              className="h-captcha flex justify-center py-2" 
-              data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
-            ></div>
+            <div className="flex justify-center py-2 min-h-[78px]">
+              <HCaptcha
+                ref={captchaRef}
+                sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+                onVerify={(token) => setCaptchaToken(token)}
+                onExpire={() => setCaptchaToken('')}
+                onError={(err) => {
+                  console.error('hCaptcha error:', err);
+                  setCaptchaToken('');
+                }}
+                theme={theme === 'dark' ? 'dark' : 'light'}
+              />
+            </div>
 
             <button
               type="submit"

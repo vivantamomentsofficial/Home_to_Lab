@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import HCaptcha from '@hcaptcha/react-hcaptcha';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ShieldAlert, ArrowLeft, Mail, Sun, Moon, Shield, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
@@ -32,53 +33,9 @@ const Login = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
-  const turnstileRef = useRef(null);
-  const widgetIdRef = useRef(null);
-
-  // Safe Cloudflare Turnstile widget manager
-  useEffect(() => {
-    let intervalId;
-
-    const safeRemove = () => {
-      if (widgetIdRef.current !== null && window.turnstile) {
-        try {
-          window.turnstile.remove(widgetIdRef.current);
-        } catch (e) {
-          // Suppress turnstile internal cleanup warnings
-        }
-        widgetIdRef.current = null;
-      }
-    };
-
-    const tryRender = () => {
-      if (!window.turnstile || !turnstileRef.current) return false;
-      try {
-        if (turnstileRef.current.querySelector('iframe')) return true;
-        safeRemove();
-        turnstileRef.current.innerHTML = '';
-        widgetIdRef.current = window.turnstile.render(turnstileRef.current, {
-          sitekey: "0x4AAAAAAEQ7vtfVgOop_jfH",
-          theme: theme === 'dark' ? 'dark' : 'light',
-        });
-        return true;
-      } catch (err) {
-        return false;
-      }
-    };
-
-    if (!tryRender()) {
-      intervalId = setInterval(() => {
-        if (tryRender()) {
-          clearInterval(intervalId);
-        }
-      }, 150);
-    }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-      safeRemove();
-    };
-  }, [theme, isForgotPassword, isRecovering]);
+  // hCaptcha state & ref
+  const [captchaToken, setCaptchaToken] = useState('');
+  const captchaRef = useRef(null);
 
   // Redirect logged in sessions
   useEffect(() => {
@@ -160,16 +117,15 @@ const Login = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('h-captcha-response')[0]?.value || 
-                         (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
-    if (!captchaToken) {
+    const token = captchaToken || document.getElementsByName('h-captcha-response')[0]?.value || (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
+    if (!token) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
     }
 
     setLoading(true);
     try {
-      await login(email, password, captchaToken, rememberMe);
+      await login(email, password, token, rememberMe);
       // Reset failed attempts on success
       localStorage.removeItem('CLOUDVAULT_FAILED_LOGIN_ATTEMPTS');
       localStorage.removeItem('CLOUDVAULT_LOGIN_LOCKED_UNTIL');
@@ -199,13 +155,8 @@ const Login = () => {
           showToast(`${err.message || 'Incorrect email or password.'} (${5 - currentFailed} attempts remaining)`, 'danger');
         }
       }
-      if (window.turnstile && widgetIdRef.current !== null) {
-        try {
-          window.turnstile.reset(widgetIdRef.current);
-        } catch (resetErr) {
-          console.warn('Turnstile reset error:', resetErr);
-        }
-      }
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken('');
     } finally {
       setLoading(false);
     }
@@ -220,9 +171,8 @@ const Login = () => {
       return;
     }
 
-    const captchaToken = document.getElementsByName('cf-turnstile-response')[0]?.value || 
-                         (typeof window.turnstile !== 'undefined' ? window.turnstile.getResponse() : null);
-    if (!captchaToken) {
+    const token = captchaToken || document.getElementsByName('h-captcha-response')[0]?.value || (typeof window.hcaptcha !== 'undefined' ? window.hcaptcha.getResponse() : null);
+    if (!token) {
       showToast('Please complete the Captcha check.', 'warning');
       return;
     }
@@ -233,7 +183,7 @@ const Login = () => {
       const redirectTo = `${window.location.origin}/login`;
       const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo,
-        captchaToken,
+        captchaToken: token,
       });
 
       if (error) throw error;
@@ -250,13 +200,8 @@ const Login = () => {
       }
     } finally {
       setResetLoading(false);
-      if (window.turnstile && widgetIdRef.current !== null) {
-        try {
-          window.turnstile.reset(widgetIdRef.current);
-        } catch (resetErr) {
-          console.warn('Turnstile reset error:', resetErr);
-        }
-      }
+      captchaRef.current?.resetCaptcha();
+      setCaptchaToken('');
     }
   };
 
@@ -539,11 +484,19 @@ const Login = () => {
               </div>
 
               {/* hCaptcha Widget */}
-              <div 
-                ref={turnstileRef}
-                className="h-captcha flex justify-center mb-4" 
-                data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
-              ></div>
+              <div className="flex justify-center mb-4 min-h-[78px]">
+                <HCaptcha
+                  ref={captchaRef}
+                  sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+                  onVerify={(token) => setCaptchaToken(token)}
+                  onExpire={() => setCaptchaToken('')}
+                  onError={(err) => {
+                    console.error('hCaptcha error:', err);
+                    setCaptchaToken('');
+                  }}
+                  theme={theme === 'dark' ? 'dark' : 'light'}
+                />
+              </div>
 
               <button
                 type="submit"
