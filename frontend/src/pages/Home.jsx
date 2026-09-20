@@ -800,7 +800,7 @@ const Home = () => {
                   <div
                     id="cf-turnstile-container"
                     className="cf-turnstile flex justify-center my-2 min-h-[65px]"
-                    data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAEQ7vjk7zY4vqXlLDBjua2_6gOc'}
+                    data-sitekey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAEQ7vtfVgOop_jfH'}
                   ></div>
 
                   <button
