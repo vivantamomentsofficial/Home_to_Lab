@@ -178,7 +178,7 @@ const AdminLogin = () => {
             <div 
               ref={turnstileRef}
               className="h-captcha flex justify-center py-2" 
-              data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "c9706ec6-00e8-4d8c-a8b0-5ee4695ec056"}
+              data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
             ></div>
 
             <button
