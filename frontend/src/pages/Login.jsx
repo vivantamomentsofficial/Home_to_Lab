@@ -375,7 +375,7 @@ const Login = () => {
               <div 
                 ref={turnstileRef}
                 className="h-captcha flex justify-center mb-4" 
-                data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+                data-sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "10000000-ffff-ffff-ffff-000000000001"}
               ></div>
 
               <button
@@ -487,7 +487,7 @@ const Login = () => {
               <div className="flex justify-center mb-4 min-h-[78px]">
                 <HCaptcha
                   ref={captchaRef}
-                  sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-4358-4bfa-810e-fe50c19eebba"}
+                  sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "10000000-ffff-ffff-ffff-000000000001"}
                   onVerify={(token) => setCaptchaToken(token)}
                   onExpire={() => setCaptchaToken('')}
                   onError={(err) => {

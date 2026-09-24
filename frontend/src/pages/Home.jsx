@@ -803,7 +803,7 @@ const Home = () => {
                   <div className="flex justify-center my-3 min-h-[78px]">
                     <HCaptcha
                       ref={sendCaptchaRef}
-                      sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "719e93c2-1358-4bfa-810e-fe50c19eebba"}
+                      sitekey={import.meta.env.VITE_HCAPTCHA_SITEKEY || "10000000-ffff-ffff-ffff-000000000001"}
                       onVerify={(token) => setSendCaptchaToken(token)}
                       onExpire={() => setSendCaptchaToken('')}
                       onError={(err) => {
