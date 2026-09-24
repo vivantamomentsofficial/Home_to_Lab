@@ -793,8 +793,11 @@ const Home = () => {
                           type="checkbox"
                           checked={sendSelfDestruct}
                           onChange={(e) => setSendSelfDestruct(e.target.checked)}
-                          className="rounded text-brand-primary focus:ring-brand-primary"
+                          className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary border-slate-300 dark:border-slate-700"
                         />
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Delete automatically after 1st download
+                        </span>
                       </label>
                     </div>
                   </div>
