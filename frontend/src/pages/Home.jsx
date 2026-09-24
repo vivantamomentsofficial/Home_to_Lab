@@ -126,7 +126,7 @@ const Home = () => {
 
       setRetrievedFile(fileData);
       setShowRetrieveModal(true);
-      
+
       // Calculate remaining expiration time
       const expiryTime = new Date(fileData.expires_at);
       const remainingSeconds = Math.max(0, Math.floor((expiryTime - new Date()) / 1000));
@@ -146,7 +146,7 @@ const Home = () => {
 
       try {
         track('quick_receive_success', { kind: fileData.kind || 'file' });
-      } catch (trackErr) {}
+      } catch (trackErr) { }
 
       showToast('Code verified successfully!', 'success');
     } catch (err) {
@@ -191,7 +191,7 @@ const Home = () => {
     setSendLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      
+
       let captchaToken = sendCaptchaToken;
       if (!captchaToken && window.turnstile) {
         try {
@@ -223,7 +223,7 @@ const Home = () => {
         setSendResult(data);
         startSendCountdown(data.expires_at);
 
-        try { track('quick_send_created', { kind: 'text' }); } catch (trackErr) {}
+        try { track('quick_send_created', { kind: 'text' }); } catch (trackErr) { }
         showToast('Quick text code generated successfully!', 'success');
       } else {
         // 1. Initialize file share
@@ -276,7 +276,7 @@ const Home = () => {
 
         startSendCountdown(compData.expires_at);
 
-        try { track('quick_send_created', { kind: 'file' }); } catch (trackErr) {}
+        try { track('quick_send_created', { kind: 'file' }); } catch (trackErr) { }
         showToast('Quick file upload code generated successfully!', 'success');
       }
     } catch (err) {
@@ -394,13 +394,13 @@ const Home = () => {
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 transition-colors duration-300">
-      <SEO 
-        title="CloudVault (Home to Lab) - Send Files Without Login & Online Clipboard" 
-        description="Send files, code scripts, and text notes without login between home and college computer lab terminals. Instant 6-digit access codes and online clipboard bridge." 
-        keywords="hometolab, home to lab, send files without login, cloudvault, student cloud storage, online clipboard, no login file transfer, temporary file sharing, college lab files" 
-        canonical="https://www.hometolab.in/" 
+      <SEO
+        title="CloudVault (Home to Lab) - Send Files Without Login & Online Clipboard"
+        description="Send files, code scripts, and text notes without login between home and college computer lab terminals. Instant 6-digit access codes and online clipboard bridge."
+        keywords="hometolab, home to lab, send files without login, cloudvault, student cloud storage, online clipboard, no login file transfer, temporary file sharing, college lab files"
+        canonical="https://www.hometolab.in/"
       />
-      
+
       {/* Dynamic 60fps GPU Floating Background Orbs */}
       <div className="glow-orb glow-orb-primary"></div>
       <div className="glow-orb glow-orb-accent"></div>
@@ -419,38 +419,38 @@ const Home = () => {
 
         {/* Desktop Navbar Links */}
         <nav className="hidden md:flex items-center gap-6">
-          <button 
-            onClick={() => { setActiveTab('receive'); scrollToSection('retrieve-section'); }} 
+          <button
+            onClick={() => { setActiveTab('receive'); scrollToSection('retrieve-section'); }}
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
           >
             Receive Code
           </button>
-          <button 
-            onClick={() => { setActiveTab('send'); scrollToSection('retrieve-section'); }} 
+          <button
+            onClick={() => { setActiveTab('send'); scrollToSection('retrieve-section'); }}
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
           >
             Send (No Login)
           </button>
-          <button 
-            onClick={() => scrollToSection('features')} 
+          <button
+            onClick={() => scrollToSection('features')}
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
           >
             Features
           </button>
-          <button 
-            onClick={() => scrollToSection('how-it-works')} 
+          <button
+            onClick={() => scrollToSection('how-it-works')}
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
           >
             How It Works
           </button>
-          <Link 
-            to="/blog" 
+          <Link
+            to="/blog"
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors"
           >
             Blog
           </Link>
-          <Link 
-            to="/about" 
+          <Link
+            to="/about"
             className="text-sm font-semibold text-slate-600 hover:text-brand-primary dark:text-slate-300 dark:hover:text-white transition-colors"
           >
             About
@@ -500,7 +500,7 @@ const Home = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="flex flex-col gap-3 font-semibold text-sm text-slate-700 dark:text-slate-300">
               <button onClick={() => { setActiveTab('receive'); scrollToSection('retrieve-section'); }} className="text-left py-2.5 border-b border-slate-100 dark:border-slate-800/60 flex items-center gap-2">
                 <DownloadCloud className="w-4 h-4 text-brand-primary" /> Receive Share Code
@@ -544,7 +544,7 @@ const Home = () => {
 
       {/* Hero Landing Section */}
       <section className="flex flex-col items-center justify-center pt-28 sm:pt-36 pb-16 px-4 sm:px-6 lg:px-[8%] text-center z-10 max-w-6xl mx-auto w-full">
-        
+
         {/* Pill Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-bold tracking-wider uppercase mb-6 animate-fade-in">
           <Sparkles className="w-3.5 h-3.5" />
@@ -563,27 +563,25 @@ const Home = () => {
 
         {/* Dual Mode Card: Send vs Receive */}
         <div id="retrieve-section" className="glass-card max-w-lg w-full p-6 sm:p-7 shadow-2xl border-brand-primary/30 mb-16 text-left relative overflow-hidden group">
-          
+
           {/* Main Mode Toggle Buttons */}
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl mb-5 font-bold text-xs">
             <button
               onClick={() => setActiveTab('receive')}
-              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'receive'
-                  ? 'bg-white dark:bg-slate-800 text-brand-primary shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
+              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${activeTab === 'receive'
+                ? 'bg-white dark:bg-slate-800 text-brand-primary shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
             >
               <DownloadCloud className="w-4 h-4" /> Receive Code
             </button>
 
             <button
               onClick={() => setActiveTab('send')}
-              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                activeTab === 'send'
-                  ? 'bg-brand-primary text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-              }`}
+              className={`flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all cursor-pointer ${activeTab === 'send'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
             >
               <Send className="w-4 h-4" /> Send - No Login
             </button>
@@ -601,7 +599,7 @@ const Home = () => {
                   <p className="text-xs text-slate-500 dark:text-slate-400">No account required to download or copy</p>
                 </div>
               </div>
-              
+
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
                 Enter your <strong>6-digit access code</strong> to download files or open text snippets on any PC instantly:
               </p>
@@ -617,9 +615,9 @@ const Home = () => {
                   required
                   aria-label="6-Digit Access Code"
                 />
-                <button 
-                  type="submit" 
-                  disabled={loading} 
+                <button
+                  type="submit"
+                  disabled={loading}
                   className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer"
                 >
                   {loading ? (
@@ -642,7 +640,7 @@ const Home = () => {
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1" />
                     <div className="font-bold text-sm text-emerald-800 dark:text-emerald-300">Access Code Created!</div>
                     <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">No login needed. Type this code on your receiving PC.</p>
-                    
+
                     <div className="my-3 font-mono font-black tracking-[8px] text-3xl text-brand-primary bg-white dark:bg-slate-900 py-2.5 px-4 rounded-xl border border-brand-primary/30 inline-block shadow-inner select-all">
                       {sendResult.code}
                     </div>
@@ -687,28 +685,26 @@ const Home = () => {
               ) : (
                 /* Creation Form */
                 <form onSubmit={handleQuickSendSubmit} className="space-y-4">
-                  
+
                   {/* Kind Switcher */}
                   <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={() => setSendKind('file')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                        sendKind === 'file'
-                          ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${sendKind === 'file'
+                        ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
                     >
                       <UploadCloud className="w-3.5 h-3.5" /> File (Max 25MB)
                     </button>
                     <button
                       type="button"
                       onClick={() => setSendKind('text')}
-                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                        sendKind === 'text'
-                          ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
-                      }`}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold border flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${sendKind === 'text'
+                        ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                        : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                        }`}
                     >
                       <FileText className="w-3.5 h-3.5" /> Text / Code
                     </button>
@@ -834,7 +830,7 @@ const Home = () => {
                   {/* High Traffic / Server Load Disclaimer */}
                   <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center gap-2 text-center text-[11px] text-amber-700 dark:text-amber-300 font-medium">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>Due to high volume of non-login users, server load is high. Code generation may take a few seconds.</span>
+                    <span>Due to high volume of non-login users, server load is high. generation may take a few seconds Or login for faster access</span>
                   </div>
                 </form>
               )}
@@ -845,7 +841,7 @@ const Home = () => {
 
         {/* Interactive App Window Mockup */}
         <div className="w-full max-w-4xl rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-950 text-left overflow-hidden">
-          
+
           {/* Window Top Bar */}
           <div className="px-4 py-3 bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -853,29 +849,28 @@ const Home = () => {
               <span className="w-3 h-3 rounded-full bg-yellow-500/80 inline-block"></span>
               <span className="w-3 h-3 rounded-full bg-green-500/80 inline-block"></span>
             </div>
-            
+
             <div className="flex-1 max-w-md bg-white dark:bg-slate-950 rounded-lg py-1 px-3 text-[11px] text-slate-500 dark:text-slate-400 font-mono border border-slate-200 dark:border-slate-800 flex items-center justify-center gap-1.5 truncate">
               <Shield className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
               <span className="truncate">cloudvault.app/dashboard</span>
             </div>
-            
+
             <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded">
               Private &amp; Safe
             </div>
           </div>
-          
+
           {/* Mockup App Body */}
           <div className="flex flex-col md:flex-row min-h-[340px]">
-            
+
             {/* Left Sidebar Controls */}
             <div className="w-full md:w-52 bg-slate-50/80 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800 p-3 flex md:flex-col gap-1.5 shrink-0 overflow-x-auto">
               <button
                 onClick={() => setDemoTab('files')}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  demoTab === 'files'
-                    ? 'bg-brand-primary text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
-                }`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${demoTab === 'files'
+                  ? 'bg-brand-primary text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                  }`}
               >
                 <Folder className="w-4 h-4" />
                 <span>Files Explorer</span>
@@ -883,11 +878,10 @@ const Home = () => {
 
               <button
                 onClick={() => setDemoTab('notes')}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  demoTab === 'notes'
-                    ? 'bg-brand-primary text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
-                }`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${demoTab === 'notes'
+                  ? 'bg-brand-primary text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                  }`}
               >
                 <Clipboard className="w-4 h-4" />
                 <span>Notes &amp; Clipboard</span>
@@ -895,11 +889,10 @@ const Home = () => {
 
               <button
                 onClick={() => setDemoTab('security')}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  demoTab === 'security'
-                    ? 'bg-brand-primary text-white shadow-md'
-                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
-                }`}
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${demoTab === 'security'
+                  ? 'bg-brand-primary text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                  }`}
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Session Privacy</span>
@@ -910,10 +903,10 @@ const Home = () => {
                 <span>Auto Session Clear</span>
               </div>
             </div>
-            
+
             {/* Right Interactive Content Area */}
             <div className="flex-1 p-4 sm:p-6 flex flex-col gap-4 bg-white dark:bg-slate-950 min-w-0">
-              
+
               {demoTab === 'files' && (
                 <div className="space-y-4 animate-fade-in">
                   <div className="flex flex-wrap justify-between items-center gap-2">
@@ -924,7 +917,7 @@ const Home = () => {
                       <Plus className="w-3.5 h-3.5" /> Upload File (Max 100MB)
                     </span>
                   </div>
-                  
+
                   {/* File List Items */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="border border-slate-200 dark:border-slate-800 p-3 rounded-xl flex flex-col gap-1.5 bg-slate-50/50 dark:bg-slate-900/40 hover:border-brand-primary/50 transition-colors group">
@@ -934,7 +927,7 @@ const Home = () => {
                       </div>
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Lab_4_Script.py</span>
                       <span className="text-[10px] text-slate-400">4.8 KB • Code File</span>
-                      <button 
+                      <button
                         onClick={() => handleDemoCopy('8F3K9A', 'Code 8F3K9A')}
                         className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1"
                       >
@@ -949,7 +942,7 @@ const Home = () => {
                       </div>
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Lab_Manual.pdf</span>
                       <span className="text-[10px] text-slate-400">2.4 MB • PDF Document</span>
-                      <button 
+                      <button
                         onClick={() => handleDemoCopy('K7M2P9', 'Code K7M2P9')}
                         className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1"
                       >
@@ -964,7 +957,7 @@ const Home = () => {
                       </div>
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Assignment_Final.zip</span>
                       <span className="text-[10px] text-slate-400">14.2 MB • Single-Use</span>
-                      <button 
+                      <button
                         onClick={() => handleDemoCopy('X9W4Q1', 'Single-Use Code X9W4Q1')}
                         className="mt-2 text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-1"
                       >
@@ -1079,7 +1072,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full">
-            
+
             <div className="glass-card p-5 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-brand-primary">
                 <Key className="w-5.5 h-5.5 stroke-[2.5]" />
@@ -1131,7 +1124,7 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-          
+
           <div className="glass-card p-6 flex flex-col gap-3 hover:border-brand-primary/40 transition-all group">
             <div className="p-3 bg-brand-primary/10 text-brand-primary rounded-xl shrink-0 h-12 w-12 flex items-center justify-center group-hover:scale-105 transition-transform">
               <Send className="w-6 h-6" />
@@ -1211,7 +1204,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 text-left">
-            
+
             <div className="glass-card p-5 flex flex-col justify-between hover:border-brand-primary/40 transition-all group">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -1292,7 +1285,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            
+
             <div className="glass-card p-6 flex flex-col gap-3 relative border-slate-200/80 dark:border-slate-800">
               <div className="w-10 h-10 rounded-xl bg-brand-primary text-white flex items-center justify-center font-display font-extrabold text-base shadow-md">
                 1
@@ -1372,18 +1365,16 @@ const Home = () => {
               <div
                 key={idx}
                 onClick={() => setActiveFaq(activeFaq === idx ? null : idx)}
-                className={`glass-card p-5 cursor-pointer border-slate-200/80 dark:border-slate-800 transition-all ${
-                  activeFaq === idx ? 'ring-2 ring-brand-primary/30 shadow-md' : 'hover:border-brand-primary/30'
-                }`}
+                className={`glass-card p-5 cursor-pointer border-slate-200/80 dark:border-slate-800 transition-all ${activeFaq === idx ? 'ring-2 ring-brand-primary/30 shadow-md' : 'hover:border-brand-primary/30'
+                  }`}
               >
                 <div className="flex justify-between items-center font-bold text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                   <span>{item.q}</span>
                   <ChevronDown className={`w-5 h-5 text-slate-400 transition-transform duration-300 shrink-0 ml-2 ${activeFaq === idx ? 'rotate-180 text-brand-primary' : ''}`} />
                 </div>
                 <div
-                  className={`transition-all duration-300 overflow-hidden text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${
-                    activeFaq === idx ? 'max-h-40 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800' : 'max-h-0'
-                  }`}
+                  className={`transition-all duration-300 overflow-hidden text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed ${activeFaq === idx ? 'max-h-40 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800' : 'max-h-0'
+                    }`}
                 >
                   {item.a}
                 </div>
@@ -1409,7 +1400,7 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            
+
             {/* Privacy Promise Card */}
             <div className="glass-card p-6 flex flex-col gap-5 border-slate-200/80 dark:border-slate-800">
               <div className="flex items-center gap-3.5">
@@ -1445,7 +1436,7 @@ const Home = () => {
               <h3 className="text-base font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <MessageSquare className="w-4.5 h-4.5 text-brand-primary" /> Send Feedback Message
               </h3>
-              
+
               <form onSubmit={handleFeedbackSubmit} className="space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
@@ -1526,12 +1517,12 @@ const Home = () => {
             >
               <X className="w-5 h-5" />
             </button>
-            
+
             <div className="flex items-center gap-2.5 mb-2 text-emerald-600 dark:text-emerald-400 font-bold text-base">
               <FileCheck className="w-5.5 h-5.5 stroke-[2.5]" />
               <h3>{retrievedFile.kind === 'text' ? 'Text Snippet Found!' : 'File Found!'}</h3>
             </div>
-            
+
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
               Your 6-digit access code is valid. Here are your details:
             </p>
