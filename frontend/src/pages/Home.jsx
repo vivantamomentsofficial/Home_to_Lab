@@ -830,6 +830,12 @@ const Home = () => {
                       </>
                     )}
                   </button>
+
+                  {/* High Traffic / Server Load Disclaimer */}
+                  <div className="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center justify-center gap-2 text-center text-[11px] text-amber-700 dark:text-amber-300 font-medium">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span>Due to high volume of non-login users, server load is high. Code generation may take a few seconds.</span>
+                  </div>
                 </form>
               )}
             </div>
