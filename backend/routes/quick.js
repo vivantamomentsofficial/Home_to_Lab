@@ -48,7 +48,7 @@ async function verifyHCaptcha(token, ip) {
     const formData = new URLSearchParams();
     formData.append('secret', secretKey);
     formData.append('response', token);
-    formData.append('sitekey', process.env.VITE_HCAPTCHA_SITEKEY || '10000000-ffff-ffff-ffff-000000000001');
+    formData.append('sitekey', process.env.VITE_HCAPTCHA_SITEKEY || '719e93c2-4358-4bfa-810e-fe50c19eebba');
     if (ip) formData.append('remoteip', ip);
 
     const res = await fetch('https://api.hcaptcha.com/siteverify', {

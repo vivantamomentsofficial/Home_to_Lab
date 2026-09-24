@@ -36,9 +36,13 @@ const generateSecureCode = () => {
 const getSupabaseAdmin = () => {
   const url = process.env.SUPABASE_URL || 'https://gxccllaqtdiuvnrialta.supabase.co';
   const anonKey = process.env.SUPABASE_ANON_KEY || 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  return createClient(url, serviceKey, {
+  // Use serviceKey only if it is a valid JWT (starts with 'eyJ').
+  // PostgREST rejects 'sb_secret_...' keys with 401 Invalid API key.
+  const keyToUse = (serviceKey && serviceKey.startsWith('eyJ')) ? serviceKey : anonKey;
+
+  return createClient(url, keyToUse, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,

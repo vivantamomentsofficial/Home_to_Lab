@@ -32,8 +32,20 @@ CREATE TABLE IF NOT EXISTS public.quick_shares (
     ip_hash TEXT
 );
 
--- 3. Enable RLS with NO policies (deny all for client SDKs; service role bypasses RLS)
+-- 3. Enable RLS with public access policies (allows both anon key & service role key access)
 ALTER TABLE public.quick_shares ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public select on quick_shares" ON public.quick_shares;
+CREATE POLICY "Allow public select on quick_shares" ON public.quick_shares FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow public insert on quick_shares" ON public.quick_shares;
+CREATE POLICY "Allow public insert on quick_shares" ON public.quick_shares FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public update on quick_shares" ON public.quick_shares;
+CREATE POLICY "Allow public update on quick_shares" ON public.quick_shares FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Allow public delete on quick_shares" ON public.quick_shares;
+CREATE POLICY "Allow public delete on quick_shares" ON public.quick_shares FOR DELETE USING (true);
 
 -- 4. Create Indexes for fast lookup and cleanup operations
 CREATE INDEX IF NOT EXISTS idx_quick_shares_code ON public.quick_shares(code);
