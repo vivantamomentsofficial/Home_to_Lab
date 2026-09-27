@@ -16,9 +16,9 @@ const StorageAnalytics = ({
   maxStorageBytes = 2 * 1024 * 1024 * 1024, // 2 GB default quota
   filesCount = 0,
   notesCount = 0,
-  fileCategories = {},
+  files = [],
 }) => {
-  const percentageUsed = Math.min(100, Math.round((totalStorageUsed / maxStorageBytes) * 100));
+  const percentageUsed = Math.min(100, Math.round((totalStorageUsed / (maxStorageBytes || 1)) * 100));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -27,7 +27,7 @@ const StorageAnalytics = ({
         <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
           <HardDrive className="w-4 h-4 text-indigo-500" /> Storage Breakdown
         </h3>
-        <StorageDonutChart fileCategories={fileCategories} totalUsed={totalStorageUsed} />
+        <StorageDonutChart files={files} totalLimit={maxStorageBytes} />
       </div>
 
       {/* Quota Progress & Summary */}
