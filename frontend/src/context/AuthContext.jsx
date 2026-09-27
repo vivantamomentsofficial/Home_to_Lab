@@ -25,6 +25,34 @@ export const AuthProvider = ({ children }) => {
   const [config, setConfig] = useState(null);
   const [needsSetup, setNeedsSetup] = useState(false);
 
+  // Helper to ensure Supabase client is ALWAYS available even if called before state update
+  const getOrInitSupabase = () => {
+    if (supabase) return supabase;
+
+    const DEFAULT_SUPABASE_URL = 'https://gxccllaqtdiuvnrialta.supabase.co';
+    const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
+
+    let url = config?.supabaseUrl || import.meta.env.VITE_SUPABASE_URL || localStorage.getItem('CLOUDVAULT_SUPABASE_URL') || DEFAULT_SUPABASE_URL;
+    let key = config?.supabaseAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || localStorage.getItem('CLOUDVAULT_SUPABASE_ANON_KEY') || DEFAULT_SUPABASE_ANON_KEY;
+
+    const isSessionOnly = sessionStorage.getItem('CLOUDVAULT_SESSION_PERSIST') === 'session_only';
+    const clientOptions = {
+      auth: {
+        persistSession: true,
+        storage: isSessionOnly ? window.sessionStorage : window.localStorage,
+      },
+    };
+
+    try {
+      const client = createClient(url, key, clientOptions);
+      setSupabase(client);
+      return client;
+    } catch (err) {
+      console.error('Failed to create dynamic Supabase client:', err);
+      throw new Error('Supabase client failed to initialize. Please check network connection or environment configuration.');
+    }
+  };
+
   // 1. Fetch Supabase configuration on mount
   useEffect(() => {
     const fetchConfigAndInit = async () => {
@@ -70,8 +98,15 @@ export const AuthProvider = ({ children }) => {
         setSupabase(client);
         setConfig({ supabaseUrl: url, supabaseAnonKey: key });
 
-        // Retrieve initial session
-        const { data: { session: initialSession } } = await client.auth.getSession();
+        // Retrieve initial session safely
+        let initialSession = null;
+        try {
+          const sessionRes = await client.auth.getSession();
+          initialSession = sessionRes?.data?.session || null;
+        } catch (sErr) {
+          console.warn('Initial session fetch warning:', sErr);
+        }
+
         setSession(initialSession);
         setUser(initialSession?.user || null);
 
@@ -155,7 +190,7 @@ export const AuthProvider = ({ children }) => {
 
   // Login handler
   const login = async (email, password, captchaToken, rememberMe) => {
-    if (!supabase) throw new Error('Supabase client not initialized.');
+    const activeClient = getOrInitSupabase();
 
     if (!rememberMe) {
       sessionStorage.setItem('CLOUDVAULT_SESSION_PERSIST', 'session_only');
@@ -163,7 +198,7 @@ export const AuthProvider = ({ children }) => {
       sessionStorage.removeItem('CLOUDVAULT_SESSION_PERSIST');
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await activeClient.auth.signInWithPassword({
       email,
       password,
       options: {
@@ -193,7 +228,7 @@ export const AuthProvider = ({ children }) => {
 
     // Check if account is suspended before fully setting session
     try {
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData, error: profileError } = await activeClient
         .from('profiles')
         .select('is_suspended')
         .eq('id', data.user.id)
@@ -202,7 +237,7 @@ export const AuthProvider = ({ children }) => {
       if (profileError) {
         console.warn('Could not check suspension status on login:', profileError);
       } else if (profileData && profileData.is_suspended) {
-        await supabase.auth.signOut();
+        await activeClient.auth.signOut();
         throw new Error('Your account has been suspended by the administrator. Please contact aayushparekh26@gmail.com.');
       }
     } catch (profileErr) {
@@ -218,9 +253,9 @@ export const AuthProvider = ({ children }) => {
 
   // Register handler
   const register = async (email, password, fullName, college, captchaToken) => {
-    if (!supabase) throw new Error('Supabase client not initialized.');
+    const activeClient = getOrInitSupabase();
 
-    const { data, error } = await supabase.auth.signUp({
+    const { data, error } = await activeClient.auth.signUp({
       email,
       password,
       options: {
@@ -256,7 +291,8 @@ export const AuthProvider = ({ children }) => {
 
   // Sign out handler
   const logout = async () => {
-    if (!supabase) return;
+    const activeClient = supabase || getOrInitSupabase();
+    if (!activeClient) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
       await fetch(`${apiUrl}/api/auth/clear-cookie`, {
@@ -266,7 +302,7 @@ export const AuthProvider = ({ children }) => {
     } catch (cErr) {
       console.warn('Backend clear-cookie warning:', cErr);
     }
-    const { error } = await supabase.auth.signOut();
+    const { error } = await activeClient.auth.signOut();
     if (error) console.error('Sign out error:', error);
     setUser(null);
     setSession(null);
@@ -274,8 +310,8 @@ export const AuthProvider = ({ children }) => {
 
   // Self account deletion RPC handler
   const deleteOwnAccount = async () => {
-    if (!supabase) return;
-    const { error } = await supabase.rpc('delete_own_account');
+    const activeClient = getOrInitSupabase();
+    const { error } = await activeClient.rpc('delete_own_account');
     if (error) throw error;
     await logout();
   };
