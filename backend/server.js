@@ -11,10 +11,9 @@ const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
 const { router: quickRouter, cleanupQuickShares } = require('./routes/quick');
 
-// Fail fast if required environment variables are missing
+// Soft warning if environment variables are missing during initial container startup
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-  console.error('[CRITICAL] Missing required SUPABASE_URL or SUPABASE_ANON_KEY environment variables.');
-  process.exit(1);
+  console.warn('[WARNING] Missing required SUPABASE_URL or SUPABASE_ANON_KEY environment variables. Backend service is active but Supabase features require env variables.');
 }
 
 const app = express();

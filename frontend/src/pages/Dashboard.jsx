@@ -43,6 +43,12 @@ import StorageDonutChart from '../components/StorageDonutChart';
 import GlobalAnnouncementBanner from '../components/GlobalAnnouncementBanner';
 import { getFaFileIcon } from '../utils/faIcons';
 
+// Sub-components for modular architecture
+import FileGrid from '../components/dashboard/FileGrid';
+import SnippetEditor from '../components/dashboard/SnippetEditor';
+import ShareModal from '../components/dashboard/ShareModal';
+import StorageAnalytics from '../components/dashboard/StorageAnalytics';
+
 import {
   ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
@@ -2958,20 +2964,16 @@ const Dashboard = () => {
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
-            {/* Storage Progress Card */}
-            <div className="glass-card p-6 md:col-span-3 flex flex-col gap-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold text-slate-800 dark:text-white">Cloud Storage Allocation</h3>
-                <span className="text-sm font-semibold text-slate-500">
-                  {formatBytes(usedStorage)} / {formatBytes(storageLimit)}
-                </span>
-              </div>
-              
-              {renderStorageChart()}
-            </div>
+          <div className="space-y-6 animate-fade-in">
+            <StorageAnalytics 
+              totalStorageUsed={usedStorage}
+              maxStorageBytes={storageLimit}
+              filesCount={files.filter(f => !f.is_deleted).length}
+              notesCount={notes.filter(n => !n.is_deleted).length}
+              fileCategories={fileCategories}
+            />
 
-            {/* Quick Stats shortcut */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div
               onClick={() => setActiveTab('upload')}
               className="glass-card p-6 flex items-center gap-4 cursor-pointer hover:border-brand-primary/30 hover:shadow-md"
@@ -3011,7 +3013,8 @@ const Dashboard = () => {
               </div>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
         {/* TAB 2: SEND TO SERVER (UPLOADER) */}
         {activeTab === 'upload' && (

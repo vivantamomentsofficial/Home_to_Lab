@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { 
   Search, LayoutDashboard, Home, FileText, UploadCloud, Sun, Moon, 
-  Shield, LogOut, FileCode, Lock, Settings, Key, Command, ArrowRight, X
+  Shield, LogOut, FileCode, Lock, Settings, Key, Command, ArrowRight, X, Trash
 } from 'lucide-react';
 
 const CommandPalette = () => {
@@ -74,6 +74,45 @@ const CommandPalette = () => {
         setTimeout(() => {
           document.getElementById('code-input-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 300);
+      },
+    },
+    {
+      id: 'trash',
+      label: 'Open Trash & Recycle Bin',
+      category: 'Vault',
+      icon: Trash,
+      perform: () => {
+        if (!user) {
+          navigate('/login');
+        } else {
+          navigate('/dashboard');
+        }
+      },
+    },
+    {
+      id: 'snippets',
+      label: 'Open Code Snippets & Notes',
+      category: 'Vault',
+      icon: FileCode,
+      perform: () => {
+        if (!user) {
+          navigate('/login');
+        } else {
+          navigate('/dashboard');
+        }
+      },
+    },
+    {
+      id: 'settings',
+      label: 'Account & Vault Settings',
+      category: 'Preferences',
+      icon: Settings,
+      perform: () => {
+        if (!user) {
+          navigate('/login');
+        } else {
+          navigate('/dashboard');
+        }
       },
     },
     {

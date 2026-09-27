@@ -242,5 +242,16 @@ svg {
   animation: subtleBackgroundRumble 1.2s ease-in-out infinite;
 }
 
+@keyframes rippleEffect {
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.15); opacity: 0.4; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.animate-ripple {
+  animation: rippleEffect 2s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+
 
 
