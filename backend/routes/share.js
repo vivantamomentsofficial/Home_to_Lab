@@ -5,7 +5,7 @@ const rateLimit = require('express-rate-limit');
 const { createClient } = require('@supabase/supabase-js');
 const { requireAuth } = require('../middleware/auth');
 
-const { isBlockedExtension, getSupabaseAdmin } = require('../utils/security');
+const { isBlockedExtension, generateSecureCode, getSupabaseAdmin } = require('../utils/security');
 
 const DEFAULT_SUPABASE_URL = 'https://gxccllaqtdiuvnrialta.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
@@ -67,7 +67,6 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
     }
 
     // 2. Try quick_shares table if not found in vault share_codes
-    const supabaseAdmin = getSupabaseAdmin();
     const nowIso = new Date().toISOString();
 
     const { data: quickRow, error: quickErr } = await supabaseAdmin
@@ -200,12 +199,13 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     while (!isUnique && attempts < 10) {
       attempts++;
-      shareCode = generateSecureShareCode();
-      const { data: rpcData, error: checkError } = await supabase.rpc('get_shared_file_by_code', {
-        p_code: shareCode,
-      });
+      shareCode = generateSecureCode();
+      const [shareCheck, quickCheck] = await Promise.all([
+        supabase.from('share_codes').select('id').eq('code', shareCode).maybeSingle(),
+        supabase.from('quick_shares').select('id').eq('code', shareCode).maybeSingle(),
+      ]);
 
-      if (!checkError && (!rpcData || rpcData.length === 0)) {
+      if (!shareCheck.data && !quickCheck.data) {
         isUnique = true;
       }
     }

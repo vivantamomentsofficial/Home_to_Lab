@@ -931,11 +931,12 @@ CREATE TABLE IF NOT EXISTS public.quick_shares (
     self_destruct BOOLEAN DEFAULT false NOT NULL,
     status VARCHAR(20) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'active', 'consumed')),
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    consumed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    ip_hash TEXT
+    ip_hash TEXT,
+    pin_code TEXT
 );
 
+ALTER TABLE public.quick_shares ADD COLUMN IF NOT EXISTS pin_code TEXT;
 ALTER TABLE public.quick_shares ENABLE ROW LEVEL SECURITY;
 
 CREATE INDEX IF NOT EXISTS idx_quick_shares_code ON public.quick_shares(code);
