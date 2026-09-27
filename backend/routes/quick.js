@@ -270,15 +270,37 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
         return res.status(500).json({ error: insertErr?.message ? `Database error: ${insertErr.message}` : 'Failed to initialize file share.' });
       }
 
-      // Create signed upload URL for browser direct upload
-      const { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
+      // Create signed upload URL for browser direct upload (with auto-bucket creation fallback)
+      let { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
         .from('quick')
         .createSignedUploadUrl(storagePath);
+
+      if (uploadErr && (uploadErr.message?.toLowerCase().includes('not found') || uploadErr.statusCode === '404' || uploadErr.status === 404)) {
+        console.warn("'quick' storage bucket not found in Supabase Storage. Attempting automatic bucket creation...");
+        try {
+          await supabaseAdmin.storage.createBucket('quick', {
+            public: false,
+            fileSizeLimit: 26214400,
+          });
+          // Retry signed upload URL creation after bucket auto-creation
+          const retryResult = await supabaseAdmin.storage
+            .from('quick')
+            .createSignedUploadUrl(storagePath);
+          uploadData = retryResult.data;
+          uploadErr = retryResult.error;
+        } catch (bucketCreateErr) {
+          console.error('Auto-creation of quick storage bucket failed:', bucketCreateErr);
+        }
+      }
 
       if (uploadErr || !uploadData?.signedUrl) {
         console.error('Signed upload URL creation error:', uploadErr);
         await supabaseAdmin.from('quick_shares').delete().eq('id', pendingRow.id);
-        return res.status(500).json({ error: 'Failed to generate upload authorization token.' });
+        return res.status(500).json({ 
+          error: uploadErr?.message 
+            ? `Storage error (${uploadErr.message}). Make sure the 'quick' bucket exists in Supabase Storage.` 
+            : 'Failed to generate upload authorization token. Please ensure the quick bucket is configured in Supabase.' 
+        });
       }
 
       return res.status(201).json({
