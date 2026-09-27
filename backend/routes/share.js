@@ -7,8 +7,11 @@ const { requireAuth } = require('../middleware/auth');
 
 const { isBlockedExtension, getSupabaseAdmin } = require('../utils/security');
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const DEFAULT_SUPABASE_URL = 'https://gxccllaqtdiuvnrialta.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
+
+const supabaseUrl = process.env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 // Rate limiting for public share code lookup to mitigate brute-force guessing (30 requests per 1 min per IP)
 const shareLookupLimiter = rateLimit({
