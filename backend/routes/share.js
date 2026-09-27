@@ -19,9 +19,10 @@ const shareLookupLimiter = rateLimit({
   message: { error: 'Too many share code lookup requests from this IP. Please try again in a minute.' },
 });
 
-// GET /api/share/:code - Securely retrieve shared file/text metadata (supports vault share_codes & quick_shares)
+// GET /api/share/:code - Securely retrieve shared file/text metadata (supports vault share_codes & quick_shares & optional PIN)
 router.get('/:code', shareLookupLimiter, async (req, res) => {
   const { code } = req.params;
+  const providedPin = req.query.pin || req.headers['x-pin'] || '';
 
   if (!code || code.trim().length !== 6) {
     return res.status(400).json({ error: 'Invalid share code format. Must be 6 characters.' });
@@ -31,23 +32,34 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    const supabaseAdmin = getSupabaseAdmin();
 
-    // 1. Try vault RPC get_shared_file_by_code
-    const { data: rpcData } = await supabase.rpc('get_shared_file_by_code', {
-      p_code: normalizedCode,
-    });
+    // 1. Try vault share_codes table directly to check pin_code if available
+    const { data: shareRow } = await supabaseAdmin
+      .from('share_codes')
+      .select('*, files(*)')
+      .eq('code', normalizedCode)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
 
-    if (rpcData && rpcData.length > 0) {
-      const fileRecord = rpcData[0];
+    if (shareRow) {
+      if (shareRow.pin_code && shareRow.pin_code !== providedPin) {
+        return res.status(401).json({ 
+          pin_required: true, 
+          error: providedPin ? 'Incorrect 4-digit PIN provided.' : 'This share code is PIN protected. Please enter PIN.' 
+        });
+      }
+
       return res.json({
         kind: 'file',
-        file_id: fileRecord.file_id,
-        filename: fileRecord.filename,
-        size: fileRecord.size,
-        file_type: fileRecord.file_type,
-        signed_url: fileRecord.signed_url,
-        expires_at: fileRecord.expires_at,
-        self_destruct: fileRecord.self_destruct,
+        file_id: shareRow.file_id,
+        filename: shareRow.files?.filename || 'shared_file',
+        size: shareRow.files?.size || 0,
+        file_type: shareRow.files?.file_type || 'other',
+        signed_url: shareRow.signed_url,
+        expires_at: shareRow.expires_at,
+        self_destruct: shareRow.self_destruct,
+        pin_protected: Boolean(shareRow.pin_code),
       });
     }
 
@@ -65,6 +77,13 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
 
     if (quickErr || !quickRow) {
       return res.status(404).json({ error: 'Sharing code not found, already consumed, or expired.' });
+    }
+
+    if (quickRow.pin_code && quickRow.pin_code !== providedPin) {
+      return res.status(401).json({
+        pin_required: true,
+        error: providedPin ? 'Incorrect 4-digit PIN provided.' : 'This share code is PIN protected. Please enter PIN.',
+      });
     }
 
     // Atomic self-destruct check: flip status to 'consumed' so code only works once
@@ -126,7 +145,7 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
 
 // POST /api/share/generate - Authenticated endpoint for server-side cryptographically secure share code generation
 router.post('/generate', requireAuth, async (req, res) => {
-  const { file_id, expiry_seconds = 1800, self_destruct = false } = req.body;
+  const { file_id, expiry_seconds = 1800, self_destruct = false, pin_code = null } = req.body;
 
   if (!file_id) {
     return res.status(400).json({ error: 'file_id is required.' });
@@ -194,15 +213,20 @@ router.post('/generate', requireAuth, async (req, res) => {
 
     // 4. Insert into share_codes table
     const expiresAt = new Date(Date.now() + duration * 1000).toISOString();
+    const insertPayload = {
+      code: shareCode,
+      file_id: fileData.id,
+      signed_url: signedData.signedUrl,
+      expires_at: expiresAt,
+      self_destruct: Boolean(self_destruct),
+    };
+    if (pin_code && typeof pin_code === 'string' && pin_code.trim().length >= 4) {
+      insertPayload.pin_code = pin_code.trim();
+    }
+
     const { data: insertedShare, error: insertError } = await supabase
       .from('share_codes')
-      .insert({
-        code: shareCode,
-        file_id: fileData.id,
-        signed_url: signedData.signedUrl,
-        expires_at: expiresAt,
-        self_destruct: Boolean(self_destruct),
-      })
+      .insert(insertPayload)
       .select()
       .single();
 
@@ -217,6 +241,7 @@ router.post('/generate', requireAuth, async (req, res) => {
       signed_url: signedData.signedUrl,
       expires_at: expiresAt,
       self_destruct: Boolean(self_destruct),
+      pin_protected: Boolean(insertPayload.pin_code),
       duration_seconds: duration,
     });
   } catch (err) {

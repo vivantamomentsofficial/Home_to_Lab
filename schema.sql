@@ -67,8 +67,14 @@ CREATE TABLE IF NOT EXISTS public.share_codes (
     file_id UUID REFERENCES public.files(id) ON DELETE CASCADE NOT NULL,
     signed_url TEXT NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    self_destruct BOOLEAN DEFAULT false NOT NULL,
+    pin_code TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+ALTER TABLE public.share_codes ADD COLUMN IF NOT EXISTS self_destruct BOOLEAN DEFAULT false NOT NULL;
+ALTER TABLE public.share_codes ADD COLUMN IF NOT EXISTS pin_code TEXT;
+ALTER TABLE public.quick_shares ADD COLUMN IF NOT EXISTS pin_code TEXT;
 
 -- Profiles table (to expose user details to the Admin dashboard safely)
 CREATE TABLE IF NOT EXISTS public.profiles (

@@ -8,6 +8,8 @@ import OfflineBanner from './components/OfflineBanner';
 
 import CookieConsentBanner from './components/CookieConsentBanner';
 import AdSenseLoader from './components/AdSenseLoader';
+import CommandPalette from './components/CommandPalette';
+import GlobalDropzone from './components/GlobalDropzone';
 
 // Lazy load pages for code splitting
 
@@ -186,6 +188,8 @@ const AppContent = () => {
 
   return (
     <>
+      <CommandPalette />
+      <GlobalDropzone />
       <AdSenseLoader />
       <React.Suspense fallback={<LoadingFallback />}>
         <Routes>

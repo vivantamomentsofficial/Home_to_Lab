@@ -92,17 +92,30 @@ const Home = () => {
       // 1. Try Backend API endpoint first
       try {
         const apiUrl = import.meta.env.VITE_API_URL || '';
-        const res = await fetch(`${apiUrl}/api/share/${codeToUse}`);
+        let res = await fetch(`${apiUrl}/api/share/${codeToUse}`);
+
+        if (res.status === 401) {
+          const errRes = await res.json();
+          if (errRes.pin_required) {
+            const enteredPin = window.prompt('🔒 This code is PIN protected. Please enter the 4-digit PIN:');
+            if (enteredPin) {
+              res = await fetch(`${apiUrl}/api/share/${codeToUse}?pin=${encodeURIComponent(enteredPin)}`);
+            } else {
+              throw new Error('PIN is required to access this share code.');
+            }
+          }
+        }
+
         if (res.ok) {
           fileData = await res.json();
         } else if (res.status === 429) {
           throw new Error('Too many lookup attempts. Please wait a moment.');
-        } else if (res.status === 404) {
+        } else if (res.status === 404 || res.status === 401) {
           const errRes = await res.json();
-          throw new Error(errRes.error || 'Code not found, expired, or already used.');
+          throw new Error(errRes.error || 'Code not found, expired, or incorrect PIN.');
         }
       } catch (apiErr) {
-        if (apiErr.message?.includes('limit') || apiErr.message?.includes('found')) throw apiErr;
+        if (apiErr.message?.includes('limit') || apiErr.message?.includes('found') || apiErr.message?.includes('PIN')) throw apiErr;
         console.warn('Backend API unavailable, executing RPC fallback:', apiErr);
       }
 
