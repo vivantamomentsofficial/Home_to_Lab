@@ -53,7 +53,8 @@ import {
   ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
-  History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy
+  History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy,
+  EyeOff, User, GraduationCap, Mail
 } from 'lucide-react';
 
 
@@ -160,6 +161,9 @@ const Dashboard = () => {
   const [showDuplicateCleanerModal, setShowDuplicateCleanerModal] = useState(false);
   const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
   const [duplicateDeleteMode, setDuplicateDeleteMode] = useState('trash'); // 'trash' | 'permanent'
+  const [fileDeleteModalData, setFileDeleteModalData] = useState(null); // { file, isBatch, fileIds, count }
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Notes/Clipboard caching & viewing
   const [notes, setNotes] = useState([]);
@@ -1879,42 +1883,85 @@ const Dashboard = () => {
       showToast('Folder and file modifications are locked by the administrator.', 'warning');
       return;
     }
-    const fileObj = files.find(f => f.id === id);
-    const permanently = isPermanent || fileObj?.is_deleted || activeFilter === 'trash';
-
-    setConfirmModalData({
-      title: permanently ? 'Permanently Delete File' : 'Move to Trash',
-      message: permanently 
-        ? `Are you sure you want to permanently delete "${filename}"? All storage allocations will clear and this cannot be undone.`
-        : `Move "${filename}" to trash? You can restore it anytime from the Trash tab.`,
-      action: async () => {
-        try {
-          if (permanently) {
-            // Remove from bucket
-            if (path) {
-              const { error: bucketError } = await supabase.storage
-                .from('vault')
-                .remove([path]);
-              if (bucketError) console.warn('Bucket remove warning:', bucketError);
-            }
-
-            // Delete metadata row
-            await deleteFileRecordFromDb(supabase, id);
-            showToast('File permanently deleted.', 'success');
-          } else {
-            // Move to trash
-            await softDeleteFileInDb(supabase, id);
-            showToast(`Moved "${filename}" to Trash.`, 'info');
-          }
-          fetchVaultFiles();
-          fetchStorageStats();
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to delete file: ' + err.message, 'danger');
-        }
-      }
+    const fileObj = files.find(f => f.id === id) || { id, storage_path: path, filename };
+    
+    // Open explicit delete choice modal so user can choose Move to Trash OR Delete Permanently
+    setFileDeleteModalData({
+      file: fileObj,
+      isBatch: false
     });
-    setShowConfirmModal(true);
+  };
+
+  const executeFileDelete = async (file, deleteType) => {
+    if (operationsLocked) {
+      showToast('File operations are locked by administrator.', 'warning');
+      setFileDeleteModalData(null);
+      return;
+    }
+
+    try {
+      if (deleteType === 'permanent') {
+        if (file.storage_path) {
+          const { error: bucketError } = await supabase.storage
+            .from('vault')
+            .remove([file.storage_path]);
+          if (bucketError) console.warn('Bucket remove warning:', bucketError);
+        }
+        if (file.id && !String(file.id).startsWith('storage_')) {
+          await deleteFileRecordFromDb(supabase, file.id);
+        }
+        showToast(`Permanently deleted "${file.filename}".`, 'success');
+      } else {
+        // Move to trash
+        if (file.id && !String(file.id).startsWith('storage_')) {
+          await softDeleteFileInDb(supabase, file.id);
+        }
+        showToast(`Moved "${file.filename}" to Trash.`, 'info');
+      }
+      fetchVaultFiles();
+      fetchStorageStats();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete file: ' + (err.message || String(err)), 'danger');
+    } finally {
+      setFileDeleteModalData(null);
+    }
+  };
+
+  const executeBatchDelete = async (fileIds, deleteType) => {
+    if (operationsLocked) {
+      showToast('File operations are locked by administrator.', 'warning');
+      setFileDeleteModalData(null);
+      return;
+    }
+
+    try {
+      const targets = files.filter(f => fileIds.includes(f.id));
+      if (deleteType === 'permanent') {
+        const paths = targets.map(f => f.storage_path).filter(Boolean);
+        if (paths.length > 0) {
+          await supabase.storage.from('vault').remove(paths);
+        }
+        await Promise.all(
+          targets.filter(f => f.id && !String(f.id).startsWith('storage_')).map(f => deleteFileRecordFromDb(supabase, f.id))
+        );
+        showToast(`Permanently deleted ${targets.length} file(s).`, 'success');
+      } else {
+        // Move to trash
+        await Promise.all(
+          targets.filter(f => f.id && !String(f.id).startsWith('storage_')).map(f => softDeleteFileInDb(supabase, f.id))
+        );
+        showToast(`Moved ${targets.length} file(s) to Trash.`, 'info');
+      }
+      setSelectedFileIds([]);
+      fetchVaultFiles();
+      fetchStorageStats();
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete selected files: ' + (err.message || String(err)), 'danger');
+    } finally {
+      setFileDeleteModalData(null);
+    }
   };
 
   const handleRestoreFile = async (id, filename) => {
@@ -2225,46 +2272,14 @@ const Dashboard = () => {
       showToast('File and folder modifications are locked by the administrator.', 'warning');
       return;
     }
+    if (selectedFileIds.length === 0) return;
 
-    const permanently = activeFilter === 'trash';
-
-    setConfirmModalData({
-      title: permanently ? 'Permanently Delete Selected' : 'Move Selected to Trash',
-      message: permanently 
-        ? `Are you sure you want to permanently delete the ${selectedFileIds.length} selected files? This action cannot be undone.`
-        : `Move ${selectedFileIds.length} selected files to Trash? You can restore them anytime.`,
-      action: async () => {
-        try {
-          if (permanently) {
-            showToast('Permanently deleting selected files...', 'info');
-            const selectedFiles = files.filter(f => selectedFileIds.includes(f.id));
-            const paths = selectedFiles.map(f => f.storage_path).filter(Boolean);
-            if (paths.length > 0) {
-              await supabase.storage.from('vault').remove(paths);
-            }
-            const { error: dbErr } = await supabase
-              .from('files')
-              .delete()
-              .in('id', selectedFileIds);
-            if (dbErr) throw dbErr;
-            showToast('Selected files permanently deleted!', 'success');
-          } else {
-            showToast('Moving selected files to trash...', 'info');
-            for (const id of selectedFileIds) {
-              await softDeleteFileInDb(supabase, id);
-            }
-            showToast(`Moved ${selectedFileIds.length} files to trash.`, 'info');
-          }
-          setSelectedFileIds([]);
-          fetchVaultFiles();
-          fetchStorageStats();
-        } catch (err) {
-          console.error(err);
-          showToast('Failed to delete selected files: ' + err.message, 'danger');
-        }
-      }
+    setFileDeleteModalData({
+      file: null,
+      isBatch: true,
+      fileIds: [...selectedFileIds],
+      count: selectedFileIds.length
     });
-    setShowConfirmModal(true);
   };
 
   const handleBatchRestore = async () => {
@@ -3908,14 +3923,44 @@ const Dashboard = () => {
                 )}
 
                 {getFilteredFiles().length === 0 ? (
-                  currentFolderId === null && folders.length > 0 ? (
+                  currentFolderId === null && folders.filter(f => !f.is_deleted).length > 0 && files.some(f => !f.is_deleted && f.folder_id) ? (
                     <div className="text-center py-6 px-4 text-slate-500 dark:text-slate-400 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
                       <Folder className="w-4 h-4 text-brand-primary shrink-0" />
                       <span>All your files are safely organized inside the folders above. Click any folder to open it!</span>
                     </div>
                   ) : (
-                    <div className="text-center py-16 text-slate-400 text-sm flex flex-col items-center gap-2">
-                      <p>No files found in this view.</p>
+                    <div className="text-center py-14 text-slate-400 text-sm flex flex-col items-center justify-center gap-3 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 p-8 my-2">
+                      <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <FolderKanban className="w-6 h-6" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-slate-700 dark:text-slate-200 text-sm">
+                          {activeFilter === 'trash' ? 'Trash is empty' : 'No files in this view'}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                          {activeFilter === 'trash'
+                            ? 'Files moved to Trash will appear here until permanently deleted or restored.'
+                            : 'Upload files or create quick text notes to populate your encrypted vault.'}
+                        </p>
+                      </div>
+                      {activeFilter !== 'trash' && (
+                        <div className="flex items-center gap-2.5 mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('upload')}
+                            className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer"
+                          >
+                            <UploadCloud className="w-3.5 h-3.5" /> Upload File
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowTxtModal(true)}
+                            className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Create TXT
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )
                 ) : layoutMode === 'grid' ? (
@@ -4417,175 +4462,307 @@ const Dashboard = () => {
 
         {/* TAB 6: PROFILE INFO */}
         {activeTab === 'profile' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start animate-fade-in">
-            {/* Left: Profile Information */}
-            <div className="glass-card p-6 flex flex-col gap-5">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
-                Profile Information
-              </h3>
-              
-              <div className="flex items-center gap-5">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-full border-2 border-brand-primary bg-brand-primary/10 flex items-center justify-center font-display font-semibold text-brand-primary text-2xl uppercase overflow-hidden">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-secondary absolute bottom-0 right-0 p-1.5 rounded-full w-7 h-7 flex items-center justify-center shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                    type="button"
-                  >
-                    <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleAvatarUpload} 
-                    className="hidden" 
-                    accept="image/*" 
-                  />
+          <div className="space-y-6 animate-fade-in pb-8">
+            {/* 1. Quick Stats Overview Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+                  <File className="w-5 h-5" />
                 </div>
-                <div>
-                  <h4 className="text-lg font-bold text-slate-800 dark:text-white">
-                    {fullName || 'Student Name'}
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vault Files</p>
+                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
+                    {files.filter(f => !f.is_deleted).length}
                   </h4>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    {user?.email}
-                  </p>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                    Joined: {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''}
-                  </p>
+                  <p className="text-[10px] text-slate-400 truncate">Total active files</p>
                 </div>
               </div>
 
-              <form onSubmit={handleProfileSave} className="space-y-4 pt-2">
-                <div>
-                  <label className="label-title">Display Name *</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your full display name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="input-field"
-                    required
-                  />
+              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                  <UploadCloud className="w-5 h-5" />
                 </div>
-                <div>
-                  <label className="label-title">College / Institution</label>
-                  <input
-                    type="text"
-                    placeholder="E.g. XYZ Institute of Technology"
-                    value={college}
-                    onChange={(e) => setCollege(e.target.value)}
-                    className="input-field"
-                  />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Storage Used</p>
+                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
+                    {Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%
+                  </h4>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                    <div 
+                      className="bg-emerald-500 h-full rounded-full transition-all" 
+                      style={{ width: `${Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%` }}
+                    />
+                  </div>
                 </div>
-                <button 
-                  type="submit" 
-                  className="w-full btn-primary py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                >
-                  <Check className="w-4 h-4" /> Save Profile Details
-                </button>
-              </form>
+              </div>
+
+              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                  <Clipboard className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Clipboard Notes</p>
+                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
+                    {notes.length}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 truncate">Saved text clippings</p>
+                </div>
+              </div>
+
+              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Security Tier</p>
+                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5 flex items-center gap-1.5">
+                    Active <Check className="w-4 h-4 text-emerald-500" />
+                  </h4>
+                  <p className="text-[10px] text-slate-400 truncate">AES-256 Enabled</p>
+                </div>
+              </div>
             </div>
 
-            {/* Right: Security & Storage Quota & Danger Zone */}
-            <div className="flex flex-col gap-6">
-              {/* Security (Change Password) */}
-              <div className="glass-card p-6 flex flex-col gap-4">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
-                  Security
-                </h3>
-                <form onSubmit={handlePasswordUpdate} className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Left: Profile Information */}
+              <div className="glass-card p-6 flex flex-col gap-5 border-slate-200/70 dark:border-slate-800">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
                   <div>
-                    <label className="label-title">New Password</label>
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      <User className="w-4.5 h-4.5 text-brand-primary" /> Profile Information
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Manage your personal identification details</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-primary/10 text-brand-primary uppercase tracking-wider">
+                    Student Vault
+                  </span>
+                </div>
+                
+                {/* Profile Hero Avatar Box */}
+                <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60">
+                  <div className="relative shrink-0">
+                    <div className="w-20 h-20 rounded-2xl border-2 border-brand-primary/40 bg-gradient-to-tr from-brand-primary/20 to-sky-400/20 flex items-center justify-center font-display font-bold text-brand-primary text-2xl uppercase overflow-hidden shadow-inner">
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
+                      )}
+                    </div>
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1.5 -right-1.5 p-1.5 rounded-xl w-7 h-7 flex items-center justify-center shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      type="button"
+                      title="Upload avatar photo"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleAvatarUpload} 
+                      className="hidden" 
+                      accept="image/*" 
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-lg font-bold text-slate-800 dark:text-white truncate">
+                      {fullName || 'Student User'}
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
+                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      {user?.email}
+                    </p>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Member since: {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent'}
+                    </p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleProfileSave} className="space-y-4 pt-1">
+                  <div>
+                    <label className="label-title flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-brand-primary" /> Full Display Name *
+                    </label>
                     <input
-                      type="password"
-                      placeholder="Min 6 characters"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
+                      type="text"
+                      placeholder="Enter your full display name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className="input-field"
                       required
-                      minLength={6}
                     />
                   </div>
                   <div>
-                    <label className="label-title">Confirm New Password</label>
+                    <label className="label-title flex items-center gap-1.5">
+                      <GraduationCap className="w-3.5 h-3.5 text-brand-primary" /> College / Institution
+                    </label>
                     <input
-                      type="password"
-                      placeholder="Re-enter password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      type="text"
+                      placeholder="E.g. XYZ Institute of Technology"
+                      value={college}
+                      onChange={(e) => setCollege(e.target.value)}
                       className="input-field"
-                      required
-                      minLength={6}
                     />
                   </div>
-                  <button type="submit" disabled={passwordLoading} className="w-full btn-primary py-2.5 text-xs">
-                    {passwordLoading ? 'Updating...' : 'Update Password'}
+                  <div>
+                    <label className="label-title flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" /> Registered Email (Linked Account)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={user?.email || ''}
+                        disabled
+                        className="input-field bg-slate-100/70 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 cursor-not-allowed pr-8"
+                      />
+                      <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5" />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 block">Email address cannot be changed directly for security reasons.</span>
+                  </div>
+                  <button 
+                    type="submit" 
+                    className="w-full btn-primary py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2"
+                  >
+                    <Check className="w-4 h-4" /> Save Profile Details
                   </button>
                 </form>
               </div>
 
-              {/* Storage upgrade request */}
-              <div className="glass-card p-6 flex flex-col gap-4">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white border-b border-slate-100 dark:border-slate-800/50 pb-3">
-                  Storage Quota & Upgrades
-                </h3>
-                <div className="flex flex-col gap-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500 dark:text-slate-400">Current Storage Limit:</span>
-                    <strong className="font-bold text-brand-primary">{formatBytes(storageLimit)}</strong>
+              {/* Right: Security & Storage Quota & Danger Zone */}
+              <div className="flex flex-col gap-6">
+                {/* Security (Change Password) */}
+                <div className="glass-card p-6 flex flex-col gap-4 border-slate-200/70 dark:border-slate-800">
+                  <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      <Lock className="w-4.5 h-4.5 text-brand-primary" /> Security & Password
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Update your account login password</p>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    By default, all student vaults are allocated 100 MB of storage space. If you need more room for assignments, project files, or source code, you can request an upgrade to 300 MB.
-                  </p>
-                </div>
-
-                {requestPending ? (
-                  <div className="flex items-center gap-2 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-semibold">
-                    <AlertTriangle className="w-4.5 h-4.5 flex-shrink-0" />
-                    <span>You have a pending upgrade request. Please wait for approval.</span>
-                  </div>
-                ) : (
-                  <form onSubmit={handleUpgradeRequest} className="space-y-4">
+                  <form onSubmit={handlePasswordUpdate} className="space-y-4">
                     <div>
-                      <label className="label-title">CHOOSE ALLOCATION LIMIT</label>
-                      <select
-                        value={requestedLimit}
-                        onChange={(e) => setRequestedLimit(e.target.value)}
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 outline-none"
-                      >
-                        <option value="209715200">200 MB</option>
-                        <option value="314572800">300 MB</option>
-                        <option value="524288000">500 MB</option>
-                        <option value="1073741824">1 GB</option>
-                      </select>
+                      <label className="label-title">New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showNewPassword ? 'text' : 'password'}
+                          placeholder="Min 6 characters"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          className="input-field pr-10"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        >
+                          {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </div>
-                    <button type="submit" className="w-full btn-primary py-2.5 text-xs">
-                      Request 300 MB Upgrade
+                    <div>
+                      <label className="label-title">Confirm New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          placeholder="Re-enter new password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="input-field pr-10"
+                          required
+                          minLength={6}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                        >
+                          {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    <button 
+                      type="submit" 
+                      disabled={passwordLoading} 
+                      className="w-full btn-primary py-2.5 text-xs font-bold cursor-pointer"
+                    >
+                      {passwordLoading ? 'Updating Password...' : 'Update Password'}
                     </button>
                   </form>
-                )}
-              </div>
+                </div>
 
-              {/* Danger Zone */}
-              <div className="glass-card p-6 border-red-500/20 bg-red-500/5 flex flex-col gap-4">
-                <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-                  <ShieldAlert className="w-4.5 h-4.5" /> Danger Zone
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Deleting your profile wipes all snippets logs and destroys files saved inside your personal storage directory permanently.
-                </p>
-                <button
-                  onClick={triggerWipeAccount}
-                  className="w-full btn-danger py-2.5 text-xs"
-                >
-                  Delete Account
-                </button>
+                {/* Storage upgrade request */}
+                <div className="glass-card p-6 flex flex-col gap-4 border-slate-200/70 dark:border-slate-800">
+                  <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                      <UploadCloud className="w-4.5 h-4.5 text-brand-primary" /> Storage Quota & Upgrades
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Manage your personal cloud capacity</p>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-2.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Used:</span>
+                      <strong className="font-bold text-slate-800 dark:text-white">
+                        {formatBytes(usedStorage)} / <span className="text-brand-primary">{formatBytes(storageLimit)}</span>
+                      </strong>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${
+                          (usedStorage / (storageLimit || 1)) > 0.85 ? 'bg-red-500' : 'bg-brand-primary'
+                        }`} 
+                        style={{ width: `${Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                      Standard student vaults start with 100 MB. You can request high-capacity allocation for laboratory assignments, datasets, and archives.
+                    </p>
+                  </div>
+
+                  {requestPending ? (
+                    <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-semibold">
+                      <AlertTriangle className="w-4.5 h-4.5 flex-shrink-0" />
+                      <span>You have a pending upgrade request. An administrator will review it shortly.</span>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleUpgradeRequest} className="space-y-4">
+                      <div>
+                        <label className="label-title">CHOOSE NEW STORAGE TARGET</label>
+                        <select
+                          value={requestedLimit}
+                          onChange={(e) => setRequestedLimit(e.target.value)}
+                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 outline-none"
+                        >
+                          <option value="209715200">200 MB (+100 MB)</option>
+                          <option value="314572800">300 MB (+200 MB)</option>
+                          <option value="524288000">500 MB (+400 MB)</option>
+                          <option value="1073741824">1 GB (Pro Student Tier)</option>
+                        </select>
+                      </div>
+                      <button type="submit" className="w-full btn-primary py-2.5 text-xs font-bold cursor-pointer">
+                        Request Storage Upgrade
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* Danger Zone */}
+                <div className="glass-card p-6 border-red-500/25 bg-red-500/5 flex flex-col gap-3">
+                  <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <ShieldAlert className="w-4.5 h-4.5" /> Danger Zone
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Deleting your account will permanently wipe all vault files, clipboard notes, and profile configurations. This cannot be undone.
+                  </p>
+                  <button
+                    onClick={triggerWipeAccount}
+                    className="w-full btn-danger py-2.5 text-xs font-bold mt-1 cursor-pointer"
+                  >
+                    Delete Account
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -4627,6 +4804,117 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* 1.1 Explicit File Deletion Choice Modal (Move to Trash vs Permanently Delete) */}
+      {fileDeleteModalData && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 backdrop-blur-xs p-4 animate-fade-in">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl rounded-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-150 dark:border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center">
+                  <Trash className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white">
+                    {fileDeleteModalData.isBatch 
+                      ? `Delete ${fileDeleteModalData.count} Selected Files` 
+                      : 'Delete File'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate max-w-[260px]">
+                    {fileDeleteModalData.isBatch 
+                      ? `${fileDeleteModalData.count} files chosen` 
+                      : (fileDeleteModalData.file?.filename || 'Selected File')}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFileDeleteModalData(null)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 dark:text-slate-300 my-4 leading-relaxed">
+              Choose how you want to delete {fileDeleteModalData.isBatch ? 'these files' : 'this file'}:
+            </p>
+
+            <div className="space-y-3 mb-5">
+              {/* Option 1: Move to Trash */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (fileDeleteModalData.isBatch) {
+                    executeBatchDelete(fileDeleteModalData.fileIds, 'trash');
+                  } else {
+                    executeFileDelete(fileDeleteModalData.file, 'trash');
+                  }
+                }}
+                className="w-full text-left p-3.5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/20 hover:bg-amber-100/70 dark:hover:bg-amber-950/40 transition-all flex items-start gap-3 group cursor-pointer"
+              >
+                <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                  <RotateCcw className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-800 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                      Move to Trash
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-200/60 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
+                      Safe & Recoverable
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                    Files will be placed in the Trash tab. You can restore them anytime if you need them back.
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: Permanently Delete */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (fileDeleteModalData.isBatch) {
+                    executeBatchDelete(fileDeleteModalData.fileIds, 'permanent');
+                  } else {
+                    executeFileDelete(fileDeleteModalData.file, 'permanent');
+                  }
+                }}
+                className="w-full text-left p-3.5 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50/70 dark:bg-red-950/20 hover:bg-red-100/70 dark:hover:bg-red-950/40 transition-all flex items-start gap-3 group cursor-pointer"
+              >
+                <div className="p-2 rounded-lg bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 shrink-0 mt-0.5">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-red-600 dark:text-red-400">
+                      Permanently Delete
+                    </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-200/60 dark:bg-red-900/60 text-red-700 dark:text-red-300">
+                      Irreversible
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                    Completely removes the file from cloud storage and database. Frees up storage quota immediately.
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-150 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setFileDeleteModalData(null)}
+                className="btn-secondary py-2 px-4 text-xs font-bold cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* 2. File Rename Modal */}
       {showRenameModal && (

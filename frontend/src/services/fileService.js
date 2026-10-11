@@ -37,6 +37,7 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
         .from('folders')
         .select('*')
         .eq('user_id', userId)
+        .eq('is_deleted', false)
         .order('name', { ascending: true }),
       supabase
         .from('files')
