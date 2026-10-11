@@ -939,6 +939,40 @@ CREATE TABLE IF NOT EXISTS public.quick_shares (
 ALTER TABLE public.quick_shares ADD COLUMN IF NOT EXISTS pin_code TEXT;
 ALTER TABLE public.quick_shares ENABLE ROW LEVEL SECURITY;
 
+-- RLS policies for quick_shares table (transient guest access)
+DROP POLICY IF EXISTS "quick_shares_select_policy" ON public.quick_shares;
+CREATE POLICY "quick_shares_select_policy" ON public.quick_shares
+    FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "quick_shares_insert_policy" ON public.quick_shares;
+CREATE POLICY "quick_shares_insert_policy" ON public.quick_shares
+    FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "quick_shares_update_policy" ON public.quick_shares;
+CREATE POLICY "quick_shares_update_policy" ON public.quick_shares
+    FOR UPDATE USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "quick_shares_delete_policy" ON public.quick_shares;
+CREATE POLICY "quick_shares_delete_policy" ON public.quick_shares
+    FOR DELETE USING (true);
+
+-- Storage policies for 'quick' bucket
+DROP POLICY IF EXISTS "quick_insert_policy" ON storage.objects;
+CREATE POLICY "quick_insert_policy" ON storage.objects
+    FOR INSERT WITH CHECK (bucket_id = 'quick');
+
+DROP POLICY IF EXISTS "quick_select_policy" ON storage.objects;
+CREATE POLICY "quick_select_policy" ON storage.objects
+    FOR SELECT USING (bucket_id = 'quick');
+
+DROP POLICY IF EXISTS "quick_update_policy" ON storage.objects;
+CREATE POLICY "quick_update_policy" ON storage.objects
+    FOR UPDATE USING (bucket_id = 'quick') WITH CHECK (bucket_id = 'quick');
+
+DROP POLICY IF EXISTS "quick_delete_policy" ON storage.objects;
+CREATE POLICY "quick_delete_policy" ON storage.objects
+    FOR DELETE USING (bucket_id = 'quick');
+
 CREATE INDEX IF NOT EXISTS idx_quick_shares_code ON public.quick_shares(code);
 CREATE INDEX IF NOT EXISTS idx_quick_shares_expires_at ON public.quick_shares(expires_at);
 CREATE INDEX IF NOT EXISTS idx_quick_shares_status ON public.quick_shares(status);

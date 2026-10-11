@@ -117,10 +117,22 @@ router.get('/:code', shareLookupLimiter, async (req, res) => {
     }
 
     if (quickRow.kind === 'file') {
-      // Create a fresh 5-minute signed URL per lookup from 'quick' storage bucket
-      const { data: signedData, error: signedErr } = await supabaseAdmin.storage
-        .from('quick')
+      const QUICK_BUCKET = process.env.QUICK_STORAGE_BUCKET || 'vault';
+      // Create a fresh 5-minute signed URL per lookup from storage bucket
+      let { data: signedData, error: signedErr } = await supabaseAdmin.storage
+        .from(QUICK_BUCKET)
         .createSignedUrl(quickRow.storage_path, 300, { download: quickRow.filename });
+
+      // Fallback to 'quick' bucket if not in QUICK_BUCKET
+      if (signedErr || !signedData?.signedUrl) {
+        const fallback = await supabaseAdmin.storage
+          .from('quick')
+          .createSignedUrl(quickRow.storage_path, 300, { download: quickRow.filename });
+        if (fallback.data?.signedUrl) {
+          signedData = fallback.data;
+          signedErr = null;
+        }
+      }
 
       if (signedErr || !signedData?.signedUrl) {
         return res.status(500).json({ error: 'Failed to generate download URL for file.' });

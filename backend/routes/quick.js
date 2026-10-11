@@ -18,6 +18,9 @@ const ALLOWED_EXPIRATIONS = {
   '24h': 86400,
 };
 
+// Default transient storage bucket ('vault' has operational RLS policies)
+const QUICK_BUCKET = process.env.QUICK_STORAGE_BUCKET || 'vault';
+
 // Rate Limiters for /api/quick/init (5 creates / 10 min / IP and 30 creates / 24 hr / IP)
 const shortInitLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
@@ -118,7 +121,10 @@ async function cleanupQuickShares() {
       .filter(p => Boolean(p));
 
     if (pathsToRemove.length > 0) {
-      await supabaseAdmin.storage.from('quick').remove(pathsToRemove);
+      await supabaseAdmin.storage.from(QUICK_BUCKET).remove(pathsToRemove).catch(() => {});
+      if (QUICK_BUCKET !== 'quick') {
+        await supabaseAdmin.storage.from('quick').remove(pathsToRemove).catch(() => {});
+      }
     }
 
     const idsToDelete = expiredRows.map(r => r.id);
@@ -270,26 +276,19 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
         return res.status(500).json({ error: insertErr?.message ? `Database error: ${insertErr.message}` : 'Failed to initialize file share.' });
       }
 
-      // Create signed upload URL for browser direct upload (with auto-bucket creation fallback)
+      // Create signed upload URL for browser direct upload (defaults to QUICK_BUCKET 'vault')
       let { data: uploadData, error: uploadErr } = await supabaseAdmin.storage
-        .from('quick')
+        .from(QUICK_BUCKET)
         .createSignedUploadUrl(storagePath);
 
-      if (uploadErr && (uploadErr.message?.toLowerCase().includes('not found') || uploadErr.statusCode === '404' || uploadErr.status === 404)) {
-        console.warn("'quick' storage bucket not found in Supabase Storage. Attempting automatic bucket creation...");
-        try {
-          await supabaseAdmin.storage.createBucket('quick', {
-            public: false,
-            fileSizeLimit: 26214400,
-          });
-          // Retry signed upload URL creation after bucket auto-creation
-          const retryResult = await supabaseAdmin.storage
-            .from('quick')
-            .createSignedUploadUrl(storagePath);
-          uploadData = retryResult.data;
-          uploadErr = retryResult.error;
-        } catch (bucketCreateErr) {
-          console.error('Auto-creation of quick storage bucket failed:', bucketCreateErr);
+      // If primary bucket returned an error, attempt fallback to 'quick' bucket
+      if (uploadErr && QUICK_BUCKET !== 'quick') {
+        const fallbackResult = await supabaseAdmin.storage
+          .from('quick')
+          .createSignedUploadUrl(storagePath);
+        if (fallbackResult.data?.signedUrl) {
+          uploadData = fallbackResult.data;
+          uploadErr = null;
         }
       }
 
@@ -298,8 +297,8 @@ router.post('/init', shortInitLimiter, dailyInitLimiter, async (req, res) => {
         await supabaseAdmin.from('quick_shares').delete().eq('id', pendingRow.id);
         return res.status(500).json({ 
           error: uploadErr?.message 
-            ? `Storage error (${uploadErr.message}). Make sure the 'quick' bucket exists in Supabase Storage.` 
-            : 'Failed to generate upload authorization token. Please ensure the quick bucket is configured in Supabase.' 
+            ? `Storage error (${uploadErr.message}). Make sure storage policies allow upload.` 
+            : 'Failed to generate upload authorization token. Please ensure the storage bucket is configured in Supabase.' 
         });
       }
 
@@ -340,15 +339,28 @@ router.post('/:id/complete', async (req, res) => {
       return res.status(404).json({ error: 'Pending upload session not found or already completed.' });
     }
 
-    // Verify file exists in Supabase storage bucket 'quick'
+    // Verify file exists in Supabase storage bucket (check QUICK_BUCKET first, fallback to 'quick')
     const folderPath = path.dirname(row.storage_path);
     const fileName = path.basename(row.storage_path);
 
-    const { data: fileList, error: listErr } = await supabaseAdmin.storage
-      .from('quick')
+    let activeBucket = QUICK_BUCKET;
+    let { data: fileList, error: listErr } = await supabaseAdmin.storage
+      .from(activeBucket)
       .list(folderPath);
 
-    const uploadedObject = (fileList || []).find(f => f.name === fileName);
+    let uploadedObject = (fileList || []).find(f => f.name === fileName);
+
+    if (!uploadedObject && activeBucket !== 'quick') {
+      const fallbackList = await supabaseAdmin.storage.from('quick').list(folderPath);
+      if (fallbackList.data) {
+        const found = fallbackList.data.find(f => f.name === fileName);
+        if (found) {
+          activeBucket = 'quick';
+          uploadedObject = found;
+          listErr = null;
+        }
+      }
+    }
 
     if (listErr || !uploadedObject) {
       // Clean up orphaned pending row
@@ -358,7 +370,7 @@ router.post('/:id/complete', async (req, res) => {
 
     const actualSize = uploadedObject.metadata?.size || uploadedObject.size || row.size;
     if (actualSize > 25 * 1024 * 1024) {
-      await supabaseAdmin.storage.from('quick').remove([row.storage_path]);
+      await supabaseAdmin.storage.from(activeBucket).remove([row.storage_path]).catch(() => {});
       await supabaseAdmin.from('quick_shares').delete().eq('id', row.id);
       return res.status(400).json({ error: 'Uploaded file exceeds 25 MB limit.' });
     }
