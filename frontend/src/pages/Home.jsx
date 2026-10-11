@@ -133,6 +133,44 @@ const Home = () => {
         }
       }
 
+      // 3. Built-in interactive demo support for showcase codes
+      if (!fileData) {
+        if (codeToUse === '8F3K9A') {
+          fileData = {
+            kind: 'text',
+            file_id: 'demo-code-python',
+            filename: 'Lab_4_Script.py',
+            size: 4915,
+            file_type: 'code',
+            text_content: `# CloudVault Interactive Demo - Python Script\n# Transferred securely from Home to Lab Terminal without login\n\ndef calculate_grade(marks):\n    if marks >= 90: return 'A+ (Distinction)'\n    elif marks >= 75: return 'A (First Class)'\n    elif marks >= 60: return 'B (Second Class)'\n    return 'Pass'\n\nstudent_scores = {'Algorithms': 94, 'Data Structures': 88, 'DBMS': 79}\nfor subject, score in student_scores.items():\n    print(f"{subject}: {calculate_grade(score)}")\n\nprint("\\n[Success] CloudVault Code retrieved successfully!")`,
+            expires_at: new Date(Date.now() + 1800 * 1000).toISOString(),
+            self_destruct: false,
+          };
+        } else if (codeToUse === 'K7M2P9') {
+          fileData = {
+            kind: 'file',
+            file_id: 'demo-doc-pdf',
+            filename: 'Lab_Manual.pdf',
+            size: 2516582,
+            file_type: 'document',
+            signed_url: 'https://raw.githubusercontent.com/mozilla/pdf.js/master/examples/learning/helloworld.pdf',
+            expires_at: new Date(Date.now() + 1800 * 1000).toISOString(),
+            self_destruct: false,
+          };
+        } else if (codeToUse === 'X9W4Q1') {
+          fileData = {
+            kind: 'file',
+            file_id: 'demo-zip-archive',
+            filename: 'Assignment_Final.zip',
+            size: 14889779,
+            file_type: 'archive',
+            signed_url: '#',
+            expires_at: new Date(Date.now() + 600 * 1000).toISOString(),
+            self_destruct: true,
+          };
+        }
+      }
+
       if (!fileData) {
         throw new Error('Code not found, expired, or already used.');
       }
@@ -380,14 +418,45 @@ const Home = () => {
     setIsDrawerOpen(false);
   };
 
-  const handleDemoCopy = (text, label) => {
+  const handleDemoCopy = (text, label, isAccessCode = false) => {
     navigator.clipboard.writeText(text);
     setCopiedDemoText(label);
-    showToast(`Copied "${label}" to clipboard!`, 'success');
+    if (isAccessCode) {
+      setShareCode(text);
+      setActiveTab('receive');
+      showToast(`Copied "${text}" & opening retrieval preview!`, 'success');
+      setTimeout(() => {
+        scrollToSection('retrieve-section');
+        handleRetrieveCode(null, text);
+      }, 300);
+    } else {
+      showToast(`Copied "${label}" to clipboard!`, 'success');
+    }
     setTimeout(() => setCopiedDemoText(null), 2000);
   };
 
   useEffect(() => {
+    const handleDroppedFile = (files) => {
+      if (files && files.length > 0) {
+        const file = files[0];
+        setSendKind('file');
+        setSendFile(file);
+        setActiveTab('send');
+        showToast(`Dropped file "${file.name}" ready to send!`, 'info');
+        setTimeout(() => scrollToSection('retrieve-section'), 200);
+      }
+    };
+
+    if (window.droppedFilesCache && window.droppedFilesCache.length > 0) {
+      handleDroppedFile(window.droppedFilesCache);
+      window.droppedFilesCache = null;
+    }
+
+    const onDropEvent = (e) => {
+      if (e.detail) handleDroppedFile(e.detail);
+    };
+    window.addEventListener('cloudvault-dropped-files', onDropEvent);
+
     const params = new URLSearchParams(window.location.search);
     const codeParam = params.get('code');
     if (codeParam && codeParam.trim().length === 6) {
@@ -400,6 +469,7 @@ const Home = () => {
     }
 
     return () => {
+      window.removeEventListener('cloudvault-dropped-files', onDropEvent);
       if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
       if (sendCountdownIntervalRef.current) clearInterval(sendCountdownIntervalRef.current);
     };
@@ -941,10 +1011,11 @@ const Home = () => {
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Lab_4_Script.py</span>
                       <span className="text-[10px] text-slate-400">4.8 KB • Code File</span>
                       <button
-                        onClick={() => handleDemoCopy('8F3K9A', 'Code 8F3K9A')}
-                        className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1"
+                        onClick={() => handleDemoCopy('8F3K9A', 'Code 8F3K9A', true)}
+                        className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Click to test retrieve this demo code"
                       >
-                        <Key className="w-3 h-3" /> Code: 8F3K9A
+                        <Key className="w-3 h-3" /> Try Code: 8F3K9A
                       </button>
                     </div>
 
@@ -956,10 +1027,11 @@ const Home = () => {
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Lab_Manual.pdf</span>
                       <span className="text-[10px] text-slate-400">2.4 MB • PDF Document</span>
                       <button
-                        onClick={() => handleDemoCopy('K7M2P9', 'Code K7M2P9')}
-                        className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1"
+                        onClick={() => handleDemoCopy('K7M2P9', 'Code K7M2P9', true)}
+                        className="mt-2 text-[10px] font-bold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Click to test retrieve this demo code"
                       >
-                        <Key className="w-3 h-3" /> Code: K7M2P9
+                        <Key className="w-3 h-3" /> Try Code: K7M2P9
                       </button>
                     </div>
 
@@ -971,10 +1043,11 @@ const Home = () => {
                       <span className="font-bold text-xs text-slate-800 dark:text-slate-200 truncate mt-1">Assignment_Final.zip</span>
                       <span className="text-[10px] text-slate-400">14.2 MB • Single-Use</span>
                       <button
-                        onClick={() => handleDemoCopy('X9W4Q1', 'Single-Use Code X9W4Q1')}
-                        className="mt-2 text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-1"
+                        onClick={() => handleDemoCopy('X9W4Q1', 'Single-Use Code X9W4Q1', true)}
+                        className="mt-2 text-[10px] font-bold text-amber-600 hover:underline flex items-center gap-1 cursor-pointer"
+                        title="Click to test retrieve this demo code"
                       >
-                        <Key className="w-3 h-3" /> Single-Use: X9W4Q1
+                        <Key className="w-3 h-3" /> Try Single-Use: X9W4Q1
                       </button>
                     </div>
                   </div>

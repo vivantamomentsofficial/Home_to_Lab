@@ -10,6 +10,7 @@ const shareRouter = require('./routes/share');
 const adminRouter = require('./routes/admin');
 const authRouter = require('./routes/auth');
 const { router: quickRouter, cleanupQuickShares } = require('./routes/quick');
+const { getSupabaseAdmin } = require('./utils/security');
 
 // Soft warning if environment variables are missing during initial container startup
 if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
@@ -73,6 +74,31 @@ app.get('/api/config', (req, res) => {
     supabaseUrl: process.env.SUPABASE_URL,
     supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
   });
+});
+
+// Serving Public Platform Settings & Health (Maintenance Mode, Signups Enabled)
+app.get('/api/public-settings', async (req, res) => {
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase.from('platform_settings').select('*');
+    const settings = {
+      maintenance_mode: false,
+      signups_enabled: true,
+      uploads_enabled: true
+    };
+    if (!error && data && data.length > 0) {
+      data.forEach(item => {
+        if (item.key === 'maintenance_mode') settings.maintenance_mode = !!item.value;
+        if (item.key === 'feature_flags' && item.value) {
+          if (typeof item.value.signups_enabled !== 'undefined') settings.signups_enabled = !!item.value.signups_enabled;
+          if (typeof item.value.uploads_enabled !== 'undefined') settings.uploads_enabled = !!item.value.uploads_enabled;
+        }
+      });
+    }
+    return res.json(settings);
+  } catch (err) {
+    return res.json({ maintenance_mode: false, signups_enabled: true, uploads_enabled: true });
+  }
 });
 
 

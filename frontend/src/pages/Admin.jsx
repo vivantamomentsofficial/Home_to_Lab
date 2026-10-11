@@ -506,6 +506,8 @@ const Admin = () => {
 
       setImpersonatedUser(data.targetUser);
       showToast(`Initiated read-only impersonation session for ${data.targetUser.email}`, 'info');
+      // Automatically load and display user's complete vault inventory
+      handleFetchUserDetails(userId);
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Failed to start impersonation.', 'danger');
@@ -921,12 +923,20 @@ const Admin = () => {
             <Eye className="w-4 h-4 animate-pulse" />
             <span>READ-ONLY IMPERSONATION PREVIEW: Viewing dashboard state for <strong>{impersonatedUser.email}</strong></span>
           </div>
-          <button
-            onClick={() => setImpersonatedUser(null)}
-            className="px-3 py-1 bg-black/30 hover:bg-black/50 rounded-lg text-white font-bold flex items-center gap-1"
-          >
-            <X className="w-3.5 h-3.5" /> End Session
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => handleFetchUserDetails(impersonatedUser.id)}
+              className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <Folder className="w-3.5 h-3.5" /> Inspect Vault
+            </button>
+            <button
+              onClick={() => setImpersonatedUser(null)}
+              className="px-3 py-1 bg-black/30 hover:bg-black/50 rounded-lg text-white font-bold flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <X className="w-3.5 h-3.5" /> End Session
+            </button>
+          </div>
         </div>
       )}
 

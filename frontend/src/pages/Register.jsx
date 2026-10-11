@@ -38,9 +38,33 @@ const Register = () => {
   }, [user, navigate]);
 
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [signupsDisabled, setSignupsDisabled] = useState(false);
+  const [maintenanceNotice, setMaintenanceNotice] = useState(false);
+
+  useEffect(() => {
+    const fetchPlatformStatus = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || '';
+        const res = await fetch(`${apiUrl}/api/public-settings`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.maintenance_mode) setMaintenanceNotice(true);
+          if (data.signups_enabled === false) setSignupsDisabled(true);
+        }
+      } catch (err) {
+        // Fallback silently if offline or network failure
+      }
+    };
+    fetchPlatformStatus();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (signupsDisabled) {
+      showToast('New user registrations are currently disabled by platform administrators.', 'warning');
+      return;
+    }
 
     if (!agreedToTerms) {
       showToast('You must accept the Terms of Service and Privacy Policy to create an account.', 'warning');
@@ -119,6 +143,18 @@ const Register = () => {
         <p className="text-xs text-slate-500 dark:text-slate-400 text-center mb-6">
           Set up a temporary personal cloud bridge for your college files.
         </p>
+
+        {maintenanceNotice && (
+          <div className="mb-4 p-3.5 bg-red-500/10 border border-red-500/25 rounded-2xl text-xs text-red-700 dark:text-red-300">
+            <strong>System Maintenance:</strong> Platform is currently undergoing scheduled maintenance. Some services may experience temporary delays.
+          </div>
+        )}
+
+        {signupsDisabled && (
+          <div className="mb-4 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl text-xs text-amber-700 dark:text-amber-300">
+            <strong>Registrations Paused:</strong> New user account creation is currently closed by the platform administrator.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -251,11 +287,17 @@ const Register = () => {
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full btn-primary h-12 flex justify-center items-center mt-4"
+            disabled={loading || signupsDisabled}
+            className={`w-full h-12 flex justify-center items-center mt-4 ${
+              signupsDisabled 
+                ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed rounded-xl font-bold text-xs' 
+                : 'btn-primary'
+            }`}
           >
             {loading ? (
               <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
+            ) : signupsDisabled ? (
+              'Registrations Paused'
             ) : (
               'Create Account'
             )}

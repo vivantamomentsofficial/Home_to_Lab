@@ -27,6 +27,7 @@
     { "source": "/android-chrome-192x192.png", "destination": "/assets/android-chrome-192x192.png" },
     { "source": "/android-chrome-512x512.png", "destination": "/assets/android-chrome-512x512.png" },
     { "source": "/preview.png", "destination": "/assets/preview.png" },
+    { "source": "/api/:path*", "destination": "https://home-to-lab.onrender.com/api/:path*" },
     { "source": "/((?!assets/|.*\\..*).*)", "destination": "/index.html" }
   ],
   "redirects": [

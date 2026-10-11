@@ -65,7 +65,7 @@ const AwsMigrationModal = () => {
   };
 
   useEffect(() => {
-    const isDismissed = sessionStorage.getItem('cloudvault_aws_migration_notice_dismissed');
+    const isDismissed = localStorage.getItem('cloudvault_aws_migration_notice_dismissed');
     if (!isDismissed) {
       const timer = setTimeout(() => {
         setIsOpen(true);
@@ -76,7 +76,7 @@ const AwsMigrationModal = () => {
   }, []);
 
   const handleDismiss = () => {
-    sessionStorage.setItem('cloudvault_aws_migration_notice_dismissed', 'true');
+    localStorage.setItem('cloudvault_aws_migration_notice_dismissed', 'true');
     setIsOpen(false);
   };
 

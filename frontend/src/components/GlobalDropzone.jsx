@@ -49,6 +49,7 @@ const GlobalDropzone = ({ onFileDrop }) => {
           // Default action: Store dropped file in session & navigate to home quick upload
           try {
             window.droppedFilesCache = files;
+            window.dispatchEvent(new CustomEvent('cloudvault-dropped-files', { detail: files }));
           } catch (err) {
             console.error('Failed to cache dropped files:', err);
           }
