@@ -53,7 +53,7 @@ import {
   ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
-  History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles
+  History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy
 } from 'lucide-react';
 
 
@@ -157,8 +157,11 @@ const Dashboard = () => {
   const [versionModalFile, setVersionModalFile] = useState(null);
   const [fileVersionsList, setFileVersionsList] = useState([]);
   const [duplicateModalData, setDuplicateModalData] = useState(null);
+  const [showDuplicateCleanerModal, setShowDuplicateCleanerModal] = useState(false);
+  const [cleaningDuplicates, setCleaningDuplicates] = useState(false);
+  const [duplicateDeleteMode, setDuplicateDeleteMode] = useState('trash'); // 'trash' | 'permanent'
 
-  // Notes/Clipboard caching
+  // Notes/Clipboard caching & viewing
   const [notes, setNotes] = useState([]);
   const [noteId, setNoteId] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
@@ -166,6 +169,8 @@ const Dashboard = () => {
   const [noteSearch, setNoteSearch] = useState('');
   const [noteSort, setNoteSort] = useState('newest');
   const [notesLoading, setNotesLoading] = useState(false);
+  const [viewingNote, setViewingNote] = useState(null);
+  const [viewNoteCopied, setViewNoteCopied] = useState(false);
 
   // Active uploader files queue
   const [activeUploads, setActiveUploads] = useState({});
@@ -860,6 +865,11 @@ const Dashboard = () => {
     setNoteId(note.id);
     setNoteTitle(note.title);
     setNoteContent(decryptedNotesMap[note.id] || note.content);
+  };
+
+  const handleViewNote = (note) => {
+    setViewingNote(note);
+    setViewNoteCopied(false);
   };
 
   const handleMoveNoteToTrash = async (id) => {
@@ -1916,6 +1926,117 @@ const Dashboard = () => {
     } catch (err) {
       console.error(err);
       showToast('Failed to restore file: ' + err.message, 'danger');
+    }
+  };
+
+  // ==========================================
+  // DUPLICATE FILES CLEANUP LOGIC (Task: Clean same-same files & keep 1 original)
+  // ==========================================
+  const getDuplicateGroups = () => {
+    const activeFiles = files.filter(f => !f.is_deleted);
+    const visited = new Set();
+    const groups = [];
+
+    for (let i = 0; i < activeFiles.length; i++) {
+      const f1 = activeFiles[i];
+      if (visited.has(f1.id)) continue;
+
+      const matched = [f1];
+      for (let j = i + 1; j < activeFiles.length; j++) {
+        const f2 = activeFiles[j];
+        if (visited.has(f2.id)) continue;
+
+        const sameHash = f1.content_hash && f2.content_hash && f1.content_hash === f2.content_hash;
+        const sameNameAndSize = (f1.filename || '').trim().toLowerCase() === (f2.filename || '').trim().toLowerCase() && Number(f1.size) === Number(f2.size);
+        const sameName = (f1.filename || '').trim().toLowerCase() === (f2.filename || '').trim().toLowerCase();
+
+        if (sameHash || sameNameAndSize || sameName) {
+          matched.push(f2);
+          visited.add(f2.id);
+        }
+      }
+
+      if (matched.length > 1) {
+        visited.add(f1.id);
+        // Sort by created_at ascending: earliest uploaded is the original file
+        matched.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+        const original = matched[0];
+        const duplicates = matched.slice(1);
+        const reclaimableBytes = duplicates.reduce((acc, d) => acc + (parseInt(d.size, 10) || 0), 0);
+
+        groups.push({
+          id: original.id,
+          filename: original.filename,
+          original,
+          duplicates,
+          allFiles: matched,
+          reclaimableBytes
+        });
+      }
+    }
+
+    return groups;
+  };
+
+  const handleCleanDuplicates = async (specificDuplicateIds = null, isPermanent = false) => {
+    if (operationsLocked) {
+      showToast('File operations are locked by administrator.', 'warning');
+      return;
+    }
+
+    setCleaningDuplicates(true);
+    try {
+      let filesToDelete = [];
+      if (specificDuplicateIds && specificDuplicateIds.length > 0) {
+        filesToDelete = files.filter(f => specificDuplicateIds.includes(f.id));
+      } else {
+        const groups = getDuplicateGroups();
+        filesToDelete = groups.flatMap(g => g.duplicates);
+      }
+
+      if (filesToDelete.length === 0) {
+        showToast('No duplicate copies to clean.', 'info');
+        setCleaningDuplicates(false);
+        return;
+      }
+
+      let deletedCount = 0;
+      let freedBytes = 0;
+
+      for (const file of filesToDelete) {
+        try {
+          if (isPermanent) {
+            if (file.storage_path) {
+              await supabase.storage.from('vault').remove([file.storage_path]);
+            }
+            if (file.id && !String(file.id).startsWith('storage_')) {
+              await deleteFileRecordFromDb(supabase, file.id);
+            }
+          } else {
+            if (file.id && !String(file.id).startsWith('storage_')) {
+              await softDeleteFileInDb(supabase, file.id);
+            }
+          }
+          deletedCount++;
+          freedBytes += (parseInt(file.size, 10) || 0);
+        } catch (delErr) {
+          console.warn('Error cleaning duplicate file:', file.filename, delErr);
+        }
+      }
+
+      showToast(`Cleaned ${deletedCount} duplicate file(s)! Kept original intact. Freed ${formatBytes(freedBytes)}.`, 'success');
+      await fetchVaultFiles();
+      await fetchStorageStats();
+
+      const remainingGroups = getDuplicateGroups();
+      if (remainingGroups.length === 0) {
+        setShowDuplicateCleanerModal(false);
+      }
+    } catch (err) {
+      console.error('Failed to clean duplicates:', err);
+      showToast('Failed to clean duplicates: ' + (err.message || String(err)), 'danger');
+    } finally {
+      setCleaningDuplicates(false);
     }
   };
 
@@ -3334,16 +3455,27 @@ const Dashboard = () => {
                             </span>
                           )}
                         </div>
-                        <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate" title={note.title}>
+                        <h4
+                          onClick={() => handleViewNote(note)}
+                          className="font-bold text-sm text-slate-800 dark:text-white truncate cursor-pointer hover:text-brand-primary transition-colors"
+                          title="Click to view full snippet"
+                        >
                           {note.title}
                         </h4>
                         {note.is_encrypted && !decryptedNotesMap[note.id] ? (
-                          <div className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-center gap-2">
+                          <div
+                            onClick={() => handleViewNote(note)}
+                            className="mt-2 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-lg flex items-center gap-2 cursor-pointer hover:border-amber-300"
+                          >
                             <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                            <span className="text-xs text-amber-700 dark:text-amber-400">Content is encrypted — click unlock to read.</span>
+                            <span className="text-xs text-amber-700 dark:text-amber-400">Content is encrypted — click to view & unlock.</span>
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-4 font-mono whitespace-pre-wrap break-all bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg">
+                          <p
+                            onClick={() => handleViewNote(note)}
+                            className="text-xs text-slate-500 dark:text-slate-400 mt-2 line-clamp-4 font-mono whitespace-pre-wrap break-all bg-slate-50 dark:bg-slate-900/50 p-2 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors"
+                            title="Click to view full snippet"
+                          >
                             {decryptedNotesMap[note.id] || note.content}
                           </p>
                         )}
@@ -3354,6 +3486,14 @@ const Dashboard = () => {
                           {new Date(note.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                         <div className="flex gap-1">
+                          {/* View Note / Clipboard snippet button */}
+                          <button
+                            onClick={() => handleViewNote(note)}
+                            className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-brand-primary transition-colors cursor-pointer"
+                            title="View full snippet"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
                           {note.is_encrypted && !decryptedNotesMap[note.id] && (
                             <button
                               onClick={() => handleDecryptNoteClick(note)}
@@ -3541,6 +3681,28 @@ const Dashboard = () => {
                   title="Toggle layout"
                 >
                   {layoutMode === 'grid' ? <List className="w-4 h-4" /> : <Grid className="w-4 h-4" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateCleanerModal(true)}
+                  className={`p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold shrink-0 cursor-pointer flex items-center gap-1.5 transition-all border ${
+                    getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0) > 0
+                      ? 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 shadow-xs'
+                      : 'bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300'
+                  }`}
+                  title={
+                    getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0) > 0
+                      ? `${getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)} duplicate copies found. Click to clean & keep 1 original.`
+                      : 'Scan & Clean Duplicates'
+                  }
+                >
+                  <Copy className="w-3.5 h-3.5 text-amber-500" />
+                  <span className="hidden sm:inline">Clean Duplicates</span>
+                  {getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0) > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-white font-extrabold animate-pulse">
+                      {getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>
@@ -5461,6 +5623,400 @@ const Dashboard = () => {
               >
                 Relocate File(s) Here
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Duplicate File Cleaner Modal (Task: Clean same-same files & keep 1 original file) */}
+      {showDuplicateCleanerModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-2xl w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left border-slate-200 dark:border-slate-800 max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                  <Copy className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    Duplicate Files Cleaner
+                    {getDuplicateGroups().length > 0 && (
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30">
+                        {getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)} Redundant Copies
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Safely remove duplicate copies while keeping 1 original file protected in your vault.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowDuplicateCleanerModal(false)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {getDuplicateGroups().length === 0 ? (
+              <div className="py-12 flex flex-col items-center justify-center text-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+                  <Check className="w-7 h-7 stroke-[3]" />
+                </div>
+                <h4 className="text-base font-bold text-slate-800 dark:text-white">Vault is Clean & Unique!</h4>
+                <p className="text-xs text-slate-400 max-w-sm">
+                  No duplicate files found in your vault. All files are unique and properly organized.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateCleanerModal(false)}
+                  className="btn-primary py-2 px-5 text-xs font-bold mt-2 cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                {/* Summary Reclaim Bar */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                      <Sparkles className="w-4 h-4 text-amber-500" />
+                      <span>
+                        Found {getDuplicateGroups().length} duplicate set(s) ({getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)} redundant copies)
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      Cleaning will reclaim <strong className="text-brand-primary">{formatBytes(getDuplicateGroups().reduce((acc, g) => acc + g.reclaimableBytes, 0))}</strong> of storage space.
+                    </p>
+                  </div>
+
+                  {/* Clean all button */}
+                  <button
+                    type="button"
+                    onClick={() => handleCleanDuplicates(null, duplicateDeleteMode === 'permanent')}
+                    disabled={cleaningDuplicates}
+                    className="btn-primary py-2.5 px-4 text-xs font-bold shrink-0 flex items-center gap-2 shadow-md shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    {cleaningDuplicates ? (
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Trash className="w-3.5 h-3.5" />
+                    )}
+                    <span>Clean All Duplicates (Keep 1 Original)</span>
+                  </button>
+                </div>
+
+                {/* Deletion Mode selector */}
+                <div className="flex items-center justify-between text-xs px-1">
+                  <span className="text-slate-500 font-semibold">Delete Target:</span>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-300">
+                      <input
+                        type="radio"
+                        name="dupMode"
+                        checked={duplicateDeleteMode === 'trash'}
+                        onChange={() => setDuplicateDeleteMode('trash')}
+                        className="accent-brand-primary cursor-pointer"
+                      />
+                      <span>Move to Trash (Restore anytime)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-300">
+                      <input
+                        type="radio"
+                        name="dupMode"
+                        checked={duplicateDeleteMode === 'permanent'}
+                        onChange={() => setDuplicateDeleteMode('permanent')}
+                        className="accent-red-500 cursor-pointer"
+                      />
+                      <span className="text-red-500 font-semibold">Delete Permanently</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Duplicate Groups List */}
+                <div className="flex flex-col gap-4 overflow-y-auto max-h-[50vh] custom-scrollbar pr-1">
+                  {getDuplicateGroups().map((group, gIdx) => (
+                    <div
+                      key={group.id || gIdx}
+                      className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 flex flex-col gap-3 shadow-xs"
+                    >
+                      {/* Group Header */}
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FileText className="w-4 h-4 text-brand-primary shrink-0" />
+                          <span className="text-xs font-bold text-slate-800 dark:text-white truncate" title={group.filename}>
+                            {group.filename}
+                          </span>
+                          <span className="text-[10px] text-slate-400">({formatBytes(group.original.size)})</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
+                          {group.duplicates.length} duplicate copy(ies)
+                        </span>
+                      </div>
+
+                      {/* Original file row */}
+                      <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-bold text-emerald-700 dark:text-emerald-300">Original File</span>
+                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500 text-white font-extrabold uppercase">
+                                Kept Safe
+                              </span>
+                            </div>
+                            <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 truncate mt-0.5">
+                              Uploaded {new Date(group.original.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} • Location: {folders.find(f => f.id === group.original.folder_id)?.name || 'Vault Root'}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                          Will NOT be touched
+                        </span>
+                      </div>
+
+                      {/* Redundant copies rows */}
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                          Redundant Copies:
+                        </span>
+                        {group.duplicates.map((dup, dIdx) => (
+                          <div
+                            key={dup.id || dIdx}
+                            className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                              <div className="min-w-0">
+                                <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
+                                  Duplicate Copy #{dIdx + 1} ({formatBytes(dup.size)})
+                                </span>
+                                <p className="text-[10px] text-slate-400 truncate mt-0.5">
+                                  Uploaded {new Date(dup.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} • Location: {folders.find(f => f.id === dup.folder_id)?.name || 'Vault Root'}
+                                </p>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCleanDuplicates([dup.id], duplicateDeleteMode === 'permanent')}
+                              disabled={cleaningDuplicates}
+                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200/60 dark:border-red-900/40 shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
+                              title="Delete only this duplicate copy"
+                            >
+                              <Trash className="w-3 h-3" />
+                              <span>Delete Copy</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <span className="text-[11px] text-slate-400">
+                    Original files are permanently protected. Only redundant copies are removed.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowDuplicateCleanerModal(false)}
+                    className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* View Note / Clipboard Snippet Modal (Task: Clipboard paste me view ka option) */}
+      {viewingNote && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
+          <div className="glass-card max-w-2xl w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left border-slate-200 dark:border-slate-800 max-h-[90vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+                  <Clipboard className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-slate-800 dark:text-white truncate" title={viewingNote.title}>
+                      {viewingNote.title}
+                    </h3>
+                    {viewingNote.is_encrypted && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 rounded-full flex items-center gap-1 shrink-0">
+                        <Lock className="w-3 h-3" /> Encrypted
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Saved {new Date(viewingNote.created_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewingNote(null)}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content or Decrypt Form */}
+            {viewingNote.is_encrypted && !decryptedNotesMap[viewingNote.id] ? (
+              <div className="p-6 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/40 rounded-xl flex flex-col gap-4 text-center items-center">
+                <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                  <Lock className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-amber-900 dark:text-amber-200">Encrypted Clipboard Note</h4>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-1">
+                    Enter your decryption passphrase to unlock and view the full text content.
+                  </p>
+                </div>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const pass = e.target.elements.passphrase.value;
+                    if (!pass) return;
+                    try {
+                      const plain = await decryptText(viewingNote.content, pass);
+                      setDecryptedNotesMap(prev => ({ ...prev, [viewingNote.id]: plain }));
+                      showToast('Snippet decrypted successfully!', 'success');
+                    } catch (err) {
+                      showToast('Incorrect passphrase. Could not decrypt.', 'danger');
+                    }
+                  }}
+                  className="flex gap-2 w-full max-w-sm"
+                >
+                  <input
+                    name="passphrase"
+                    type="password"
+                    placeholder="Enter passphrase..."
+                    className="input-field flex-1 py-2 text-xs"
+                    autoFocus
+                    required
+                  />
+                  <button type="submit" className="btn-primary py-2 px-4 text-xs font-bold cursor-pointer">
+                    Unlock
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3 min-h-0 flex-1">
+                {/* Stats chips */}
+                <div className="flex items-center justify-between text-[11px] text-slate-400">
+                  <div className="flex gap-3">
+                    <span>{((decryptedNotesMap[viewingNote.id] || viewingNote.content) || '').length} characters</span>
+                    <span>•</span>
+                    <span>{(((decryptedNotesMap[viewingNote.id] || viewingNote.content) || '').trim().split(/\s+/).filter(Boolean).length)} words</span>
+                    <span>•</span>
+                    <span>{(((decryptedNotesMap[viewingNote.id] || viewingNote.content) || '').split('\n').length)} lines</span>
+                  </div>
+                  <span className="font-mono text-slate-500">UTF-8 Text</span>
+                </div>
+
+                {/* Preformatted text box */}
+                <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80">
+                  <pre className="p-4 overflow-auto max-h-[45vh] font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-all custom-scrollbar select-text leading-relaxed">
+                    {decryptedNotesMap[viewingNote.id] || viewingNote.content}
+                  </pre>
+                </div>
+              </div>
+            )}
+
+            {/* Footer Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                {(!viewingNote.is_encrypted || decryptedNotesMap[viewingNote.id]) && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const text = decryptedNotesMap[viewingNote.id] || viewingNote.content;
+                        navigator.clipboard.writeText(text);
+                        setViewNoteCopied(true);
+                        showToast('Copied to system clipboard!', 'success');
+                        setTimeout(() => setViewNoteCopied(false), 2000);
+                      }}
+                      className={`py-2 px-3.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        viewNoteCopied
+                          ? 'bg-emerald-500 text-white'
+                          : 'btn-primary'
+                      }`}
+                    >
+                      {viewNoteCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {viewNoteCopied ? 'Copied!' : 'Copy Text'}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const text = decryptedNotesMap[viewingNote.id] || viewingNote.content;
+                        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `${(viewingNote.title || 'clipboard_note').replace(/[^a-z0-9_-]/gi, '_')}.txt`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showToast('Downloaded text file.', 'success');
+                      }}
+                      className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      title="Download as .txt file"
+                    >
+                      <Download className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Download (.txt)</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = viewingNote;
+                        setViewingNote(null);
+                        handleShareNote(target);
+                      }}
+                      className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      title="Share via 6-digit code"
+                    >
+                      <Share2 className="w-3.5 h-3.5 text-slate-500" />
+                      <span>Share</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = viewingNote;
+                    setViewingNote(null);
+                    handleEditNote(target);
+                  }}
+                  className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewingNote(null)}
+                  className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>
