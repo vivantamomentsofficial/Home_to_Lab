@@ -151,7 +151,7 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
-  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
+  const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
 
   // Versioning and Duplicate Modals
   const [versionModalFile, setVersionModalFile] = useState(null);
@@ -1365,33 +1365,10 @@ const Dashboard = () => {
         };
       });
 
-      // Determine folder_id for new upload record
+      // Determine folder_id for new upload record: keep root uploads at root (null) unless inside a folder
       let assignedFolderId = (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId;
       if (assignedFolderId === 'null' || assignedFolderId === 'undefined' || assignedFolderId === '') {
         assignedFolderId = null;
-      }
-      if (!assignedFolderId && folders.length > 0) {
-        const lowerName = fileNameToSave.toLowerCase();
-        const labFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lab'));
-        const lectureFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('lecture'));
-        const practicalFolder = folders.find(f => !f.is_deleted && f.name.toLowerCase().includes('practical'));
-        const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
-
-        if (practicalFolder && (
-          /ex[\s\-_0-9.]/i.test(lowerName) || /^ex\d/i.test(lowerName) || lowerName.includes('ex') || lowerName.includes('prac') || lowerName.includes('exercise') || lowerName.includes('assignment') || lowerName.includes('task')
-        )) {
-          assignedFolderId = practicalFolder.id;
-        } else if (labFolder && (
-          lowerName.includes('lab') || lowerName.includes('sorting') || lowerName.includes('sort') || lowerName.includes('sudo') || lowerName.includes('algo') || lowerName.includes('exp')
-        )) {
-          assignedFolderId = labFolder.id;
-        } else if (lectureFolder && (
-          lowerName.includes('lecture') || lowerName.includes('notes') || lowerName.includes('unit') || lowerName.includes('ch') || lowerName.includes('chapter')
-        )) {
-          assignedFolderId = lectureFolder.id;
-        } else if (defaultFolder) {
-          assignedFolderId = defaultFolder.id;
-        }
       }
 
       // Register file entry in DB catalog with content_hash & folder_id
@@ -1408,45 +1385,40 @@ const Dashboard = () => {
       if (assignedFolderId) filePayload.folder_id = assignedFolderId;
       if (contentHash) filePayload.content_hash = contentHash;
 
-      if (existingSameName) {
-        // Update existing file record with new path & size (preserving file_id for version history)
-        const updatePayload = {
-          storage_path: finalStoragePath,
-          size: fileToUpload.size,
-          created_at: new Date().toISOString()
-        };
-        if (contentHash) updatePayload.content_hash = contentHash;
-        const { error: updateErr } = await supabase
-          .from('files')
-          .update(updatePayload)
-          .eq('id', existingSameName.id);
-        if (updateErr) throw updateErr;
-      } else {
-        let { error: dbError } = await supabase
-          .from('files')
-          .insert(filePayload);
-
-        // Gracefully handle schema mismatch (e.g. if folder_id or content_hash columns don't exist yet in Supabase schema cache)
-        if (dbError && (
-          dbError.message?.toLowerCase().includes('schema') ||
-          dbError.message?.toLowerCase().includes('column') ||
-          dbError.message?.toLowerCase().includes('out of sync') ||
-          dbError.code === 'PGRST204'
-        )) {
-          console.warn('Full file payload insert failed due to DB schema mismatch, retrying with core columns:', dbError.message);
-          const corePayload = {
-            user_id: user.id,
-            filename: fileNameToSave,
-            storage_path: finalStoragePath,
-            file_type: fileCategory,
-            size: fileToUpload.size,
-          };
-          const fallbackRes = await supabase.from('files').insert(corePayload);
-          dbError = fallbackRes.error;
+      // If a file with the same name exists, preserve version history
+      if (existingSameName && !String(existingSameName.id).startsWith('storage_')) {
+        try {
+          await saveFileVersionRecord(supabase, existingSameName);
+        } catch (vErr) {
+          console.warn('Versioning record note:', vErr);
         }
-
-        if (dbError) throw dbError;
       }
+
+      // Always insert new file record so existing files are never overwritten or deleted
+      let { error: dbError } = await supabase
+        .from('files')
+        .insert(filePayload);
+
+      // Gracefully handle schema mismatch (e.g. if folder_id or content_hash columns don't exist yet in Supabase schema cache)
+      if (dbError && (
+        dbError.message?.toLowerCase().includes('schema') ||
+        dbError.message?.toLowerCase().includes('column') ||
+        dbError.message?.toLowerCase().includes('out of sync') ||
+        dbError.code === 'PGRST204'
+      )) {
+        console.warn('Full file payload insert failed due to DB schema mismatch, retrying with core columns:', dbError.message);
+        const corePayload = {
+          user_id: user.id,
+          filename: fileNameToSave,
+          storage_path: finalStoragePath,
+          file_type: fileCategory,
+          size: fileToUpload.size,
+        };
+        const fallbackRes = await supabase.from('files').insert(corePayload);
+        dbError = fallbackRes.error;
+      }
+
+      if (dbError) throw dbError;
 
       // Mark success
       setActiveUploads((prev) => {
@@ -3576,7 +3548,10 @@ const Dashboard = () => {
             {/* Folder breadcrumbs */}
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <button
-                onClick={() => setCurrentFolderId(null)}
+                onClick={() => {
+                  setCurrentFolderId(null);
+                  setFolderScope('all');
+                }}
                 className={`hover:text-brand-primary font-bold ${currentFolderId === null ? 'text-brand-primary' : ''}`}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {

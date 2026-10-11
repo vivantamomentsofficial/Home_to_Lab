@@ -71,135 +71,63 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     }
   }
 
-  // 3. Auto-organize unassigned files into matching folders instantly in memory & DB
-  if (folders.length > 0 && files.length > 0) {
-    const labFolder = folders.find(f => !f.is_deleted && (
-      f.name.toLowerCase().includes('lab') || f.name.toLowerCase().includes('sorting')
-    ));
-    const lectureFolder = folders.find(f => !f.is_deleted && (
-      f.name.toLowerCase().includes('lecture') || f.name.toLowerCase().includes('notes')
-    ));
-    const practicalFolder = folders.find(f => !f.is_deleted && (
-      f.name.toLowerCase().includes('practical') || f.name.toLowerCase().includes('prac') || f.name.toLowerCase().includes('ex')
-    ));
-    const defaultFolder = practicalFolder || labFolder || lectureFolder || folders.find(f => !f.is_deleted);
+  // 3. Storage Auto-Sync: Ensure all files uploaded to user storage are always indexed and never vanish
+  try {
+    const { data: storageObjects, error: listErr } = await supabase.storage
+      .from('vault')
+      .list(`uploads/${userId}`, { limit: 200 });
 
-    const pendingDbUpdates = [];
-    const pendingVirtualInserts = [];
+    if (!listErr && storageObjects && storageObjects.length > 0) {
+      const existingPaths = new Set(files.map(f => (f.storage_path || '').replace(/^\/+/, '')));
+      const unindexedFiles = storageObjects.filter(item => {
+        if (!item.name || item.name.startsWith('.') || item.name === 'avatar') return false;
+        const fullPath = `uploads/${userId}/${item.name}`;
+        return !existingPaths.has(fullPath) && !existingPaths.has(item.name);
+      });
 
-    for (const file of files) {
-      if (!file.is_deleted && (!file.folder_id || file.folder_id === 'null' || file.folder_id === '')) {
-        const lowerName = (file.filename || '').toLowerCase();
-        let matchedFolderId = null;
+      for (const sFile of unindexedFiles) {
+        const storagePath = `uploads/${userId}/${sFile.name}`;
+        let cleanName = sFile.name;
+        const match = sFile.name.match(/^\d+_[a-z0-9]+_(.+)$/i);
+        if (match && match[1]) cleanName = match[1];
 
-        if (practicalFolder && (
-          /ex[\s\-_0-9.]/i.test(lowerName) ||
-          /^ex\d/i.test(lowerName) ||
-          lowerName.includes('ex') ||
-          lowerName.includes('prac') ||
-          lowerName.includes('exercise') ||
-          lowerName.includes('assignment') ||
-          lowerName.includes('task') ||
-          lowerName.endsWith('.txt') ||
-          lowerName.endsWith('.cpp') ||
-          lowerName.endsWith('.py') ||
-          lowerName.endsWith('.java') ||
-          lowerName.endsWith('.c')
-        )) {
-          matchedFolderId = practicalFolder.id;
-        } else if (labFolder && (
-          lowerName.includes('lab') ||
-          lowerName.includes('sorting') ||
-          lowerName.includes('sort') ||
-          lowerName.includes('sudo') ||
-          lowerName.includes('algo') ||
-          lowerName.includes('exp')
-        )) {
-          matchedFolderId = labFolder.id;
-        } else if (lectureFolder && (
-          lowerName.includes('lecture') ||
-          lowerName.includes('notes') ||
-          lowerName.includes('unit') ||
-          lowerName.includes('ch') ||
-          lowerName.includes('chapter') ||
-          lowerName.endsWith('.pdf') ||
-          lowerName.endsWith('.ppt') ||
-          lowerName.endsWith('.pptx')
-        )) {
-          matchedFolderId = lectureFolder.id;
-        } else if (defaultFolder) {
-          matchedFolderId = defaultFolder.id;
-        }
+        const fileType = getCategoryFromFilename(cleanName, sFile.metadata?.mimetype || '');
+        const fileSize = sFile.metadata?.size || sFile.size || 0;
 
-        if (matchedFolderId) {
-          file.folder_id = matchedFolderId;
-          if (file.id && !String(file.id).startsWith('storage_')) {
-            pendingDbUpdates.push({ id: file.id, folder_id: matchedFolderId });
-          } else if (file.storage_path) {
-            pendingVirtualInserts.push({
-              user_id: userId,
-              filename: file.filename,
-              storage_path: file.storage_path,
-              file_type: file.file_type || 'other',
-              size: file.size || 0,
-              folder_id: matchedFolderId
-            });
+        const fileRecord = {
+          user_id: userId,
+          filename: cleanName,
+          storage_path: storagePath,
+          file_type: fileType,
+          size: fileSize,
+          created_at: sFile.created_at || new Date().toISOString()
+        };
+
+        // Try persisting in DB so it has a permanent DB UUID and survives refreshes
+        let persistedInDb = false;
+        try {
+          const { data: inserted, error: insErr } = await supabase
+            .from('files')
+            .insert(fileRecord)
+            .select();
+          if (!insErr && inserted && inserted[0]) {
+            files.push(inserted[0]);
+            persistedInDb = true;
           }
+        } catch (e) {
+          // Ignore insertion error and use fallback
         }
-      }
-    }
 
-    // Persist folder assignments in background without blocking response
-    if (pendingDbUpdates.length > 0) {
-      Promise.all(
-        pendingDbUpdates.map(u =>
-          supabase.from('files').update({ folder_id: u.folder_id }).eq('id', u.id)
-        )
-      ).catch(e => console.warn('Background folder_id update error:', e));
-    }
-    if (pendingVirtualInserts.length > 0) {
-      Promise.all(
-        pendingVirtualInserts.map(rec =>
-          supabase.from('files').insert(rec)
-        )
-      ).catch(e => console.warn('Background virtual insert error:', e));
-    }
-  }
-
-  // 4. Fast Storage Auto-Sync: Only block if files list is empty; otherwise sync in background
-  if (files.length === 0) {
-    try {
-      const { data: storageObjects, error: listErr } = await supabase.storage
-        .from('vault')
-        .list(`uploads/${userId}`, { limit: 200 });
-
-      if (!listErr && storageObjects && storageObjects.length > 0) {
-        const existingPaths = new Set(files.map(f => f.storage_path));
-        const unindexedFiles = storageObjects.filter(item => item.name && !item.name.startsWith('.') && item.name !== 'avatar' && !existingPaths.has(`uploads/${userId}/${item.name}`));
-
-        for (const sFile of unindexedFiles) {
-          const storagePath = `uploads/${userId}/${sFile.name}`;
-          let cleanName = sFile.name;
-          const match = sFile.name.match(/^\d+_[a-z0-9]+_(.+)$/i);
-          if (match && match[1]) cleanName = match[1];
-
-          const fileType = getCategoryFromFilename(cleanName, sFile.metadata?.mimetype || '');
-          const fileSize = sFile.metadata?.size || sFile.size || 0;
-
+        if (!persistedInDb) {
           files.push({
             id: sFile.id || 'storage_' + Math.random().toString(36).substring(2, 9),
-            user_id: userId,
-            filename: cleanName,
-            storage_path: storagePath,
-            file_type: fileType,
-            size: fileSize,
-            created_at: sFile.created_at || new Date().toISOString()
+            ...fileRecord
           });
         }
       }
-    } catch (syncErr) {
-      console.warn('Storage sync warning:', syncErr?.message || syncErr);
     }
+  } catch (syncErr) {
+    console.warn('Storage sync warning:', syncErr?.message || syncErr);
   }
 
   return { folders, files };
