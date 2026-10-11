@@ -484,13 +484,16 @@ const Home = () => {
         canonical="https://www.hometolab.in/"
       />
 
-      {/* Dynamic 60fps GPU Floating Background Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
-      <div className="glow-orb glow-orb-secondary"></div>
+      {/* Ambient Multi-Layer Animated Aurora Mesh & Matrix Grid Background */}
+      <div className="landing-ambient-bg" aria-hidden="true">
+        <div className="aurora-sphere-1"></div>
+        <div className="aurora-sphere-2"></div>
+        <div className="aurora-sphere-3"></div>
+        <div className="matrix-grid-pattern"></div>
+      </div>
 
       {/* Header Bar */}
-      <header className="fixed top-0 left-0 w-full px-4 sm:px-6 lg:px-[8%] py-3.5 flex justify-between items-center z-50 bg-white/80 dark:bg-slate-950/70 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
+      <header className="fixed top-0 left-0 w-full px-4 sm:px-6 lg:px-[8%] py-3.5 flex justify-between items-center z-50 bg-white/85 dark:bg-slate-950/80 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 transition-colors">
         <Link to="/" className="flex items-center gap-2.5 group">
           <div className="bg-brand-primary/10 dark:bg-brand-primary/20 w-9 h-9 rounded-xl flex items-center justify-center text-brand-primary group-hover:scale-105 transition-transform">
             <Shield className="w-5 h-5 stroke-[2.5]" />
@@ -626,26 +629,39 @@ const Home = () => {
       )}
 
       {/* Hero Landing Section */}
-      <section className="flex flex-col items-center justify-center pt-28 sm:pt-36 pb-16 px-4 sm:px-6 lg:px-[8%] text-center z-10 max-w-6xl mx-auto w-full">
+      <section className="flex flex-col items-center justify-center pt-28 sm:pt-36 pb-16 px-4 sm:px-6 lg:px-[8%] text-center z-10 max-w-6xl mx-auto w-full relative">
 
-        {/* Pill Badge */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-bold tracking-wider uppercase mb-6 animate-fade-in">
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>No-Login Quick Send &amp; Receive</span>
+        {/* Live Pill Badge */}
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full shimmer-badge border border-brand-primary/30 text-brand-primary dark:text-sky-300 text-xs font-bold tracking-wide mb-6 animate-fade-in shadow-xs">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Campus Lab Transfer • No Login Required</span>
         </div>
 
-        {/* Hero Title */}
-        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold font-display max-w-4xl leading-[1.15] mb-6 bg-gradient-to-r from-slate-900 via-brand-primary to-sky-500 dark:from-white dark:via-brand-primary-light dark:to-cyan-400 bg-clip-text text-transparent">
+        {/* Exact Hero Title Requested by User */}
+        <h1 className="hero-heading-fluid font-black font-display max-w-4xl tracking-tight mb-5 bg-gradient-to-br from-slate-950 via-slate-800 to-brand-primary dark:from-white dark:via-slate-100 dark:to-sky-400 bg-clip-text text-transparent">
           Home to Lab, Instantly.
         </h1>
 
-        {/* Hero Subtitle */}
-        <p className="text-sm sm:text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-8">
-          Send files, code snippets, or notes from home without signing in. Get a 6-digit code and open your work in seconds on any college computer. No USB drives, no left-over logins.
+        {/* Refined Subtitle */}
+        <p className="hero-sub-fluid text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mb-6 mx-auto font-normal">
+          Bridge your personal computer and college lab workstations in seconds. Send code files, lab assignments, or notes with a 6-digit access code — zero leftover logins, zero USB pendrives.
         </p>
 
+        {/* Quick Micro-Value Strip */}
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-8">
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" /> 100% Client-Side Privacy
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Zap className="w-4 h-4 text-amber-500" /> 6-Digit Direct Handoff
+          </span>
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-brand-primary" /> Auto-Clear on Tab Close
+          </span>
+        </div>
+
         {/* Dual Mode Card: Send vs Receive */}
-        <div id="retrieve-section" className="glass-card max-w-lg w-full p-6 sm:p-7 shadow-2xl border-brand-primary/30 mb-16 text-left relative overflow-hidden group">
+        <div id="retrieve-section" className="hero-glow-card glass-card max-w-lg w-full p-6 sm:p-8 shadow-2xl rounded-3xl mb-16 text-left relative overflow-hidden group">
 
           {/* Main Mode Toggle Buttons */}
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl mb-5 font-bold text-xs">
@@ -694,7 +710,7 @@ const Home = () => {
                   placeholder="XXXXXX"
                   value={shareCode}
                   onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                  className="w-full sm:w-40 text-center font-bold font-mono tracking-[6px] text-xl uppercase h-12 bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 focus:border-brand-primary dark:focus:border-brand-primary-light focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all"
+                  className="code-input-responsive w-full sm:w-44 text-center font-bold font-mono tracking-[6px] text-xl uppercase h-12 bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-700 focus:border-brand-primary dark:focus:border-brand-primary-light focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all"
                   required
                   aria-label="6-Digit Access Code"
                 />
@@ -923,7 +939,7 @@ const Home = () => {
         </div>
 
         {/* Interactive App Window Mockup */}
-        <div className="w-full max-w-4xl rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-950 text-left overflow-hidden">
+        <div className="w-full max-w-4xl rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-2xl bg-white dark:bg-slate-950 text-left overflow-hidden hero-glow-card levitate-mockup">
 
           {/* Window Top Bar */}
           <div className="px-4 py-3 bg-slate-100/90 dark:bg-slate-900/90 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-4">
@@ -947,7 +963,7 @@ const Home = () => {
           <div className="flex flex-col md:flex-row min-h-[340px]">
 
             {/* Left Sidebar Controls */}
-            <div className="w-full md:w-52 bg-slate-50/80 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800 p-3 flex md:flex-col gap-1.5 shrink-0 overflow-x-auto">
+            <div className="w-full md:w-52 bg-slate-50/80 dark:bg-slate-900/60 border-r border-slate-200/80 dark:border-slate-800 p-3 flex md:flex-col gap-1.5 shrink-0 overflow-x-auto mockup-tabs-container">
               <button
                 onClick={() => setDemoTab('files')}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${demoTab === 'files'
@@ -1157,7 +1173,7 @@ const Home = () => {
             <h2 className="text-2xl font-bold font-display text-slate-900 dark:text-white mt-1">Smart Features for College Labs</h2>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full">
+          <div className="hero-stats-grid grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 w-full">
 
             <div className="glass-card p-5 flex flex-col items-center justify-center text-center group hover:border-brand-primary/40 transition-all">
               <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform text-brand-primary">
