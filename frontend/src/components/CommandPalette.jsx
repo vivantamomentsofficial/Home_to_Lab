@@ -5,7 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useToast } from '../context/ToastContext';
 import { 
   Search, LayoutDashboard, Home, FileText, UploadCloud, Sun, Moon, 
-  Shield, LogOut, FileCode, Lock, Settings, Key, Command, ArrowRight, X, Trash
+  Shield, LogOut, FileCode, Lock, Settings, Key, Command, ArrowRight, X, Trash, Terminal, Code2
 } from 'lucide-react';
 
 const CommandPalette = () => {
@@ -75,6 +75,13 @@ const CommandPalette = () => {
           document.getElementById('code-input-section')?.scrollIntoView({ behavior: 'smooth' });
         }, 300);
       },
+    },
+    {
+      id: 'onecompiler-studio',
+      label: 'CloudVault ✕ OneCompiler (Free Online Code Studio)',
+      category: 'Tools',
+      icon: Code2,
+      perform: () => navigate('/compiler'),
     },
     {
       id: 'trash',

@@ -22,6 +22,8 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
+      - key: ILOVEAPI_SECRET_KEY
+        sync: false
 
   # Frontend Static Site
   - type: web

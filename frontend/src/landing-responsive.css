@@ -258,3 +258,127 @@ html, body {
     line-height: 1.12 !important;
   }
 }
+
+/* =========================================================================
+   NEXT-LEVEL TECH VISUALS & ANIMATION SYSTEM
+   ========================================================================= */
+
+/* Animated Shimmer Headline */
+@keyframes textShimmerWave {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.text-gradient-shimmer {
+  background: linear-gradient(135deg, #0f172a 0%, #0284c7 35%, #0ea5e9 60%, #38bdf8 85%, #0f172a 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerWave 7s ease infinite;
+}
+
+.dark .text-gradient-shimmer {
+  background: linear-gradient(135deg, #ffffff 0%, #38bdf8 35%, #0ea5e9 60%, #818cf8 85%, #ffffff 100%);
+  background-size: 250% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmerWave 7s ease infinite;
+}
+
+/* Floating Bridge Element */
+@keyframes floatSoft {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.animate-float-soft {
+  animation: floatSoft 5s ease-in-out infinite;
+}
+
+/* Data Packet Pulse between Home and Lab */
+@keyframes dataPacketMove {
+  0% {
+    left: 0%;
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  85% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+    transform: scale(0.6);
+  }
+}
+
+.data-packet-beam {
+  position: absolute;
+  top: 50%;
+  height: 3px;
+  width: 32px;
+  background: linear-gradient(90deg, transparent, #38bdf8, #0ea5e9, #0284c7, transparent);
+  box-shadow: 0 0 14px #38bdf8;
+  border-radius: 9999px;
+  transform: translateY(-50%);
+  animation: dataPacketMove 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Ultra-Clean Modern Floating Glass Island */
+.floating-navbar-island {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+.dark .floating-navbar-island {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 14px 40px -10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Radiant Glow Card Border */
+.glow-border-card {
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glow-border-card::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.45), transparent 50%, rgba(56, 189, 248, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Terminal Scanline Subtle Texture */
+.terminal-code-view {
+  background: #090d16;
+  background-image: linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+

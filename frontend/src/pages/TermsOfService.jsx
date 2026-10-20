@@ -77,10 +77,10 @@ const TermsOfService = () => {
             <section className="space-y-3">
               <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">4</span>
-                Limitation of Liability
+                Limitation of Liability & Service Availability
               </h2>
               <p>
-                CloudVault is provided "as is" without warranty of any kind. While we maintain 99.9% uptime and high security, users are encouraged to maintain local backups of critical files.
+                CloudVault is a free personal productivity and educational tool provided "as is" and "as available", without warranties of any kind. While we make every reasonable effort to keep the service stable and operational, users are strongly advised to keep independent local backups of important coursework and code. CloudVault shall not be liable for any accidental loss of files, expired share codes, or service interruptions.
               </p>
             </section>
 
@@ -88,9 +88,9 @@ const TermsOfService = () => {
             <section className="space-y-3">
               <h2 className="text-base sm:text-lg font-bold font-display text-slate-800 dark:text-white flex items-center gap-2">
                 <span className="w-6 h-6 rounded-lg bg-brand-primary/10 text-brand-primary text-xs flex items-center justify-center font-bold">5</span>
-                Contact Support
+                Contact & Support
               </h2>
-              <p>For questions or account inquiries, please contact system administration:</p>
+              <p>If you have any questions or account inquiries regarding these Terms of Service, please contact system administration directly:</p>
               <div className="flex items-center gap-2 text-brand-primary font-bold">
                 <Mail className="w-4 h-4" />
                 <a href="mailto:aayushparekh26@gmail.com" className="hover:underline">aayushparekh26@gmail.com</a>

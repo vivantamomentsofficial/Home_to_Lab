@@ -27,6 +27,7 @@ const Disclaimer = React.lazy(() => import('./pages/Disclaimer'));
 const Blog = React.lazy(() => import('./pages/Blog'));
 const BlogPost = React.lazy(() => import('./pages/BlogPost'));
 const AcceptableUsePolicy = React.lazy(() => import('./pages/AcceptableUsePolicy'));
+const OneCompilerStudio = React.lazy(() => import('./pages/OneCompilerStudio'));
 
 const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
   <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-white relative overflow-hidden font-sans select-none transition-colors duration-300">
@@ -203,6 +204,8 @@ const AppContent = () => {
           <Route path="/aup" element={<AcceptableUsePolicy />} />
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/compiler" element={<OneCompilerStudio />} />
+          <Route path="/onecompiler" element={<OneCompilerStudio />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route

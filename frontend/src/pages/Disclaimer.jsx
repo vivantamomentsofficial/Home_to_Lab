@@ -50,12 +50,12 @@ const Disclaimer = () => {
                 Transient Service &amp; Storage Limits
               </h2>
               <p>
-                CloudVault is designed as a temporary file and clipboard bridge between home computers and public library/lab terminals. While we strive to maintain 99.9% availability:
+                CloudVault is designed as a temporary file and clipboard bridge between home computers and public library or college lab terminals. Please note:
               </p>
               <ul className="list-disc list-inside space-y-1.5 text-slate-500 dark:text-slate-400 pl-2">
-                <li>Temporary 6-digit share codes automatically expire after 30 minutes.</li>
+                <li>Temporary 6-digit share codes automatically expire after the chosen duration (10 minutes to 24 hours for guest transfers, up to 7 days for registered accounts).</li>
                 <li>Share codes marked as single-use expire immediately upon download.</li>
-                <li>Users are advised to keep personal backups of all critical files and project assignments. CloudVault shall not be held liable for accidental file loss or expired share links.</li>
+                <li>Users are advised to keep independent local backups of all critical files and project assignments. CloudVault shall not be held liable for accidental file loss, expired links, or server downtime.</li>
               </ul>
             </section>
 

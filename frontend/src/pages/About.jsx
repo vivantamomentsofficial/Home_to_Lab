@@ -64,37 +64,47 @@ const About = () => {
                   Personal Student Vault
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Store up to 100MB of assignment code, zip archives, PDFs, and documentation securely isolated behind database policies.
+                  Free student accounts include up to 100MB of storage for assignments, code scripts, and PDFs, with client-side AES-GCM encrypted notes.
                 </p>
               </div>
 
               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <Cpu className="w-4 h-4 text-amber-500" />
-                  Temporary 6-Digit Share Codes
+                  No-Login Quick Send (Up to 25MB)
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Generate instant 6-character code links that let you retrieve files on any public terminal without logging into your account.
+                  Send files up to 25MB or code snippets up to 100KB without creating an account. Get an instant 6-digit access code for fast lab retrieval.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <Server className="w-4 h-4 text-blue-500" />
+                  CloudVault ✕ OneCompiler Studio
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Write, compile, and execute code in 60+ programming languages directly in the browser. No GCC, JDK, or Python installation needed on lab PCs.
                 </p>
               </div>
 
               <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
                 <div className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <Lock className="w-4 h-4 text-emerald-500" />
-                  Burn-After-Reading Shares
+                  Burn-After-Reading &amp; Self-Destruct
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Single-use file sharing option that automatically invalidates the share code immediately after it is downloaded once.
+                  Single-use file sharing automatically deletes the file and invalidates the access code immediately after it is downloaded once.
                 </p>
               </div>
 
-              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
+              <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2 md:col-span-2">
                 <div className="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-sky-500" />
-                  Auto Session Wiping
+                  Session Auto-Wipe on Public PCs
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Closing the browser tab on public library or lab terminals immediately clears tokens, preventing unauthorized access.
+                  Zero credentials are required for Quick Send or Receive. When logged in on shared lab computers, closing the browser tab immediately clears tokens from browser memory.
                 </p>
               </div>
             </div>

@@ -170,12 +170,12 @@ const SnippetEditor = ({
       )}
 
       {/* Footer Save & Share Buttons */}
-      <div className="flex items-center justify-end gap-3 pt-2">
+      <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
         {onShare && (
           <button
             type="button"
             onClick={() => onShare({ title, content, language })}
-            className="py-2.5 px-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-all flex items-center gap-2"
+            className="py-2.5 px-4 text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 border border-indigo-200 dark:border-indigo-800 rounded-xl transition-all flex items-center gap-2 cursor-pointer"
           >
             <Share2 className="w-4 h-4" /> Share Snippet Code
           </button>

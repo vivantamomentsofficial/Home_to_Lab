@@ -2,55 +2,67 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://www.hometolab.in/</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/about</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/contact</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/privacy-policy</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/terms</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/disclaimer</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://www.hometolab.in/acceptable-use-policy</loc>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/blog</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
+    <loc>https://www.hometolab.in/compiler</loc>
+    <lastmod>2026-10-20</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
     <loc>https://www.hometolab.in/login</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://www.hometolab.in/register</loc>
-    <lastmod>2026-10-11</lastmod>
+    <lastmod>2026-10-20</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -135,6 +147,12 @@
   <url>
     <loc>https://www.hometolab.in/blog/public-computer-safety-checklist-logout-leave-no-traces</loc>
     <lastmod>2026-09-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://www.hometolab.in/blog/how-to-run-code-in-college-labs-without-admin-rights-online-compiler</loc>
+    <lastmod>2026-10-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>

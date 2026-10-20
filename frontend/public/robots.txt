@@ -7,6 +7,7 @@ Allow: /privacy-policy
 Allow: /terms
 Allow: /disclaimer
 Allow: /blog
+Allow: /compiler
 Allow: /login
 Allow: /register
 Disallow: /dashboard
