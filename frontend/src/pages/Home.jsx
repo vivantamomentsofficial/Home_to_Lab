@@ -12,12 +12,13 @@ import {
   FileCode, Archive, FileText, Clipboard, ChevronDown, MessageSquare, Send, X,
   FileCheck, AlertTriangle, UploadCloud, ShieldCheck, CheckCircle2, Zap, BookOpen,
   QrCode, Lock, Key, Check, Copy, ShieldAlert, Smartphone, Play, Code2, Terminal,
-  ExternalLink, HardDrive, RefreshCw, Flame, Cpu, Globe
+  ExternalLink, HardDrive, RefreshCw, Flame, Cpu, Globe, Laptop, HelpCircle, Heart
 } from 'lucide-react';
 import PublicNavbar from '../components/PublicNavbar';
 import PublicFooter from '../components/PublicFooter';
 import SEO from '../components/SEO';
 import QRCodeModal from '../components/QRCodeModal';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 const formatBytes = (bytes, decimals = 2) => {
   if (!bytes || bytes === 0) return '0 Bytes';
@@ -27,6 +28,7 @@ const formatBytes = (bytes, decimals = 2) => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
+
 
 const Home = () => {
   const { user, supabase } = useAuth();
@@ -60,11 +62,9 @@ const Home = () => {
   const [copiedTextContent, setCopiedTextContent] = useState(false);
   const sendCountdownIntervalRef = useRef(null);
 
+
   // FAQ Accordion Active Index State
   const [activeFaq, setActiveFaq] = useState(0);
-
-  // Workflow Mode Tab State for "How CloudVault Works": 'guest' vs 'account'
-  const [workflowTab, setWorkflowTab] = useState('guest');
 
   // Feedback Form State
   const [feedbackName, setFeedbackName] = useState('');
@@ -140,7 +140,7 @@ const Home = () => {
         }
       }
 
-      // 3. Built-in interactive demo showcase codes
+      // 3. Built-in interactive demo showcase codes (Instant sample try)
       if (!fileData) {
         if (codeToUse === '8F3K9A') {
           fileData = {
@@ -193,7 +193,7 @@ const Home = () => {
         track('quick_receive_success', { kind: fileData.kind || 'file' });
       } catch (trackErr) { }
 
-      showToast('Code verified successfully!', 'success');
+      showToast('File verified! Ready to download or copy.', 'success');
     } catch (err) {
       console.error(err);
       showToast(err.message || 'Invalid or expired code.', 'danger');
@@ -387,7 +387,6 @@ const Home = () => {
         setFeedbackTopic('Feature Request');
         setFeedbackMessage('');
       } else {
-        // Even if Formspree returns an error response, provide graceful UX
         setShowFeedbackSuccessModal(true);
         showToast('Message sent successfully!', 'success');
         setFeedbackName('');
@@ -396,7 +395,6 @@ const Home = () => {
       }
     } catch (err) {
       console.warn('Formspree submission error:', err);
-      // Graceful fallback to success modal
       setShowFeedbackSuccessModal(true);
       showToast('Message sent successfully!', 'success');
       setFeedbackName('');
@@ -448,11 +446,11 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light text-slate-800">
+    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light text-slate-800 antialiased selection:bg-brand-primary selection:text-white">
       <SEO
-        title="CloudVault - Free Online Compiler & Student Cloud Storage Bridge"
-        description="Best free online compiler & student personal cloud vault. Run code in C, C++, Java, Python, JavaScript, and SQL in your browser with zero installation. Transfer files and code to college lab terminals via 6-digit PIN & QR code or get 100MB to 2GB cloud storage."
-        keywords="online compiler, free online compiler, c online compiler, cpp online compiler, java online compiler, python online compiler, sql online compiler, run code in browser, in browser ide, online code editor, college lab compiler, cloudvault onecompiler, student cloud storage, online clipboard, temporary file sharing, send files without login, hometolab"
+        title="CloudVault - Fast Lab File Transfer & Free Online Compiler for Students"
+        description="Free Online Compiler & Student Personal Cloud Storage. Run code in C, C++, Java, Python, JavaScript, and SQL in your browser. Transfer files to college lab terminals via 6-digit PIN."
+        keywords="online compiler, free online compiler, c online compiler, cpp online compiler, java online compiler, python online compiler, sql online compiler, run code in browser, in browser ide, online code editor, college lab compiler, cloudvault onecompiler, student cloud storage, online clipboard, temporary file sharing, send files without login, hometolab, home to lab, cloudvault"
         canonical="https://www.hometolab.in/"
         jsonLd={{
           "@context": "https://schema.org",
@@ -472,7 +470,7 @@ const Home = () => {
               "url": "https://www.hometolab.in/compiler",
               "applicationCategory": "DeveloperApplication",
               "operatingSystem": "All",
-              "description": "Free in-browser online compiler supporting 60+ programming languages including C, C++, Java, Python, JavaScript, SQL. Write, compile, and execute code with STDIN input support with zero installation.",
+              "description": "Free in-browser online compiler supporting 60+ programming languages including C, C++, Java, Python, JavaScript, SQL.",
               "offers": {
                 "@type": "Offer",
                 "price": "0",
@@ -483,24 +481,19 @@ const Home = () => {
         }}
       />
 
-      {/* Ambient Multi-Layer Background */}
-      <div className="landing-ambient-bg" aria-hidden="true">
-        <div className="aurora-sphere-1"></div>
-        <div className="aurora-sphere-2"></div>
-        <div className="aurora-sphere-3"></div>
-        <div className="matrix-grid-pattern"></div>
-      </div>
+      {/* Ambient Animated Interactive Background (Constellation Nodes & Fluid Aurora) */}
+      <AnimatedBackground />
 
-      {/* Clean Full-Width Header with Exact Original Logo and Readable Text */}
+      {/* Clean Full-Width Navigation */}
       <PublicNavbar />
 
       {/* ========================================================================= */}
-      {/* 1. HERO SECTION: PUNCHY HEADLINE & CENTERPIECE ACTION CARD                */}
+      {/* 1. HERO SECTION: EXACT ORIGINAL TITLE & CENTERPIECE ACTION CARD           */}
       {/* ========================================================================= */}
       <section className="flex flex-col items-center justify-center pt-28 sm:pt-36 pb-12 px-4 sm:px-6 lg:px-[8%] text-center z-10 max-w-5xl mx-auto w-full relative">
         
         {/* Live Status Pill */}
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 text-brand-primary text-xs font-bold tracking-wide mb-5 shadow-xs">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-sky-50 border border-sky-200/80 text-sky-700 text-xs font-semibold tracking-wide mb-5 shadow-2xs">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           <span>College Lab File Bridge &amp; Student Personal Cloud Storage</span>
         </div>
@@ -511,34 +504,9 @@ const Home = () => {
         </h1>
 
         {/* Hero Subtitle */}
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed mb-8 mx-auto font-normal">
-          Transfer assignment files and code to college lab computers in seconds via 6-digit PIN &amp; QR code without login — or create a free student account for 100MB (up to 2GB) permanent personal cloud storage with Cloud Clipboard.
+        <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed mb-9 mx-auto font-normal">
+          Send files and code snippets from home without signing in. Enter your 6-digit code on any college computer to access your work in seconds — no USB drives, no left-behind logins.
         </p>
-
-        {/* Quick Micro-Value Strip */}
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4 text-xs font-semibold text-slate-500 mb-8 max-w-3xl">
-          <Link
-            to="/compiler"
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 hover:bg-blue-100 transition-colors font-bold shadow-2xs"
-            title="Launch Free In-Browser Online Compiler"
-          >
-            <Code2 className="w-3.5 h-3.5 text-blue-600" />
-            <span>Free Online Compiler (C, C++, Java, Python, SQL)</span>
-            <span className="text-[10px] font-black uppercase px-1.5 py-0.2 rounded-full bg-blue-200 text-blue-800">New</span>
-          </Link>
-          <span className="flex items-center gap-1.5">
-            <Zap className="w-4 h-4 text-amber-500" /> Direct 6-Digit PIN &amp; QR Transfer
-          </span>
-          <span className="flex items-center gap-1.5">
-            <HardDrive className="w-4 h-4 text-brand-primary" /> 100MB Free Student Vault (Up to 2GB)
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Clipboard className="w-4 h-4 text-emerald-500" /> Cloud Clipboard Sync
-          </span>
-          <span className="flex items-center gap-1.5">
-            <ShieldCheck className="w-4 h-4 text-blue-600" /> Zero USB Pendrive Risk
-          </span>
-        </div>
 
         {/* ========================================================================= */}
         {/* DUAL ACTION CARD: RECEIVE VS SEND (CENTERPIECE)                           */}
@@ -582,7 +550,7 @@ const Home = () => {
                   <DownloadCloud className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900">Quick Lab Retrieval</h2>
+                  <h2 className="text-base font-bold text-slate-900 font-display">Quick Lab Retrieval</h2>
                   <p className="text-xs text-slate-500">Download files or copy code on any PC without login</p>
                 </div>
               </div>
@@ -597,15 +565,15 @@ const Home = () => {
                   maxLength={6}
                   placeholder="XXXXXX"
                   value={shareCode}
-                  onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
-                  className="w-full sm:w-44 text-center font-bold font-mono tracking-[4px] sm:tracking-[6px] text-lg sm:text-xl uppercase h-12 bg-slate-50 border border-slate-300 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all shadow-inner"
+                  onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
+                  className="w-full sm:w-44 text-center font-bold font-mono tracking-[4px] sm:tracking-[6px] text-lg sm:text-xl uppercase h-12 bg-slate-50 border border-slate-300 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all shadow-inner text-slate-900"
                   required
                   aria-label="6-Digit Access Code"
                 />
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer shadow-md"
+                  className="flex-1 btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer shadow-md rounded-xl"
                 >
                   {loading ? (
                     <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
@@ -619,7 +587,7 @@ const Home = () => {
 
               {/* Instant Try Demo Codes */}
               <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-                <span className="font-semibold">Try sample test codes:</span>
+                <span className="font-semibold text-slate-600">Try sample test codes:</span>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -654,7 +622,7 @@ const Home = () => {
                 <div className="space-y-4 animate-fade-in">
                   <div className="p-5 bg-emerald-50 border border-emerald-200 rounded-2xl text-center">
                     <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto mb-1.5" />
-                    <div className="font-bold text-sm text-emerald-800">
+                    <div className="font-bold text-sm text-emerald-800 font-display">
                       Access Code Created!
                     </div>
                     <p className="text-xs text-slate-600 mt-0.5">
@@ -696,7 +664,7 @@ const Home = () => {
                       setSendText('');
                       setSendTitle('');
                     }}
-                    className="w-full btn-secondary py-2.5 text-xs font-bold cursor-pointer"
+                    className="w-full btn-secondary py-2.5 text-xs font-bold cursor-pointer rounded-xl"
                   >
                     Send Another File / Code
                   </button>
@@ -734,7 +702,7 @@ const Home = () => {
 
                   {sendKind === 'file' ? (
                     <div>
-                      <label className="border-2 border-dashed border-slate-300 hover:border-brand-primary rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 transition-all text-center group">
+                      <label className="border-2 border-dashed border-slate-300 hover:border-brand-primary rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
                         <UploadCloud className="w-8 h-8 text-brand-primary mb-2 group-hover:scale-110 transition-transform" />
                         <span className="text-xs font-bold text-slate-700">
                           {sendFile ? sendFile.name : 'Click to select file or drag & drop'}
@@ -780,7 +748,7 @@ const Home = () => {
                       <select
                         value={sendExpiry}
                         onChange={(e) => setSendExpiry(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary"
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary cursor-pointer"
                       >
                         <option value="10m">10 Minutes</option>
                         <option value="30m">30 Minutes (Default)</option>
@@ -796,7 +764,7 @@ const Home = () => {
                           type="checkbox"
                           checked={sendSelfDestruct}
                           onChange={(e) => setSendSelfDestruct(e.target.checked)}
-                          className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary border-slate-300"
+                          className="w-4 h-4 rounded text-brand-primary focus:ring-brand-primary border-slate-300 cursor-pointer"
                         />
                         <span className="text-xs font-semibold text-slate-700 flex items-center gap-1">
                           <Flame className="w-3.5 h-3.5 text-amber-500" /> Delete after 1st download
@@ -820,7 +788,7 @@ const Home = () => {
                   <button
                     type="submit"
                     disabled={sendLoading}
-                    className="w-full btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer shadow-md"
+                    className="w-full btn-primary h-12 flex items-center justify-center gap-2 text-sm font-bold cursor-pointer shadow-md rounded-xl"
                   >
                     {sendLoading ? (
                       <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin"></div>
@@ -851,65 +819,49 @@ const Home = () => {
       </section>
 
       {/* ========================================================================= */}
-      {/* 2. CLOUDVAULT ✕ ONECOMPILER MULTI-LANGUAGE STUDIO SPOTLIGHT               */}
+      {/* 2. CLOUDVAULT ✕ ONECOMPILER SPOTLIGHT (COMPACT & SLEEK)                   */}
       {/* ========================================================================= */}
-      <section className="px-4 sm:px-6 lg:px-[8%] pb-16 z-10 relative">
+      <section className="px-4 sm:px-6 lg:px-[8%] pb-14 z-10 relative">
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-3xl p-6 sm:p-8 bg-gradient-to-r from-blue-50 via-indigo-50/70 to-sky-50 border border-blue-200/90 shadow-xl backdrop-blur-xl relative overflow-hidden">
-            
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-              <div className="max-w-xl space-y-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                  <Code2 className="w-3.5 h-3.5 text-blue-600" />
-                  <span>CloudVault ✕ OneCompiler Official Collaboration</span>
-                </div>
-
-                <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 leading-tight">
-                  Free In-Browser Online Compiler &amp; IDE
-                </h2>
-
-                <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                  Write, compile, and execute code in <strong>60+ programming languages</strong> directly in your browser. Supports C, C++, Java, Python, JavaScript, SQL, HTML/CSS and more with zero setup, zero installation on restricted college lab computers.
-                </p>
-
-                {/* Popular Language Pills Representing All Major Stacks */}
-                <div className="flex flex-wrap items-center gap-2 pt-2">
-                  {[
-                    { name: 'C / C++', ext: '.cpp' },
-                    { name: 'Java', ext: '.java' },
-                    { name: 'Python', ext: '.py' },
-                    { name: 'JavaScript', ext: '.js' },
-                    { name: 'SQL & DB', ext: '.sql' },
-                    { name: 'HTML & CSS', ext: '.html' }
-                  ].map((lang) => (
-                    <span
-                      key={lang.name}
-                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-white border border-slate-200/90 text-xs font-bold text-slate-700 font-mono shadow-2xs"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                      <span>{lang.name}</span>
-                    </span>
-                  ))}
-                  <span className="text-xs font-bold text-blue-600 pl-1">+55 more languages</span>
-                </div>
+          <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-blue-50 via-indigo-50/60 to-sky-50 border border-blue-200/90 shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="space-y-2 max-w-xl text-left">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
+                <Code2 className="w-3.5 h-3.5 text-blue-600" />
+                <span>CloudVault ✕ OneCompiler Official Collaboration</span>
               </div>
 
-              {/* Action Button */}
-              <div className="shrink-0 w-full sm:w-auto">
-                <Link
-                  to="/compiler"
-                  className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-500/25 hover:scale-[1.02] transition-all cursor-pointer group"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  <span>Open Online Compiler</span>
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-                <div className="text-[10px] text-center text-slate-400 mt-2 font-medium">
-                  Runs directly inside any browser tab
-                </div>
+              <h2 className="text-xl sm:text-2xl font-black font-display text-slate-900 leading-tight">
+                Free In-Browser Online Compiler &amp; IDE
+              </h2>
+
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                Run C, C++, Java, Python, JavaScript, and SQL directly in your browser. Zero setup, zero installation on restricted college lab computers.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                {['C / C++', 'Java', 'Python', 'JavaScript', 'SQL & DB'].map((lang) => (
+                  <span
+                    key={lang}
+                    className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-white border border-slate-200/90 text-[11px] font-bold text-slate-700 font-mono shadow-2xs"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    <span>{lang}</span>
+                  </span>
+                ))}
+                <span className="text-xs font-bold text-blue-600 pl-1">+55 more</span>
               </div>
             </div>
 
+            <div className="shrink-0 w-full sm:w-auto">
+              <Link
+                to="/compiler"
+                className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] transition-all cursor-pointer group"
+              >
+                <Play className="w-3.5 h-3.5 fill-white" />
+                <span>Open Online Compiler</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
           </div>
         </div>
       </section>
@@ -932,12 +884,12 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="glass-card p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900">Blocked USB Ports</h3>
+                <h3 className="font-bold text-sm text-slate-900 font-display">Blocked USB Ports</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Lab administrators often disable USB drive access on college computers. CloudVault lets you transfer files wirelessly via a 6-digit PIN.
                 </p>
@@ -947,27 +899,27 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="glass-card p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center font-bold">
                   <Lock className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900">Lab PC Virus Infections</h3>
+                <h3 className="font-bold text-sm text-slate-900 font-display">Avoid Corrupted Pendrives</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Shared computers often harbor autorun viruses and trojans. Leaving your pendrive at home keeps your personal laptop completely malware-free.
+                  Shared lab computers frequently corrupt USB pendrives with shortcut viruses. Transferring files over the web keeps your personal drives safe.
                 </p>
               </div>
               <div className="pt-3 mt-4 border-t border-slate-100 text-[11px] font-bold text-emerald-600">
-                Zero Pendrive Risk
+                No USB Drive Needed
               </div>
             </div>
 
-            <div className="glass-card p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900">No Public Logins</h3>
+                <h3 className="font-bold text-sm text-slate-900 font-display">No Public Logins</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   Typing personal Gmail or cloud storage passwords on public lab computers risks keyloggers and left-behind sessions. Quick Send requires zero login.
                 </p>
@@ -977,12 +929,12 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="glass-card p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
                   <Terminal className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900">Missing Lab Compilers</h3>
+                <h3 className="font-bold text-sm text-slate-900 font-display">Missing Lab Compilers</h3>
                 <p className="text-xs text-slate-600 leading-relaxed">
                   If lab computers lack compilers or restrict installation, CloudVault ✕ OneCompiler lets you run C, C++, Java, Python, and SQL directly in your browser.
                 </p>
@@ -996,377 +948,188 @@ const Home = () => {
       </section>
 
       {/* ========================================================================= */}
-      {/* 4. HOW CLOUDVAULT WORKS: TWO POWERFUL WAYS TO USE IT                      */}
+      {/* 4. HOW IT WORKS (CLEAN 3-STEP FLOW)                                       */}
       {/* ========================================================================= */}
-      <section id="how-it-works" className="py-16 px-4 sm:px-6 lg:px-[8%] z-10 text-center">
-        <div className="max-w-5xl mx-auto space-y-10">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-[8%] z-10 text-center">
+        <div className="max-w-5xl mx-auto space-y-12">
           <div className="space-y-3">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
-              Two Simple Workflows
+              Simple 3-Step Flow
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold font-display text-slate-900">
               How CloudVault Works
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto">
-              Use instant guest transfer without logging in, or unlock your permanent 100MB to 2GB student cloud vault.
+            <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
+              Built so you can get your code onto restricted lab computers without signing into personal accounts.
             </p>
-
-            {/* Workflow Mode Switcher */}
-            <div className="inline-flex flex-col sm:flex-row p-1.5 bg-slate-100 rounded-2xl border border-slate-200 mt-2 gap-1.5 sm:gap-0 max-w-full">
-              <button
-                type="button"
-                onClick={() => setWorkflowTab('guest')}
-                className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  workflowTab === 'guest'
-                    ? 'bg-white text-brand-primary shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Zap className="w-4 h-4 text-amber-500" />
-                <span>1. Direct Transfer (Without Login)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setWorkflowTab('account')}
-                className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
-                  workflowTab === 'account'
-                    ? 'bg-brand-primary text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <HardDrive className="w-4 h-4" />
-                <span>2. Student Cloud Vault (With Free Account)</span>
-              </button>
-            </div>
           </div>
 
-          {workflowTab === 'guest' ? (
-            /* WORKFLOW 1: DIRECT TRANSFER (WITHOUT LOGIN) */
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left animate-fade-in">
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black text-sm">
-                  <UploadCloud className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Step 1 • From Phone or Home PC</div>
-                <h3 className="font-bold text-base text-slate-900">Upload File or Code Snippet</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Open Quick Send on your home laptop or phone. Upload assignment files (up to 25MB) or paste code/text snippets (up to 100KB) directly.
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> No signup required to send
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            {/* Step 1 */}
+            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+              <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
+                <UploadCloud className="w-5 h-5" />
               </div>
-
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-black text-sm">
-                  <QrCode className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-brand-primary uppercase tracking-wider">Step 2 • Instant Security Token</div>
-                <h3 className="font-bold text-base text-slate-900">Get 6-Digit PIN &amp; QR Code</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  CloudVault generates an instant 6-digit access code (e.g. <code>8F3K9A</code>) and a scannable QR code. You can also turn on self-destruct after 1st download.
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Generated in &lt;1 second
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
-                  <DownloadCloud className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Step 3 • College Lab PC</div>
-                <h3 className="font-bold text-base text-slate-900">Enter PIN or Scan QR to Retrieve</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Open <strong>hometolab.in</strong> on any college computer terminal. Type the 6-digit PIN or scan the QR to instantly download files or copy your code directly.
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Auto-clears upon expiration
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* WORKFLOW 2: STUDENT PERSONAL CLOUD VAULT (WITH FREE ACCOUNT) */
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left animate-fade-in">
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black text-sm">
-                  <HardDrive className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-blue-600 uppercase tracking-wider">Step 1 • Free Signup</div>
-                <h3 className="font-bold text-base text-slate-900">Get 100MB (Upgradeable to 2GB)</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Sign up with email to unlock your personal cloud vault with 100MB free storage. Need more space for semester projects? Submit a simple in-app upgrade request to get up to 2 GB free!
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-500" /> Up to 2GB storage upgrade
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-black text-sm">
-                  <Clipboard className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">Step 2 • Save &amp; Clipboard Sync</div>
-                <h3 className="font-bold text-base text-slate-900">Send to Server &amp; Cloud Clipboard</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Save assignment files, lab videos, photos, and project archives permanently to your server. Use the Cloud Clipboard to paste code, terminal commands, or notes that stay synced across all devices.
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-indigo-500" /> Permanent private cloud storage
-                </div>
-              </div>
-
-              <div className="glass-card p-6 rounded-2xl border-slate-200/80 space-y-3 relative group hover:border-brand-primary/40 transition-all">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-black text-sm">
-                  <Globe className="w-5 h-5" />
-                </div>
-                <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Step 3 • Anywhere Access</div>
-                <h3 className="font-bold text-base text-slate-900">Login &amp; Access from Any Location</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
-                  Log in from any location — your home PC, hostel phone, or college lab computer. View all your saved files, copy clipboard snippets, and securely share links with peers anytime.
-                </p>
-                <div className="pt-2 text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> Secure cross-device access
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 5. REGISTERED STUDENT CLOUD VAULT (100MB UP TO 2GB PERMANENT STORAGE)     */}
-      {/* ========================================================================= */}
-      <section className="py-16 px-4 sm:px-6 lg:px-[8%] bg-slate-50/70 border-y border-slate-200/80 z-10">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-10">
-          <div className="max-w-lg space-y-4">
-            <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
-              Student Personal Cloud Vault
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 leading-tight">
-              Sign Up Free &amp; Unlock 100MB to 2GB Cloud Storage
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-              When you create a free student account, you get a full personal cloud vault. Save files permanently, sync your clipboard, and access everything from any computer or phone worldwide.
-            </p>
-            <ul className="space-y-2.5 text-xs text-slate-700">
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>100MB Starting Quota (Up to 2GB Free):</strong> New accounts start with 100MB. Need more space? Simply submit a free upgrade request inside your dashboard to expand up to 2GB.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Send to Server (Permanent Cloud Storage):</strong> Safely store assignment files, photos, videos, lab manuals, and zip projects permanently on your server.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Cloud Clipboard (Paste &amp; Sync Everywhere):</strong> Paste code snippets, terminal commands, or text notes at home and access/copy them on any college lab PC instantly.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Access Anywhere from Any Location:</strong> Log in from any laptop, mobile phone, or college lab computer to view, manage, download, and share your files.</span>
-              </li>
-              <li className="flex items-start gap-2.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                <span><strong>Secure File Sharing:</strong> Generate share codes and links directly from your vault to collaborate with classmates and lab partners.</span>
-              </li>
-            </ul>
-
-            <div className="pt-2 flex flex-wrap items-center gap-3">
-              <Link
-                to="/register"
-                className="btn-primary py-3 px-6 text-xs font-bold inline-flex items-center gap-2 shadow-md hover:scale-[1.02] transition-transform"
-              >
-                <span>Create Free Student Account (100MB)</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                to="/login"
-                className="btn-secondary py-3 px-5 text-xs font-semibold inline-flex items-center gap-1.5"
-              >
-                <span>Log In to Vault</span>
-              </Link>
-            </div>
-          </div>
-
-          {/* Interactive Feature Demo Card */}
-          <div className="w-full md:w-96 glass-card p-5 rounded-2xl border border-slate-200/80 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2 font-bold text-xs text-slate-900">
-                <Folder className="w-4 h-4 text-brand-primary" />
-                <span>Personal Student Vault</span>
-              </div>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 font-bold">100 MB Quota</span>
+              <div className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Step 01 • At Home or on Phone</div>
+              <h3 className="font-bold text-base text-slate-900 font-display">Drop File or Paste Code</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Upload your assignment file (up to 25MB) or paste your code snippet directly (up to 100KB). No account or signup needed.
+              </p>
             </div>
 
-            {/* Storage Meter with 2GB Upgrade Pill */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                <span>Storage Used: <strong>31.3 MB / 100 MB</strong></span>
-                <span className="text-[10px] font-bold text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
-                  Upgrade to 2GB Available
-                </span>
+            {/* Step 2 */}
+            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+              <div className="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold">
+                <Key className="w-5 h-5" />
               </div>
-              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                <div className="bg-brand-primary h-full rounded-full" style={{ width: '31%' }}></div>
-              </div>
+              <div className="text-[11px] font-bold text-brand-primary uppercase tracking-wider">Step 02 • Instant Security Token</div>
+              <h3 className="font-bold text-base text-slate-900 font-display">Get a 6-Digit PIN &amp; QR</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                CloudVault creates an instant 6-character code (like <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-brand-primary font-bold">8F3K9A</code>). Optional self-destruct deletes it after retrieval.
+              </p>
             </div>
 
-            {/* Saved Items */}
-            <div className="space-y-2">
-              {[
-                { name: 'OS_Lab_Assignment_3.cpp', size: '24 KB', type: 'code' },
-                { name: 'Computer_Networks_Manual.pdf', size: '2.4 MB', type: 'doc' },
-                { name: 'DBMS_Project_Backend.zip', size: '14.8 MB', type: 'archive' },
-                { name: 'Project_Demo_Presentation.mp4', size: '13.2 MB', type: 'video' },
-                { name: 'Cloud Clipboard: Docker_Run_Command.sh', size: '1.2 KB', type: 'clipboard' },
-              ].map((item) => (
-                <div key={item.name} className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {item.type === 'clipboard' ? (
-                      <Clipboard className="w-4 h-4 text-indigo-500 shrink-0" />
-                    ) : item.type === 'video' ? (
-                      <Play className="w-4 h-4 text-rose-500 shrink-0" />
-                    ) : (
-                      <FileCode className="w-4 h-4 text-brand-primary shrink-0" />
-                    )}
-                    <span className="truncate font-medium text-slate-800">{item.name}</span>
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-mono shrink-0 ml-2">{item.size}</span>
-                </div>
-              ))}
-            </div>
-
-            <div className="text-[11px] text-center text-slate-400 pt-1">
-              Permanent storage • Access from any device anytime
+            {/* Step 3 */}
+            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+              <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
+                <Terminal className="w-5 h-5" />
+              </div>
+              <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Step 03 • College Lab Terminal</div>
+              <h3 className="font-bold text-base text-slate-900 font-display">Download or Run Code</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Open <strong className="text-slate-800">hometolab.in</strong> on the lab PC, type the 6 digits, and your file or code appears instantly. Run it directly or save it.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* ========================================================================= */}
-      {/* 5B. CLEAR COMPARISON: GUEST QUICK SHARE VS STUDENT CLOUD VAULT            */}
+      {/* 5. TWO WAYS TO USE CLOUDVAULT: GUEST VS STUDENT VAULT                     */}
       {/* ========================================================================= */}
-      <section className="py-16 px-4 sm:px-6 lg:px-[8%] z-10 text-center">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="space-y-2">
+      <section className="py-20 px-4 sm:px-6 lg:px-[8%] bg-slate-50/70 border-y border-slate-200/80 z-10 text-center">
+        <div className="max-w-4xl mx-auto space-y-10">
+          <div className="space-y-3">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
-              Choose What Fits Your Needs
+              Tailored For Student Life
             </span>
             <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900">
-              Direct Guest Transfer vs. Student Cloud Vault
+              Two Simple Ways to Use CloudVault
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
-              Whether you need to send a single assignment to the lab in 10 seconds or want an all-semester cloud vault, CloudVault has you covered.
+              Use instant guest transfer for today's lab practical, or unlock a free personal student vault for all 4 years of college.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             {/* Direct Guest Transfer Card */}
-            <div className="glass-card p-6 rounded-2xl border-2 border-slate-200/90 space-y-4 hover:border-brand-primary/40 transition-all">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                    No Login Required
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">Direct Guest Transfer</h3>
+            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 space-y-5 hover:border-slate-300 transition-all shadow-xs flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
+                      No Login Required
+                    </span>
+                    <h3 className="text-lg font-bold text-slate-900 mt-1 font-display">Direct Guest Transfer</h3>
+                  </div>
+                  <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl">
+                    <Zap className="w-5 h-5" />
+                  </div>
                 </div>
-                <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl">
-                  <Zap className="w-5 h-5" />
-                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Best for quick lab practicals when you just need to get your code or document onto a shared PC without signing in.
+                </p>
+
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Send files up to <strong>25 MB</strong> per transfer</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Send code &amp; text snippets up to <strong>100 KB</strong></span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Instant <strong>6-digit PIN &amp; QR Code</strong> generation</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Optional <strong>Self-Destruct</strong> after 1st download</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <span>Auto-expires safely (10 mins to 24 hours)</span>
+                  </li>
+                </ul>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Ideal for quick lab practicals when you just want to get your code or document onto a lab PC without signing into anything.
-              </p>
-
-              <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Send files up to <strong>25 MB</strong> per transfer</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Send code &amp; text snippets up to <strong>100 KB</strong></span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Instant <strong>6-digit PIN &amp; QR Code</strong> generation</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Optional <strong>Self-Destruct</strong> after 1st download</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>Auto-expires (10 mins to 24 hours)</span>
-                </li>
-              </ul>
-
-              <div className="pt-2">
+              <div className="pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setActiveTab('send');
                     scrollToSection('retrieve-section');
                   }}
-                  className="w-full btn-secondary py-2.5 text-xs font-bold rounded-xl cursor-pointer"
+                  className="w-full btn-secondary py-3 text-xs font-bold rounded-xl cursor-pointer"
                 >
-                  Start Quick Guest Send
+                  Start Guest Transfer
                 </button>
               </div>
             </div>
 
             {/* Student Cloud Vault Card */}
-            <div className="glass-card p-6 rounded-2xl border-2 border-brand-primary/30 space-y-4 shadow-lg hover:border-brand-primary transition-all relative">
+            <div className="p-7 rounded-2xl bg-white border-2 border-brand-primary/30 space-y-5 shadow-md hover:border-brand-primary transition-all relative flex flex-col justify-between">
               <div className="absolute -top-3 right-5 bg-brand-primary text-white text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full shadow-xs">
                 Recommended for Students
               </div>
 
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-2 py-0.5 rounded-full">
-                    Free Student Account
-                  </span>
-                  <h3 className="text-lg font-bold text-slate-900 mt-1">Personal Cloud Vault</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-2.5 py-0.5 rounded-full border border-brand-primary/20">
+                      Free Student Account
+                    </span>
+                    <h3 className="text-lg font-bold text-slate-900 mt-1 font-display">Personal Cloud Vault</h3>
+                  </div>
+                  <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-xl">
+                    <HardDrive className="w-5 h-5" />
+                  </div>
                 </div>
-                <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-xl">
-                  <HardDrive className="w-5 h-5" />
-                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Your private cloud vault for all 4 years of college. Store assignments, notes, project files, and sync your clipboard everywhere.
+                </p>
+
+                <ul className="space-y-2.5 text-xs text-slate-700">
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-brand-primary shrink-0" />
+                    <span><strong>100 MB Free Storage</strong> on signup (upgradeable to 2GB)</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-brand-primary shrink-0" />
+                    <span><strong>Cloud Clipboard:</strong> Paste code at home, retrieve on lab PC</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-brand-primary shrink-0" />
+                    <span><strong>Send to Server:</strong> Permanent storage for files, manuals &amp; zips</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-brand-primary shrink-0" />
+                    <span><strong>Cross-Device:</strong> Log in from phone, laptop, or lab browser</span>
+                  </li>
+                  <li className="flex items-center gap-2.5">
+                    <Check className="w-4 h-4 text-brand-primary shrink-0" />
+                    <span><strong>Shareable Links:</strong> Easily collaborate with lab partners</span>
+                  </li>
+                </ul>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Your permanent personal cloud server for all 4 years of college. Save your projects, notes, media, and sync clipboard across any device.
-              </p>
-
-              <ul className="space-y-2 text-xs text-slate-700">
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-brand-primary shrink-0" />
-                  <span><strong>100 MB Free Storage</strong> on signup</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-brand-primary shrink-0" />
-                  <span><strong>Upgrade Request up to 2 GB</strong> free</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-brand-primary shrink-0" />
-                  <span><strong>Send to Server:</strong> Permanent storage for files, photos &amp; videos</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-brand-primary shrink-0" />
-                  <span><strong>Cloud Clipboard:</strong> Paste code at home, copy on lab PC</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-brand-primary shrink-0" />
-                  <span><strong>Access from Any Location:</strong> Log in from phone, laptop or lab</span>
-                </li>
-              </ul>
-
-              <div className="pt-2">
+              <div className="pt-4">
                 <Link
                   to="/register"
-                  className="w-full btn-primary py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer"
+                  className="w-full btn-primary py-3 text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-md cursor-pointer"
                 >
                   <span>Create Free Account (Get 100MB)</span>
                   <ArrowRight className="w-3.5 h-3.5" />
@@ -1432,7 +1195,7 @@ const Home = () => {
                   activeFaq === idx ? 'ring-2 ring-brand-primary/30 shadow-md' : 'hover:border-brand-primary/30'
                 }`}
               >
-                <div className="flex justify-between items-center font-bold text-slate-900 text-xs sm:text-sm">
+                <div className="flex justify-between items-center font-bold text-slate-900 text-xs sm:text-sm font-display">
                   <span>{item.q}</span>
                   <ChevronDown
                     className={`w-4 h-4 text-slate-400 transition-transform duration-300 shrink-0 ml-2 ${
@@ -1478,7 +1241,7 @@ const Home = () => {
                   <Shield className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900">Direct Administrator Support</h3>
+                  <h3 className="font-bold text-sm text-slate-900 font-display">Direct Administrator Support</h3>
                   <p className="text-xs text-slate-500">Fast 24-48h Response</p>
                 </div>
               </div>
@@ -1488,7 +1251,7 @@ const Home = () => {
               </p>
 
               <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs">
-                <div className="text-slate-500 text-[10px] font-bold uppercase">Official Contact Email</div>
+                <div className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Official Contact Email</div>
                 <a href="mailto:aayushparekh26@gmail.com" className="text-brand-primary font-bold hover:underline break-all">
                   aayushparekh26@gmail.com
                 </a>
@@ -1497,7 +1260,7 @@ const Home = () => {
 
             {/* Direct Form */}
             <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-xs">
-              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2">
+              <h3 className="text-sm font-bold text-slate-900 mb-3 flex items-center gap-2 font-display">
                 <MessageSquare className="w-4 h-4 text-brand-primary" /> Send Feedback Message
               </h3>
 
@@ -1532,7 +1295,7 @@ const Home = () => {
                   <select
                     value={feedbackTopic}
                     onChange={(e) => setFeedbackTopic(e.target.value)}
-                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary"
+                    className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary cursor-pointer font-medium"
                   >
                     <option value="Feature Request">Request a Feature</option>
                     <option value="Bug Report">Report a Bug / Issue</option>
@@ -1555,7 +1318,7 @@ const Home = () => {
                 <button
                   type="submit"
                   disabled={feedbackSending}
-                  className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                  className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md rounded-xl"
                 >
                   <Send className="w-3.5 h-3.5" /> {feedbackSending ? 'Sending...' : 'Send Message'}
                 </button>
@@ -1565,19 +1328,21 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Verified Retrieval Modal (Supports both File downloads & Text snippets) */}
+      {/* ========================================================================= */}
+      {/* VERIFIED RETRIEVAL MODAL (100% LIGHT THEMED)                              */}
+      {/* ========================================================================= */}
       {showRetrieveModal && retrievedFile && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="bg-white max-w-md w-full p-6 sm:p-7 shadow-2xl rounded-3xl relative border border-slate-200">
+          <div className="bg-white max-w-md w-full p-6 sm:p-7 shadow-2xl rounded-3xl relative border border-slate-200 animate-scale-up">
             <button
               onClick={() => setShowRetrieveModal(false)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors p-1"
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 transition-colors p-1 cursor-pointer"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2.5 mb-2 text-emerald-600 font-bold text-base">
+            <div className="flex items-center gap-2.5 mb-2 text-emerald-600 font-bold text-base font-display">
               <FileCheck className="w-5.5 h-5.5 stroke-[2.5]" />
               <h3>{retrievedFile.kind === 'text' ? 'Text Snippet Found!' : 'File Found!'}</h3>
             </div>
@@ -1603,7 +1368,7 @@ const Home = () => {
                 </div>
 
                 <div className="relative">
-                  <pre className="bg-slate-900 text-slate-100 p-3.5 rounded-xl font-mono text-xs overflow-x-auto max-h-56 select-all border border-slate-800 whitespace-pre-wrap leading-relaxed">
+                  <pre className="bg-slate-50 text-slate-900 p-3.5 rounded-xl font-mono text-xs overflow-x-auto max-h-56 select-all border border-slate-200 whitespace-pre-wrap leading-relaxed">
                     {retrievedFile.text_content}
                   </pre>
                   <button
@@ -1613,10 +1378,10 @@ const Home = () => {
                       showToast('Copied text to clipboard!', 'success');
                       setTimeout(() => setCopiedTextContent(false), 2000);
                     }}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-slate-800 text-brand-primary hover:bg-slate-700 transition-colors cursor-pointer"
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-white border border-slate-200 text-brand-primary hover:bg-slate-50 transition-colors cursor-pointer shadow-2xs"
                     title="Copy text"
                   >
-                    {copiedTextContent ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    {copiedTextContent ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
@@ -1642,7 +1407,7 @@ const Home = () => {
                 </div>
                 <div className="flex justify-between items-center gap-2">
                   <span className="text-slate-500 font-sans font-semibold">Code Expiry</span>
-                  <span className="font-bold text-amber-500">
+                  <span className="font-bold text-amber-600">
                     {Math.floor(shareTimeLeft / 60)}m {shareTimeLeft % 60}s remaining
                   </span>
                 </div>
@@ -1652,7 +1417,7 @@ const Home = () => {
             <div className="flex flex-wrap gap-2.5 justify-end">
               <button
                 onClick={() => setShowRetrieveModal(false)}
-                className="btn-secondary py-2.5 px-4 text-xs font-bold cursor-pointer"
+                className="btn-secondary py-2.5 px-4 text-xs font-bold cursor-pointer rounded-xl"
               >
                 Close
               </button>
@@ -1663,14 +1428,14 @@ const Home = () => {
                     navigator.clipboard.writeText(retrievedFile.text_content);
                     showToast('Copied text snippet to clipboard!', 'success');
                   }}
-                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md rounded-xl"
                 >
                   <Copy className="w-4 h-4" /> Copy Text Snippet
                 </button>
               ) : (
                 <button
                   onClick={handleDownloadFile}
-                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md"
+                  className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-md rounded-xl"
                 >
                   <Download className="w-4 h-4" /> Download File Now
                 </button>

@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { ShieldAlert, ArrowLeft, Mail, Sun, Moon, Shield, Lock, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import AnimatedBackground from '../components/AnimatedBackground';
 
 const Login = () => {
   const { login, supabase, user } = useAuth();
@@ -233,27 +234,30 @@ const Login = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300 p-4">
-      {/* Background Orbs */}
-      <div className="glow-orb glow-orb-primary"></div>
-      <div className="glow-orb glow-orb-accent"></div>
-      {/* Top Header Controls */}
-      <div className="absolute top-6 left-6 right-6 flex justify-between items-center z-20">
-        <Link
-          to="/"
-          className="flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors bg-white/70 dark:bg-slate-900/70 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-200/60 dark:border-slate-800/80 shadow-xs"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" /> Back to Home
-        </Link>
-      </div>
-      <div className="glass-card max-w-md w-full p-8 shadow-2xl relative z-10 animate-scale-up border-brand-border-light dark:border-brand-border-dark bg-white/90 dark:bg-slate-900/85">
+    <div className="relative min-h-[100dvh] flex flex-col justify-center items-center py-4 px-3 sm:px-6 bg-slate-50 text-slate-800 overflow-x-hidden">
+      {/* Dynamic Animated Ambient Background */}
+      <AnimatedBackground />
+
+      <div className="w-full max-w-[440px] mx-auto z-10 flex flex-col items-center">
+        {/* Top Header Navigation */}
+        <div className="w-full flex justify-between items-center mb-2.5">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900 text-xs font-bold border border-slate-200/80 transition-all shadow-2xs backdrop-blur-sm cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 text-brand-primary" /> Back to Home
+          </Link>
+        </div>
+
+        {/* Center Card */}
+        <div className="w-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200/90 bg-white/95 backdrop-blur-md relative z-10 animate-scale-up">
         {/* Header Icon */}
-        <div className="flex justify-center mb-6">
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shadow-xs">
-              <Shield className="w-6 h-6 text-brand-primary stroke-[2.5]" />
+        <div className="flex justify-center mb-4">
+          <Link to="/" className="flex items-center gap-2 group">
+            <div className="w-9 h-9 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
+              <Shield className="w-4.5 h-4.5 text-brand-primary stroke-[2.5]" />
             </div>
-            <span className="font-display font-black text-2xl text-slate-900 dark:text-white tracking-tight">
+            <span className="font-display font-black text-xl text-slate-900 tracking-tight">
               Cloud<span className="text-brand-primary">Vault</span>
             </span>
           </Link>
@@ -534,6 +538,7 @@ const Login = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

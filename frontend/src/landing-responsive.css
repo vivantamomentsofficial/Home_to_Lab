@@ -34,6 +34,24 @@
   }
 }
 
+@keyframes orbFloat1 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(45px, -35px, 0) scale(1.12); }
+  100% { transform: translate3d(-30px, 25px, 0) scale(0.95); }
+}
+
+@keyframes orbFloat2 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-40px, 45px, 0) scale(1.08); }
+  100% { transform: translate3d(35px, -25px, 0) scale(0.96); }
+}
+
+@keyframes orbFloat3 {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(35px, 30px, 0) scale(1.1); }
+  100% { transform: translate3d(-25px, -35px, 0) scale(0.92); }
+}
+
 @keyframes gridGlowPulse {
   0%, 100% {
     opacity: 0.35;
@@ -374,11 +392,11 @@ html, body {
   pointer-events: none;
 }
 
-/* Terminal Scanline Subtle Texture */
+/* Clean Light Code View Texture */
 .terminal-code-view {
-  background: #090d16;
-  background-image: linear-gradient(rgba(14, 165, 233, 0.03) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(14, 165, 233, 0.03) 1px, transparent 1px);
+  background: #f8fafc;
+  background-image: linear-gradient(rgba(14, 165, 233, 0.04) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(14, 165, 233, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
