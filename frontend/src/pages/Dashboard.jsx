@@ -18,6 +18,7 @@ import {
   deleteFileFromStorage,
   computeFileHash,
   deleteFolderInDb,
+  renameFolderInDb,
   fetchFileVersions,
   saveFileVersionRecord,
   restoreFileVersion,
@@ -54,7 +55,7 @@ import {
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
   History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy,
-  EyeOff, User, GraduationCap, Mail
+  EyeOff, User, GraduationCap, Mail, Sun, Moon, QrCode, RefreshCw, MicOff, ChevronRight, Home, FolderPlus
 } from 'lucide-react';
 
 
@@ -152,7 +153,8 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
-  const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
+  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
+  const [isListening, setIsListening] = useState(false);
 
   // Versioning and Duplicate Modals
   const [versionModalFile, setVersionModalFile] = useState(null);
@@ -608,6 +610,107 @@ const Dashboard = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [clipboardLocked]);
+
+  // Handle files dropped anywhere on the window while on dashboard
+  useEffect(() => {
+    const handleGlobalDashboardDrop = (e) => {
+      if (e.detail && e.detail.length > 0) {
+        showToast(`Processing ${e.detail.length} dropped file(s)...`, 'info');
+        handleUploadQueue(e.detail);
+      }
+    };
+    window.addEventListener('cloudvault-dashboard-drop', handleGlobalDashboardDrop);
+    return () => window.removeEventListener('cloudvault-dashboard-drop', handleGlobalDashboardDrop);
+  }, []);
+
+  const handleShowQrForFile = async (file) => {
+    if (downloadLocked) {
+      showToast('Sharing privileges have been revoked by the administrator.', 'danger');
+      return;
+    }
+    try {
+      showToast('Generating QR code link...', 'info');
+      const signedUrl = await createSignedDownloadUrl(supabase, file.storage_path, 3600);
+      setQrModalData({
+        code: file.filename,
+        filename: file.filename,
+        url: signedUrl || window.location.href
+      });
+      setShowQRModal(true);
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to create QR code: ' + err.message, 'danger');
+    }
+  };
+
+  const handleToggleVoiceTyping = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      showToast('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.', 'warning');
+      return;
+    }
+
+    if (isListening) {
+      if (window.activeSpeechRecognizer) {
+        window.activeSpeechRecognizer.stop();
+      }
+      setIsListening(false);
+      showToast('Voice typing stopped.', 'info');
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = 'en-US';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        showToast('Listening... Speak now to transcribe into snippet.', 'info');
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(res => res[0].transcript)
+          .join('');
+        setNoteContent(prev => prev ? prev + ' ' + transcript : transcript);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn('Speech recognition notice:', event.error);
+        setIsListening(false);
+        if (event.error !== 'no-speech') {
+          showToast('Voice typing error: ' + event.error, 'warning');
+        }
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      window.activeSpeechRecognizer = recognition;
+      recognition.start();
+    } catch (err) {
+      console.error('Failed to start speech recognition:', err);
+      setIsListening(false);
+      showToast('Failed to start voice typing.', 'danger');
+    }
+  };
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text) {
+        showToast('System clipboard is empty.', 'info');
+        return;
+      }
+      setNoteContent(prev => prev ? prev + '\n' + text : text);
+      showToast('Pasted from clipboard!', 'success');
+    } catch (err) {
+      showToast('Clipboard access was denied. Use Ctrl+V instead.', 'warning');
+    }
+  };
 
   // Update layout preference in storage
   const handleToggleLayout = () => {
@@ -1634,7 +1737,8 @@ const Dashboard = () => {
         .from('folders')
         .insert({
           user_id: user.id,
-          name: name.trim()
+          name: name.trim(),
+          parent_id: currentFolderId || null
         });
 
       if (error) throw error;
@@ -1667,20 +1771,34 @@ const Dashboard = () => {
       const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
 
       if (isVirtualId) {
-        // Upsert/Insert missing DB row with folder_id
-        const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
-        const { error: insertErr } = await supabase
+        // Prevent duplicate DB rows: check if storage_path already exists
+        const { data: existingRow } = await supabase
           .from('files')
-          .insert({
-            user_id: user.id,
-            filename: targetFile.filename,
-            storage_path: targetFile.storage_path,
-            file_type: fileCategory,
-            size: targetFile.size || 0,
-            folder_id: destFolderId
-          });
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('storage_path', targetFile.storage_path)
+          .maybeSingle();
 
-        if (insertErr) throw insertErr;
+        if (existingRow?.id) {
+          await supabase
+            .from('files')
+            .update({ folder_id: destFolderId })
+            .eq('id', existingRow.id);
+        } else {
+          const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+          const { error: insertErr } = await supabase
+            .from('files')
+            .insert({
+              user_id: user.id,
+              filename: targetFile.filename,
+              storage_path: targetFile.storage_path,
+              file_type: fileCategory,
+              size: targetFile.size || 0,
+              folder_id: destFolderId
+            });
+
+          if (insertErr) throw insertErr;
+        }
       } else {
         // Real UUID: update database row
         const { data: updatedData, error: updateErr } = await supabase
@@ -1691,19 +1809,33 @@ const Dashboard = () => {
 
         if (updateErr) throw updateErr;
 
-        // If 0 rows updated (record missing in DB), insert new row with folder_id
+        // If 0 rows updated (record missing in DB), check if storage_path exists before inserting
         if (!updatedData || updatedData.length === 0) {
-          const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
-          await supabase
+          const { data: existingRow } = await supabase
             .from('files')
-            .insert({
-              user_id: user.id,
-              filename: targetFile.filename,
-              storage_path: targetFile.storage_path,
-              file_type: fileCategory,
-              size: targetFile.size || 0,
-              folder_id: destFolderId
-            });
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('storage_path', targetFile.storage_path)
+            .maybeSingle();
+
+          if (existingRow?.id) {
+            await supabase
+              .from('files')
+              .update({ folder_id: destFolderId })
+              .eq('id', existingRow.id);
+          } else {
+            const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+            await supabase
+              .from('files')
+              .insert({
+                user_id: user.id,
+                filename: targetFile.filename,
+                storage_path: targetFile.storage_path,
+                file_type: fileCategory,
+                size: targetFile.size || 0,
+                folder_id: destFolderId
+              });
+          }
         }
       }
 
@@ -1731,25 +1863,19 @@ const Dashboard = () => {
         const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
 
         if (isVirtualId) {
-          const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
-          await supabase
+          const { data: existingRow } = await supabase
             .from('files')
-            .insert({
-              user_id: user.id,
-              filename: targetFile.filename,
-              storage_path: targetFile.storage_path,
-              file_type: fileCategory,
-              size: targetFile.size || 0,
-              folder_id: destFolderId
-            });
-        } else {
-          const { data: updatedData, error: updateErr } = await supabase
-            .from('files')
-            .update({ folder_id: destFolderId })
-            .eq('id', fileId)
-            .select();
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('storage_path', targetFile.storage_path)
+            .maybeSingle();
 
-          if (updateErr || !updatedData || updatedData.length === 0) {
+          if (existingRow?.id) {
+            await supabase
+              .from('files')
+              .update({ folder_id: destFolderId })
+              .eq('id', existingRow.id);
+          } else {
             const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
             await supabase
               .from('files')
@@ -1761,6 +1887,40 @@ const Dashboard = () => {
                 size: targetFile.size || 0,
                 folder_id: destFolderId
               });
+          }
+        } else {
+          const { data: updatedData, error: updateErr } = await supabase
+            .from('files')
+            .update({ folder_id: destFolderId })
+            .eq('id', fileId)
+            .select();
+
+          if (updateErr || !updatedData || updatedData.length === 0) {
+            const { data: existingRow } = await supabase
+              .from('files')
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('storage_path', targetFile.storage_path)
+              .maybeSingle();
+
+            if (existingRow?.id) {
+              await supabase
+                .from('files')
+                .update({ folder_id: destFolderId })
+                .eq('id', existingRow.id);
+            } else {
+              const fileCategory = getFileCategory(targetFile.filename, targetFile.file_type || '');
+              await supabase
+                .from('files')
+                .insert({
+                  user_id: user.id,
+                  filename: targetFile.filename,
+                  storage_path: targetFile.storage_path,
+                  file_type: fileCategory,
+                  size: targetFile.size || 0,
+                  folder_id: destFolderId
+                });
+            }
           }
         }
       }
@@ -1845,17 +2005,31 @@ const Dashboard = () => {
           const isVirtualId = !fileId || String(fileId).startsWith('storage_') || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(fileId));
 
           if (isVirtualId) {
-            const fileCategory = getFileCategory(file.filename, file.file_type || '');
-            await supabase
+            const { data: existingRow } = await supabase
               .from('files')
-              .insert({
-                user_id: user.id,
-                filename: file.filename,
-                storage_path: file.storage_path,
-                file_type: fileCategory,
-                size: file.size || 0,
-                folder_id: targetDestId
-              });
+              .select('id')
+              .eq('user_id', user.id)
+              .eq('storage_path', file.storage_path)
+              .maybeSingle();
+
+            if (existingRow?.id) {
+              await supabase
+                .from('files')
+                .update({ folder_id: targetDestId })
+                .eq('id', existingRow.id);
+            } else {
+              const fileCategory = getFileCategory(file.filename, file.file_type || '');
+              await supabase
+                .from('files')
+                .insert({
+                  user_id: user.id,
+                  filename: file.filename,
+                  storage_path: file.storage_path,
+                  file_type: fileCategory,
+                  size: file.size || 0,
+                  folder_id: targetDestId
+                });
+            }
           } else {
             await supabase
               .from('files')
@@ -1902,20 +2076,24 @@ const Dashboard = () => {
     try {
       if (deleteType === 'permanent') {
         if (file.storage_path) {
+          const cleanPath = (file.storage_path || '').trim().replace(/^\/+/, '');
+          const withoutVault = cleanPath.replace(/^vault\//, '');
           const { error: bucketError } = await supabase.storage
             .from('vault')
-            .remove([file.storage_path]);
+            .remove([cleanPath, withoutVault]);
           if (bucketError) console.warn('Bucket remove warning:', bucketError);
         }
         if (file.id && !String(file.id).startsWith('storage_')) {
           await deleteFileRecordFromDb(supabase, file.id);
         }
+        setFiles(prev => prev.filter(f => f.id !== file.id));
         showToast(`Permanently deleted "${file.filename}".`, 'success');
       } else {
         // Move to trash
         if (file.id && !String(file.id).startsWith('storage_')) {
           await softDeleteFileInDb(supabase, file.id);
         }
+        setFiles(prev => prev.map(f => f.id === file.id ? { ...f, is_deleted: true } : f));
         showToast(`Moved "${file.filename}" to Trash.`, 'info');
       }
       fetchVaultFiles();
@@ -1938,19 +2116,28 @@ const Dashboard = () => {
     try {
       const targets = files.filter(f => fileIds.includes(f.id));
       if (deleteType === 'permanent') {
-        const paths = targets.map(f => f.storage_path).filter(Boolean);
+        const paths = [];
+        targets.forEach(f => {
+          if (f.storage_path) {
+            const cleanPath = (f.storage_path || '').trim().replace(/^\/+/, '');
+            const withoutVault = cleanPath.replace(/^vault\//, '');
+            paths.push(cleanPath, withoutVault);
+          }
+        });
         if (paths.length > 0) {
           await supabase.storage.from('vault').remove(paths);
         }
         await Promise.all(
           targets.filter(f => f.id && !String(f.id).startsWith('storage_')).map(f => deleteFileRecordFromDb(supabase, f.id))
         );
+        setFiles(prev => prev.filter(f => !fileIds.includes(f.id)));
         showToast(`Permanently deleted ${targets.length} file(s).`, 'success');
       } else {
         // Move to trash
         await Promise.all(
           targets.filter(f => f.id && !String(f.id).startsWith('storage_')).map(f => softDeleteFileInDb(supabase, f.id))
         );
+        setFiles(prev => prev.map(f => fileIds.includes(f.id) ? { ...f, is_deleted: true } : f));
         showToast(`Moved ${targets.length} file(s) to Trash.`, 'info');
       }
       setSelectedFileIds([]);
@@ -2096,13 +2283,23 @@ const Dashboard = () => {
       message: `Permanently delete all ${trashFiles.length} files in trash? This cannot be undone.`,
       action: async () => {
         try {
-          const paths = trashFiles.map(f => f.storage_path).filter(Boolean);
+          const paths = [];
+          trashFiles.forEach(f => {
+            if (f.storage_path) {
+              const cleanPath = (f.storage_path || '').trim().replace(/^\/+/, '');
+              const withoutVault = cleanPath.replace(/^vault\//, '');
+              paths.push(cleanPath, withoutVault);
+            }
+          });
           if (paths.length > 0) {
             await supabase.storage.from('vault').remove(paths);
           }
           for (const f of trashFiles) {
-            await deleteFileRecordFromDb(supabase, f.id);
+            if (f.id && !String(f.id).startsWith('storage_')) {
+              await deleteFileRecordFromDb(supabase, f.id);
+            }
           }
+          setFiles(prev => prev.filter(f => !f.is_deleted));
           showToast(`Emptied trash (${trashFiles.length} files permanently deleted).`, 'success');
           fetchVaultFiles();
           fetchStorageStats();
@@ -2559,6 +2756,12 @@ const Dashboard = () => {
         const text = textDecoder.decode(decryptedBuffer);
         setPreviewText({ title: cleanName, content: text });
       } 
+      else if (category === 'video' || category === 'audio') {
+        const mime = category === 'video' ? 'video/mp4' : 'audio/mpeg';
+        const blob = new Blob([decryptedBuffer], { type: mime });
+        const url = URL.createObjectURL(blob);
+        setPreviewMedia({ type: category, title: cleanName, url: url });
+      }
       else {
         showToast('Preview is not supported for this file type.', 'warning');
       }
@@ -2825,7 +3028,45 @@ const Dashboard = () => {
       filtered.sort((a, b) => parseInt(b.size) - parseInt(a.size));
     }
 
-    return filtered;
+    // 6. Strict deduplication safety guard: Each file appears strictly ONCE
+    const uniqueFiles = [];
+    const seenIds = new Set();
+    const seenStoragePaths = new Set();
+
+    for (const f of filtered) {
+      if (!f) continue;
+      const fId = f.id;
+      const cleanPath = (f.storage_path || '').trim().replace(/^\/+/, '');
+
+      if (fId && seenIds.has(fId)) continue;
+      if (cleanPath && seenStoragePaths.has(cleanPath)) continue;
+
+      if (fId) seenIds.add(fId);
+      if (cleanPath) seenStoragePaths.add(cleanPath);
+      uniqueFiles.push(f);
+    }
+
+    return uniqueFiles;
+  };
+
+  // Folder Rename Handler
+  const handleRenameFolder = async (folder) => {
+    if (operationsLocked) {
+      showToast('File and folder modifications are locked on your account by the administrator.', 'warning');
+      return;
+    }
+    const newName = prompt(`Enter new name for folder "${folder.name}":`, folder.name);
+    if (!newName || !newName.trim() || newName.trim() === folder.name) return;
+
+    try {
+      showToast(`Renaming folder to "${newName.trim()}"...`, 'info');
+      await renameFolderInDb(supabase, folder.id, newName.trim());
+      showToast(`Folder renamed to "${newName.trim()}"!`, 'success');
+      fetchVaultFiles();
+    } catch (err) {
+      console.error('Failed to rename folder:', err);
+      showToast('Failed to rename folder: ' + err.message, 'danger');
+    }
   };
 
   // Folder Delete Handler (Task 2.5)
@@ -2839,12 +3080,19 @@ const Dashboard = () => {
     }
     try {
       showToast(`Deleting folder "${folder.name}"...`, 'info');
+      // Optimistic update so it disappears immediately from UI
+      setFolders(prev => prev.filter(f => f.id !== folder.id));
+      if (currentFolderId === folder.id) {
+        setCurrentFolderId(null);
+        setFolderScope('current');
+      }
       await deleteFolderInDb(supabase, folder.id);
-      showToast(`Folder "${folder.name}" moved to trash.`, 'success');
+      showToast(`Folder "${folder.name}" deleted successfully.`, 'success');
       fetchVaultFiles();
     } catch (err) {
       console.error('Failed to delete folder:', err);
       showToast('Failed to delete folder: ' + err.message, 'danger');
+      fetchVaultFiles();
     }
   };
 
@@ -2915,9 +3163,15 @@ const Dashboard = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          
-          
+        <div className="flex items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            aria-label="Toggle Theme"
+          >
+            {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-600" />}
+          </button>
           <div 
             onClick={() => {
               setActiveTab('profile');
@@ -3151,6 +3405,31 @@ const Dashboard = () => {
               </span>
             </div>
 
+            {/* Quick Action Icons (Refresh & Theme Toggle) */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                onClick={() => {
+                  fetchVaultFiles();
+                  fetchNotes();
+                  fetchStorageStats();
+                  showToast('Dashboard refreshed!', 'info');
+                }}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-brand-primary dark:text-slate-400 dark:hover:text-brand-primary transition-all cursor-pointer shadow-2xs border border-slate-200/50 dark:border-slate-700/50"
+                title="Refresh Vault & Notes"
+                aria-label="Refresh"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </button>
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-all cursor-pointer shadow-2xs border border-slate-200/50 dark:border-slate-700/50"
+                title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label="Toggle Theme"
+              >
+                {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              </button>
+            </div>
+
             {/* User Nav Avatar */}
             <div 
               onClick={() => setActiveTab('profile')}
@@ -3177,48 +3456,327 @@ const Dashboard = () => {
               files={files}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Quick Action Toolbar */}
+            <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-3 border-slate-200/70 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Quick Tools:</span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="btn-primary py-2 px-3 text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                >
+                  <UploadCloud className="w-3.5 h-3.5" /> Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateFolder}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Folder className="w-3.5 h-3.5 text-amber-500" /> New Folder
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenCreateTxtModal}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FileText className="w-3.5 h-3.5 text-blue-500" /> Create TXT
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowRecordModal(true)}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Mic className="w-3.5 h-3.5 text-rose-500" /> Record Memo
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('clipboard')}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5 text-emerald-500" /> New Note
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateCleanerModal(true)}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Deduplicate
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Inline Dropzone for Overview */}
             <div
-              onClick={() => setActiveTab('upload')}
-              className="glass-card p-6 flex items-center gap-4 cursor-pointer hover:border-brand-primary/30 hover:shadow-md"
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleUploadQueue(Array.from(e.dataTransfer.files));
+                }
+              }}
+              onClick={() => fileInputRef.current?.click()}
+              className="border-2 border-dashed border-brand-primary/30 hover:border-brand-primary/70 bg-gradient-to-br from-brand-primary/5 via-transparent to-brand-secondary/5 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer group hover:shadow-lg"
             >
-              <div className="p-3 bg-brand-primary/10 rounded-xl text-brand-primary">
+              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm">
                 <UploadCloud className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Send Files</h4>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">Drag files to upload</p>
+                <p className="font-bold text-sm text-slate-800 dark:text-white">
+                  Quick Upload to Encrypted Cloud
+                </p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                  Drag & drop files here or <span className="text-brand-primary font-semibold underline underline-offset-2">browse from your computer</span>. Stored with client-side zero-knowledge encryption.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5 text-amber-500" /> AES-256 GCM
+                </span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5 text-emerald-500" /> Multi-File Queue
+                </span>
               </div>
             </div>
 
-            <div
-              onClick={() => setActiveTab('clipboard')}
-              className="glass-card p-6 flex items-center gap-4 cursor-pointer hover:border-brand-primary/30 hover:shadow-md"
-            >
-              <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500">
-                <Clipboard className="w-6 h-6" />
+            {/* 3 Quick Navigation Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                onClick={() => setActiveTab('upload')}
+                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-brand-primary/40 hover:shadow-md transition-all group"
+              >
+                <div className="p-3 bg-brand-primary/10 rounded-xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all">
+                  <UploadCloud className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Send Files</h4>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">Advanced Uploader</p>
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clipboard Clippings</h4>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">Sync code outlines</p>
+
+              <div
+                onClick={() => setActiveTab('clipboard')}
+                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-amber-500/40 hover:shadow-md transition-all group"
+              >
+                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                  <Clipboard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clipboard Clippings</h4>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
+                    {notes.filter(n => !n.is_deleted).length} active snippets
+                  </p>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setActiveTab('vault')}
+                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-rose-500/40 hover:shadow-md transition-all group"
+              >
+                <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all">
+                  <FolderKanban className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vault Explorer</h4>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
+                    {files.filter(f => !f.is_deleted).length} encrypted files
+                  </p>
+                </div>
               </div>
             </div>
 
-            <div
-              onClick={() => setActiveTab('vault')}
-              className="glass-card p-6 flex items-center gap-4 cursor-pointer hover:border-brand-primary/30 hover:shadow-md"
-            >
-              <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500">
-                <FolderKanban className="w-6 h-6" />
+            {/* Split Grid: Recent Files & Recent Snippets */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Files Panel */}
+              <div className="glass-card p-5 flex flex-col justify-between border-slate-200/70 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <File className="w-4 h-4 text-brand-primary" />
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Files</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-full">
+                        {files.filter(f => !f.is_deleted).length} Total
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('vault')}
+                      className="text-xs font-bold text-brand-primary hover:underline cursor-pointer"
+                    >
+                      View All &rarr;
+                    </button>
+                  </div>
+
+                  {files.filter(f => !f.is_deleted).length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                      <FolderKanban className="w-8 h-8 opacity-40 text-slate-400" />
+                      <span>No files in your vault yet.</span>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="btn-secondary py-1.5 px-3 text-xs font-bold mt-1"
+                      >
+                        Upload First File
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {files.filter(f => !f.is_deleted).slice(0, 5).map((file) => (
+                        <div
+                          key={file.id}
+                          className="py-2.5 flex items-center justify-between gap-3 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 rounded-lg px-2 transition-colors"
+                        >
+                          <div
+                            onClick={() => handlePreviewFile(file)}
+                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
+                          >
+                            <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0">
+                              {getFileIcon(file.filename)}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-brand-primary transition-colors">
+                                {file.filename.startsWith('[encrypted]_') ? (
+                                  <span className="flex items-center gap-1">
+                                    <Lock className="w-3 h-3 text-amber-500 shrink-0" />
+                                    <span className="truncate">{file.filename.replace('[encrypted]_', '')}</span>
+                                  </span>
+                                ) : (
+                                  file.filename
+                                )}
+                              </p>
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                {formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handlePreviewFile(file)}
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              title="Preview"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadFileDirect(file.storage_path, file.filename)}
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              title="Download"
+                            >
+                              <Download className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleShowQrForFile(file)}
+                              className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              title="QR Code Share"
+                            >
+                              <QrCode className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleGenerateShareCode(file)}
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              title="Share Code"
+                            >
+                              <Share2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vault Explorer</h4>
-                <p className="text-sm font-semibold text-slate-600 dark:text-slate-300 mt-0.5">Explore shared file codes</p>
+
+              {/* Recent Clippings Panel */}
+              <div className="glass-card p-5 flex flex-col justify-between border-slate-200/70 dark:border-slate-800">
+                <div>
+                  <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <Clipboard className="w-4 h-4 text-amber-500" />
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Clippings</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full">
+                        {notes.filter(n => !n.is_deleted).length} Total
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('clipboard')}
+                      className="text-xs font-bold text-amber-500 hover:underline cursor-pointer"
+                    >
+                      View All &rarr;
+                    </button>
+                  </div>
+
+                  {notes.filter(n => !n.is_deleted).length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                      <Clipboard className="w-8 h-8 opacity-40 text-slate-400" />
+                      <span>No saved notes or code clippings yet.</span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('clipboard')}
+                        className="btn-secondary py-1.5 px-3 text-xs font-bold mt-1"
+                      >
+                        Create Note
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                      {notes.filter(n => !n.is_deleted).slice(0, 4).map((note) => (
+                        <div
+                          key={note.id}
+                          className="py-2.5 flex items-start justify-between gap-3 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 rounded-lg px-2 transition-colors"
+                        >
+                          <div
+                            onClick={() => handleViewNote(note)}
+                            className="min-w-0 flex-1 cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-500 transition-colors">
+                                {note.title}
+                              </p>
+                              {note.is_encrypted && (
+                                <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded flex items-center gap-0.5">
+                                  <Lock className="w-2.5 h-2.5" /> Encrypted
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-mono">
+                              {note.is_encrypted && !decryptedNotesMap[note.id] ? 'Locked AES content' : (decryptedNotesMap[note.id] || note.content)}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyNote(decryptedNotesMap[note.id] || note.content)}
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              title="Copy snippet"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleViewNote(note)}
+                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              title="View Note"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
         {/* TAB 2: SEND TO SERVER (UPLOADER) */}
         {activeTab === 'upload' && (
@@ -3363,7 +3921,42 @@ const Dashboard = () => {
                     />
                   </div>
                   <div>
-                    <label className="label-title">CONTENT</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="label-title mb-0">CONTENT</label>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleToggleVoiceTyping}
+                          className={`px-2.5 py-1 text-[11px] font-semibold rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
+                            isListening
+                              ? 'bg-red-500 text-white animate-pulse shadow-sm shadow-red-500/30'
+                              : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                          }`}
+                          title={isListening ? 'Stop voice typing' : 'Start voice typing with microphone'}
+                        >
+                          {isListening ? (
+                            <>
+                              <MicOff className="w-3 h-3 text-white" />
+                              <span>Listening...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Mic className="w-3 h-3 text-brand-primary" />
+                              <span>Voice Type</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handlePasteFromClipboard}
+                          className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-1.5 transition-colors cursor-pointer"
+                          title="Paste text from system clipboard"
+                        >
+                          <Clipboard className="w-3 h-3 text-amber-500" />
+                          <span>Paste</span>
+                        </button>
+                      </div>
+                    </div>
                     <textarea
                       rows={8}
                       placeholder="Paste or write clipboard snippets..."
@@ -3620,8 +4213,12 @@ const Dashboard = () => {
             {/* Explorer Controls */}
             <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3.5">
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                <button onClick={handleCreateFolder} className="btn-secondary py-2.5 px-3.5 text-xs font-semibold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer">
-                  <Plus className="w-4 h-4 text-brand-primary" /> New Folder
+                <button 
+                  onClick={handleCreateFolder} 
+                  className="btn-secondary py-2.5 px-3.5 text-xs font-semibold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer hover:border-brand-primary"
+                  title={currentFolderId ? "Create subfolder inside current folder" : "Create new folder at vault root"}
+                >
+                  <Plus className="w-4 h-4 text-brand-primary" /> {currentFolderId ? 'New Subfolder' : 'New Folder'}
                 </button>
                 <button onClick={handleOpenCreateTxtModal} className="btn-primary py-2.5 px-3.5 text-xs font-bold flex items-center justify-center gap-1.5 flex-1 sm:flex-initial cursor-pointer shadow-sm">
                   <Plus className="w-4 h-4" /> Create TXT
@@ -3641,15 +4238,25 @@ const Dashboard = () => {
               </div>
               
               <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-                <div className="relative flex-1 min-w-[130px] sm:min-w-[160px]">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <div className="relative flex-1 min-w-[140px] sm:min-w-[180px]">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search files..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="input-field pl-9 py-2 text-xs"
+                    className="input-field pl-9 pr-8 py-2 text-xs w-full"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-0.5"
+                      title="Clear search"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="relative flex-1 sm:flex-initial">
                   <Calendar className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3 pointer-events-none" />
@@ -3722,43 +4329,87 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Folder breadcrumbs */}
-            <div className="flex items-center gap-2 text-sm text-slate-500">
-              <button
-                onClick={() => {
-                  setCurrentFolderId(null);
-                  setFolderScope('all');
-                }}
-                className={`hover:text-brand-primary font-bold ${currentFolderId === null ? 'text-brand-primary' : ''}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  const fileId = e.dataTransfer.getData('text/plain');
-                  if (fileId) moveFileToFolder(fileId, null);
-                }}
-              >
-                Vault Root
-              </button>
-              {currentFolderId && (
-                <>
-                  <span className="text-slate-300">/</span>
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">
-                    {folders.find(f => f.id === currentFolderId)?.name || 'Folder'}
-                  </span>
-                </>
-              )}
+            {/* Interactive Modern Breadcrumb Navigation */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-2xl bg-slate-50/70 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800/80">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
+                {currentFolderId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentF = folders.find(f => f.id === currentFolderId);
+                      const parentId = currentF?.parent_id || null;
+                      setCurrentFolderId(parentId);
+                      setFolderScope('current');
+                    }}
+                    className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer mr-1"
+                    title="Go back to parent folder"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline font-semibold text-xs">Back</span>
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => {
+                    setCurrentFolderId(null);
+                    setFolderScope('current');
+                  }}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors cursor-pointer font-bold ${
+                    currentFolderId === null 
+                      ? 'bg-brand-primary/10 text-brand-primary' 
+                      : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary hover:bg-slate-100 dark:hover:bg-slate-800'
+                  }`}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const fileId = e.dataTransfer.getData('text/plain');
+                    if (fileId) moveFileToFolder(fileId, null);
+                  }}
+                  title="Vault Root (drag a file here to move to root)"
+                >
+                  <Home className="w-3.5 h-3.5 text-brand-primary" />
+                  <span>Vault Root</span>
+                </button>
+
+                {currentFolderId && (
+                  <>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 font-bold text-slate-850 dark:text-slate-100 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 text-amber-700 dark:text-amber-300">
+                      <Folder className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{folders.find(f => f.id === currentFolderId)?.name || 'Folder'}</span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Active location stats */}
+              <div className="text-[11px] font-medium text-slate-400 flex items-center gap-2">
+                <span>
+                  {getFilteredFiles().length} {getFilteredFiles().length === 1 ? 'file' : 'files'}
+                </span>
+                <span>&bull;</span>
+                <span>
+                  {formatBytes(getFilteredFiles().reduce((acc, f) => acc + (parseInt(f.size, 10) || 0), 0))}
+                </span>
+              </div>
             </div>
 
-            {/* Filters tags bar */}
+            {/* Category Filter Chips with Dynamic Counts */}
             <div className="flex gap-1.5 overflow-x-auto pb-1.5 custom-scrollbar items-center">
               {['all', 'image', 'document', 'code', 'text', 'zip', 'other', 'trash'].map((filter) => {
                 const isTrash = filter === 'trash';
                 const trashCount = files.filter(f => !!f.is_deleted).length;
+                const catCount = isTrash
+                  ? trashCount
+                  : filter === 'all'
+                    ? files.filter(f => !f.is_deleted).length
+                    : files.filter(f => !f.is_deleted && getFileCategory(f.filename, f.file_type || '') === filter).length;
+
                 return (
                   <button
                     key={filter}
                     onClick={() => setActiveFilter(filter)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider shrink-0 transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider shrink-0 transition-all flex items-center gap-1.5 cursor-pointer ${
                       activeFilter === filter
                         ? (isTrash ? 'bg-red-650 text-white shadow-xs' : 'bg-brand-primary text-white')
                         : (isTrash 
@@ -3768,11 +4419,15 @@ const Dashboard = () => {
                   >
                     {isTrash && <Trash className="w-3 h-3" />}
                     <span>{filter}</span>
-                    {isTrash && trashCount > 0 && (
-                      <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-red-500/20 text-red-700 dark:text-red-300 font-bold">
-                        {trashCount}
-                      </span>
-                    )}
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                      activeFilter === filter 
+                        ? 'bg-white/20 text-white' 
+                        : isTrash 
+                          ? 'bg-red-500/20 text-red-700 dark:text-red-300' 
+                          : 'bg-slate-200/60 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                    }`}>
+                      {catCount}
+                    </span>
                   </button>
                 );
               })}
@@ -3806,55 +4461,132 @@ const Dashboard = () => {
               </div>
             ) : (
               <div>
-                {/* 1. Folders container (Only show on Root when not in Trash) */}
-                {currentFolderId === null && folders.length > 0 && !searchQuery && activeFilter !== 'trash' && (
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    {folders.filter(f => !f.is_deleted).map((folder) => {
-                      const count = files.filter(file => !file.is_deleted && file.folder_id === folder.id).length;
-                      return (
-                        <div
-                          key={folder.id}
-                          onClick={() => {
-                            setCurrentFolderId(folder.id);
-                            setFolderScope('current');
-                          }}
-                          className="glass-card p-4 hover:shadow-md cursor-pointer flex items-center justify-between gap-3 border-slate-100 dark:border-slate-800 group"
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const fileId = e.dataTransfer.getData('text/plain');
-                            if (fileId) moveFileToFolder(fileId, folder.id);
-                          }}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <Folder className="w-7 h-7 text-amber-400 shrink-0" />
-                            <div className="flex flex-col min-w-0">
-                              <span className="font-bold text-sm text-slate-800 dark:text-slate-200 truncate select-none">
-                                {folder.name}
-                              </span>
-                              <span className="text-[10px] text-slate-400 font-medium">
-                                {count} {count === 1 ? 'file' : 'files'}
-                              </span>
-                            </div>
-                          </div>
+                {/* 1. Folders container (Show Root folders on root, Subfolders inside folder; hidden during search or in trash) */}
+                {!searchQuery && activeFilter !== 'trash' && (
+                  (() => {
+                    const visibleFolders = folders.filter(f => !f.is_deleted && (
+                      currentFolderId === null 
+                        ? (!f.parent_id || f.parent_id === 'null') 
+                        : f.parent_id === currentFolderId
+                    ));
+
+                    if (visibleFolders.length === 0) return null;
+
+                    return (
+                      <div className="mb-6">
+                        <div className="flex items-center justify-between mb-2.5">
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                            <Folder className="w-3.5 h-3.5 text-amber-500" />
+                            <span>{currentFolderId ? 'Subfolders' : 'Folders'} ({visibleFolders.length})</span>
+                          </h4>
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteFolder(folder);
-                            }}
-                            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Delete folder"
+                            onClick={handleCreateFolder}
+                            className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1 cursor-pointer"
                           >
-                            <Trash className="w-4 h-4" />
+                            <Plus className="w-3.5 h-3.5" /> New {currentFolderId ? 'Subfolder' : 'Folder'}
                           </button>
                         </div>
-                      );
-                    })}
-                  </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5">
+                          {visibleFolders.map((folder) => {
+                            const count = files.filter(file => !file.is_deleted && file.folder_id === folder.id).length;
+                            const subfolderCount = folders.filter(f => !f.is_deleted && f.parent_id === folder.id).length;
+                            return (
+                              <div
+                                key={folder.id}
+                                onClick={() => {
+                                  setCurrentFolderId(folder.id);
+                                  setFolderScope('current');
+                                }}
+                                className="glass-card p-3.5 hover:shadow-md cursor-pointer flex items-center justify-between gap-3 border-slate-200/70 dark:border-slate-800 group hover:border-amber-400/50 dark:hover:border-amber-500/50 transition-all rounded-2xl"
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  e.currentTarget.classList.add('ring-2', 'ring-amber-400');
+                                }}
+                                onDragLeave={(e) => {
+                                  e.currentTarget.classList.remove('ring-2', 'ring-amber-400');
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  e.currentTarget.classList.remove('ring-2', 'ring-amber-400');
+                                  const fileId = e.dataTransfer.getData('text/plain');
+                                  if (fileId) moveFileToFolder(fileId, folder.id);
+                                }}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 group-hover:scale-105 transition-transform shrink-0">
+                                    <Folder className="w-5 h-5 text-amber-500" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-sm text-slate-800 dark:text-slate-100 truncate select-none group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                                      {folder.name}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium">
+                                      {count} {count === 1 ? 'file' : 'files'}
+                                      {subfolderCount > 0 && ` • ${subfolderCount} sub`}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRenameFolder(folder);
+                                    }}
+                                    className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                                    title="Rename folder"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFolder(folder);
+                                    }}
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                                    title="Delete folder"
+                                  >
+                                    <Trash className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()
                 )}
 
-                {/* 2. Files container */}
+                {/* 2. Files container header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+                      Files
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                      {getFilteredFiles().length}
+                    </span>
+                  </div>
+                  {getFilteredFiles().length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const allIds = getFilteredFiles().map(f => f.id);
+                        if (selectedFileIds.length === allIds.length) {
+                          setSelectedFileIds([]);
+                        } else {
+                          setSelectedFileIds(allIds);
+                        }
+                      }}
+                      className="text-xs font-semibold text-slate-500 hover:text-brand-primary cursor-pointer transition-colors"
+                    >
+                      {selectedFileIds.length === getFilteredFiles().length ? 'Deselect All' : 'Select All'}
+                    </button>
+                  )}
+                </div>
                 {/* Batch Action Bar */}
                 {selectedFileIds.length > 0 && (
                   <div className="glass-card p-3 bg-brand-primary/5 border border-brand-primary/20 flex justify-between items-center rounded-xl animate-fade-in mb-3">
@@ -3954,7 +4686,7 @@ const Dashboard = () => {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setShowTxtModal(true)}
+                            onClick={handleOpenCreateTxtModal}
                             className="btn-secondary py-2 px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Create TXT
@@ -3986,7 +4718,11 @@ const Dashboard = () => {
 
                         <div>
                           <div className="flex justify-between items-start gap-2">
-                            <div className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl ml-6">
+                            <div 
+                              onClick={() => handlePreviewFile(file)}
+                              className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl ml-6 cursor-pointer hover:scale-105 transition-transform"
+                              title="Click to preview file"
+                            >
                               {getFileIcon(file.filename)}
                             </div>
                             
@@ -4076,6 +4812,26 @@ const Dashboard = () => {
                                         type="button"
                                         onClick={() => {
                                           setActiveMenuId(null);
+                                          handleShowQrForFile(file);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
+                                      >
+                                        <QrCode className="w-3.5 h-3.5 text-indigo-500" /> QR Code Share
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveMenuId(null);
+                                          handleOpenVersionHistory(file);
+                                        }}
+                                        className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
+                                      >
+                                        <History className="w-3.5 h-3.5 text-blue-500" /> Version History
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setActiveMenuId(null);
                                           triggerRenameFile(file);
                                         }}
                                         className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
@@ -4099,7 +4855,11 @@ const Dashboard = () => {
                             </div>
                           </div>
                           
-                          <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate flex items-center gap-1.5" title={file.filename}>
+                          <h4 
+                            onClick={() => handlePreviewFile(file)}
+                            className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
+                            title={file.filename}
+                          >
                             {file.filename.startsWith('[encrypted]_') ? (
                               <>
                                 <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -4167,11 +4927,19 @@ const Dashboard = () => {
                             className="w-3.5 h-3.5 text-brand-primary border-slate-350 rounded cursor-pointer mr-1 shrink-0"
                           />
 
-                          <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0">
+                          <div 
+                            onClick={() => handlePreviewFile(file)}
+                            className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                            title="Click to preview file"
+                          >
                             {getFileIcon(file.filename)}
                           </div>
                           <div className="min-w-0">
-                            <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-1.5" title={file.filename}>
+                            <h4 
+                              onClick={() => handlePreviewFile(file)}
+                              className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
+                              title={file.filename}
+                            >
                               {file.filename.startsWith('[encrypted]_') ? (
                                 <>
                                   <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
@@ -4252,6 +5020,20 @@ const Dashboard = () => {
                                 title="Generate Share Code"
                               >
                                 <Share2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleShowQrForFile(file)}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                                title="QR Code Share"
+                              >
+                                <QrCode className="w-4 h-4 text-indigo-500" />
+                              </button>
+                              <button
+                                onClick={() => handleOpenVersionHistory(file)}
+                                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-850 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                                title="Version History"
+                              >
+                                <History className="w-4 h-4 text-blue-500" />
                               </button>
                               <button
                                 onClick={() => triggerRenameFile(file)}
@@ -4357,6 +5139,26 @@ const Dashboard = () => {
                                     type="button"
                                     onClick={() => {
                                       setActiveMenuId(null);
+                                      handleShowQrForFile(file);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <QrCode className="w-3.5 h-3.5 text-indigo-500" /> QR Code Share
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      handleOpenVersionHistory(file);
+                                    }}
+                                    className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors cursor-pointer"
+                                  >
+                                    <History className="w-3.5 h-3.5 text-blue-500" /> Version History
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setActiveMenuId(null);
                                       triggerRenameFile(file);
                                     }}
                                     className="w-full px-4 py-2 text-left text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800 flex items-center gap-2 transition-colors"
@@ -4391,6 +5193,49 @@ const Dashboard = () => {
         {activeTab === 'settings' && (
           <div className="glass-card p-6 flex flex-col gap-6 animate-fade-in max-w-xl">
             <div>
+              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Appearance & Preferences</h3>
+              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+                Personalize your workspace aesthetics and default vault layout.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {theme === 'dark' ? <Moon className="w-4 h-4 text-amber-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Theme Mode</p>
+                      <p className="text-[10px] text-slate-400 capitalize">{theme || 'System'} Theme</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={toggleTheme}
+                    className="btn-secondary py-1.5 px-3 text-xs font-bold cursor-pointer"
+                  >
+                    Switch to {theme === 'dark' ? 'Light' : 'Dark'}
+                  </button>
+                </div>
+
+                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    {layoutMode === 'grid' ? <Grid className="w-4 h-4 text-brand-primary" /> : <List className="w-4 h-4 text-brand-primary" />}
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Default Layout</p>
+                      <p className="text-[10px] text-slate-400 capitalize">{layoutMode} View</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleToggleLayout}
+                    className="btn-secondary py-1.5 px-3 text-xs font-bold cursor-pointer"
+                  >
+                    Switch to {layoutMode === 'grid' ? 'List' : 'Grid'}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
               <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Inactivity Timeout Auto-Logout</h3>
               <p className="text-xs text-slate-500 leading-relaxed mb-4">
                 To protect your credential safety on shared public laboratory stations, configure how long the console can remain idle before logging you out automatically.
@@ -4503,7 +5348,7 @@ const Dashboard = () => {
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Clipboard Notes</p>
                   <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
-                    {notes.length}
+                    {notes.filter(n => !n.is_deleted).length}
                   </h4>
                   <p className="text-[10px] text-slate-400 truncate">Saved text clippings</p>
                 </div>

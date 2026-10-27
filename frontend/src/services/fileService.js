@@ -52,86 +52,41 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
     console.warn('Parallel fetch warning:', err?.message || err);
   }
 
-  // 2. Ensure default folders exist if user has 0 folders
-  if (folders.length === 0) {
-    try {
-      const defaultFolderNames = ['practical', 'Lab', 'Lecture'];
-      const createdFolders = [];
-      for (const name of defaultFolderNames) {
-        const { data: newF } = await supabase
-          .from('folders')
-          .insert({ user_id: userId, name })
-          .select();
-        if (newF && newF[0]) createdFolders.push(newF[0]);
-      }
-      if (createdFolders.length > 0) {
-        folders = createdFolders;
-      }
-    } catch (createErr) {
-      console.warn('Default folders creation warning:', createErr?.message || createErr);
-    }
+  // 2. Strict Deduplication: Ensure each file is completely unique by ID and storage_path
+
+  // 4. Strict Deduplication: Ensure each file is completely unique by ID and storage_path
+  const uniqueFiles = [];
+  const seenIds = new Set();
+  const seenPaths = new Set();
+
+  for (const f of files) {
+    if (!f) continue;
+    const fId = f.id;
+    const cleanPath = (f.storage_path || '').trim().replace(/^\/+/, '');
+
+    if (fId && seenIds.has(fId)) continue;
+    if (cleanPath && seenPaths.has(cleanPath)) continue;
+
+    if (fId) seenIds.add(fId);
+    if (cleanPath) seenPaths.add(cleanPath);
+    uniqueFiles.push(f);
   }
 
-  // 3. Storage Auto-Sync: Ensure all files uploaded to user storage are always indexed and never vanish
-  try {
-    const { data: storageObjects, error: listErr } = await supabase.storage
-      .from('vault')
-      .list(`uploads/${userId}`, { limit: 200 });
+  return { folders, files: uniqueFiles };
+};
 
-    if (!listErr && storageObjects && storageObjects.length > 0) {
-      const existingPaths = new Set(files.map(f => (f.storage_path || '').replace(/^\/+/, '')));
-      const unindexedFiles = storageObjects.filter(item => {
-        if (!item.name || item.name.startsWith('.') || item.name === 'avatar') return false;
-        const fullPath = `uploads/${userId}/${item.name}`;
-        return !existingPaths.has(fullPath) && !existingPaths.has(item.name);
-      });
-
-      for (const sFile of unindexedFiles) {
-        const storagePath = `uploads/${userId}/${sFile.name}`;
-        let cleanName = sFile.name;
-        const match = sFile.name.match(/^\d+_[a-z0-9]+_(.+)$/i);
-        if (match && match[1]) cleanName = match[1];
-
-        const fileType = getCategoryFromFilename(cleanName, sFile.metadata?.mimetype || '');
-        const fileSize = sFile.metadata?.size || sFile.size || 0;
-
-        const fileRecord = {
-          user_id: userId,
-          filename: cleanName,
-          storage_path: storagePath,
-          file_type: fileType,
-          size: fileSize,
-          created_at: sFile.created_at || new Date().toISOString()
-        };
-
-        // Try persisting in DB so it has a permanent DB UUID and survives refreshes
-        let persistedInDb = false;
-        try {
-          const { data: inserted, error: insErr } = await supabase
-            .from('files')
-            .insert(fileRecord)
-            .select();
-          if (!insErr && inserted && inserted[0]) {
-            files.push(inserted[0]);
-            persistedInDb = true;
-          }
-        } catch (e) {
-          // Ignore insertion error and use fallback
-        }
-
-        if (!persistedInDb) {
-          files.push({
-            id: sFile.id || 'storage_' + Math.random().toString(36).substring(2, 9),
-            ...fileRecord
-          });
-        }
-      }
-    }
-  } catch (syncErr) {
-    console.warn('Storage sync warning:', syncErr?.message || syncErr);
-  }
-
-  return { folders, files };
+/**
+ * Rename a folder in the database.
+ */
+export const renameFolderInDb = async (supabase, folderId, newName) => {
+  if (!supabase) throw new Error('Supabase client not initialized.');
+  const { data, error } = await supabase
+    .from('folders')
+    .update({ name: newName })
+    .eq('id', folderId)
+    .select();
+  if (error) throw error;
+  return data?.[0];
 };
 
 /**
@@ -377,10 +332,10 @@ export const deleteFolderInDb = async (supabase, folderId) => {
 
   const now = new Date().toISOString();
 
-  // 1. Soft delete all files residing inside this folder
+  // 1. Soft delete all files residing inside this folder and unassign folder_id
   await supabase
     .from('files')
-    .update({ is_deleted: true, deleted_at: now })
+    .update({ is_deleted: true, deleted_at: now, folder_id: null })
     .eq('folder_id', folderId);
 
   // 2. Soft delete any subfolders
@@ -395,7 +350,18 @@ export const deleteFolderInDb = async (supabase, folderId) => {
     }
   }
 
-  // 3. Soft delete the folder record itself
+  // 3. Try hard delete first so folder never revives
+  try {
+    const { error: delErr } = await supabase
+      .from('folders')
+      .delete()
+      .eq('id', folderId);
+    if (!delErr) return { id: folderId, deleted: true };
+  } catch (e) {
+    // Fallback to soft delete
+  }
+
+  // 4. Soft delete the folder record itself
   const { data, error } = await supabase
     .from('folders')
     .update({ is_deleted: true, deleted_at: now })

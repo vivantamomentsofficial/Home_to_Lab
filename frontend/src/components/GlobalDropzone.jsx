@@ -45,6 +45,9 @@ const GlobalDropzone = ({ onFileDrop }) => {
         const files = Array.from(e.dataTransfer.files);
         if (onFileDrop) {
           onFileDrop(files);
+        } else if (window.location.pathname.startsWith('/dashboard')) {
+          // If on dashboard, dispatch event so Dashboard uploads directly without navigating away
+          window.dispatchEvent(new CustomEvent('cloudvault-dashboard-drop', { detail: files }));
         } else {
           // Default action: Store dropped file in session & navigate to home quick upload
           try {
