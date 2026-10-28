@@ -153,7 +153,7 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState('all');
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
-  const [folderScope, setFolderScope] = useState('current'); // 'current' | 'all'
+  const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
   const [isListening, setIsListening] = useState(false);
 
   // Versioning and Duplicate Modals
@@ -3084,7 +3084,7 @@ const Dashboard = () => {
       setFolders(prev => prev.filter(f => f.id !== folder.id));
       if (currentFolderId === folder.id) {
         setCurrentFolderId(null);
-        setFolderScope('current');
+        setFolderScope('all');
       }
       await deleteFolderInDb(supabase, folder.id);
       showToast(`Folder "${folder.name}" deleted successfully.`, 'success');
@@ -4280,8 +4280,8 @@ const Dashboard = () => {
                     className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-8 pr-3 py-2 text-xs text-slate-700 dark:text-slate-300 outline-none appearance-none cursor-pointer focus:border-brand-primary"
                     title="Filter folder scope"
                   >
-                    <option value="current">Current Folder</option>
                     <option value="all">All Folders</option>
+                    <option value="current">Current Folder</option>
                   </select>
                 </div>
                 <div className="relative flex-1 sm:flex-initial">
@@ -4339,7 +4339,7 @@ const Dashboard = () => {
                       const currentF = folders.find(f => f.id === currentFolderId);
                       const parentId = currentF?.parent_id || null;
                       setCurrentFolderId(parentId);
-                      setFolderScope('current');
+                      setFolderScope(parentId ? 'current' : 'all');
                     }}
                     className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors flex items-center gap-1 cursor-pointer mr-1"
                     title="Go back to parent folder"
@@ -4352,7 +4352,7 @@ const Dashboard = () => {
                 <button
                   onClick={() => {
                     setCurrentFolderId(null);
-                    setFolderScope('current');
+                    setFolderScope('all');
                   }}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg transition-colors cursor-pointer font-bold ${
                     currentFolderId === null 
@@ -4656,9 +4656,18 @@ const Dashboard = () => {
 
                 {getFilteredFiles().length === 0 ? (
                   currentFolderId === null && folders.filter(f => !f.is_deleted).length > 0 && files.some(f => !f.is_deleted && f.folder_id) ? (
-                    <div className="text-center py-6 px-4 text-slate-500 dark:text-slate-400 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-center gap-2">
-                      <Folder className="w-4 h-4 text-brand-primary shrink-0" />
-                      <span>All your files are safely organized inside the folders above. Click any folder to open it!</span>
+                    <div className="text-center py-6 px-4 text-slate-500 dark:text-slate-400 text-xs font-semibold bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-2">
+                      <div className="flex items-center gap-2">
+                        <Folder className="w-4 h-4 text-brand-primary shrink-0" />
+                        <span>All your files are safely organized inside the folders above. Click any folder to open it or show all files below:</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFolderScope('all')}
+                        className="btn-secondary text-xs py-1.5 px-3 font-semibold cursor-pointer"
+                      >
+                        Show All Files Across Folders
+                      </button>
                     </div>
                   ) : (
                     <div className="text-center py-14 text-slate-400 text-sm flex flex-col items-center justify-center gap-3 bg-slate-50/50 dark:bg-slate-900/20 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800/80 p-8 my-2">

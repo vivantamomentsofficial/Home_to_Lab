@@ -26,6 +26,7 @@ const getCategoryFromFilename = (filename = '', mimeType = '') => {
  */
 export const fetchFilesAndFolders = async (supabase, userId) => {
   if (!supabase) throw new Error('Supabase client not initialized.');
+  if (!userId) return { folders: [], files: [] };
 
   let folders = [];
   let files = [];
@@ -37,7 +38,6 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
         .from('folders')
         .select('*')
         .eq('user_id', userId)
-        .eq('is_deleted', false)
         .order('name', { ascending: true }),
       supabase
         .from('files')
@@ -46,15 +46,110 @@ export const fetchFilesAndFolders = async (supabase, userId) => {
         .order('created_at', { ascending: false })
     ]);
 
-    if (!foldersRes.error && foldersRes.data) folders = foldersRes.data;
-    if (!filesRes.error && filesRes.data) files = filesRes.data;
+    if (!foldersRes.error && foldersRes.data) {
+      folders = foldersRes.data.filter(f => !f.is_deleted);
+    } else if (foldersRes.error) {
+      console.warn('Folders query warning:', foldersRes.error.message || foldersRes.error);
+    }
+
+    if (!filesRes.error && filesRes.data) {
+      files = filesRes.data;
+    } else if (filesRes.error) {
+      console.warn('Files query warning, attempting fallback query:', filesRes.error.message || filesRes.error);
+      try {
+        const { data: retryData, error: retryErr } = await supabase
+          .from('files')
+          .select('*')
+          .eq('user_id', userId);
+        if (!retryErr && retryData) {
+          files = retryData;
+        }
+      } catch (retryEx) {
+        console.warn('Fallback files query failed:', retryEx?.message || retryEx);
+      }
+    }
   } catch (err) {
     console.warn('Parallel fetch warning:', err?.message || err);
   }
 
-  // 2. Strict Deduplication: Ensure each file is completely unique by ID and storage_path
+  // 2. Storage Auto-Sync: Ensure all files uploaded to user storage are always indexed and never vanish
+  try {
+    const { data: storageObjects, error: listErr } = await supabase.storage
+      .from('vault')
+      .list(`uploads/${userId}`, { limit: 1000 });
 
-  // 4. Strict Deduplication: Ensure each file is completely unique by ID and storage_path
+    if (!listErr && storageObjects && storageObjects.length > 0) {
+      const existingPaths = new Set();
+      for (const f of files) {
+        if (f.storage_path) {
+          const clean = (f.storage_path || '').trim().replace(/^\/+/, '');
+          const withoutVault = clean.replace(/^vault\//, '');
+          existingPaths.add(clean);
+          existingPaths.add(withoutVault);
+          const parts = withoutVault.split('/');
+          existingPaths.add(parts[parts.length - 1]);
+        }
+      }
+
+      const unindexedFiles = storageObjects.filter(item => {
+        if (!item.name || item.name.startsWith('.') || item.name === 'avatar') return false;
+        const fullPath = `uploads/${userId}/${item.name}`;
+        return !existingPaths.has(fullPath) && !existingPaths.has(item.name);
+      });
+
+      if (unindexedFiles.length > 0) {
+        const recordsToInsert = unindexedFiles.map(sFile => {
+          const storagePath = `uploads/${userId}/${sFile.name}`;
+          let cleanName = sFile.name;
+          const match = sFile.name.match(/^\d+_[a-z0-9]+_(.+)$/i);
+          if (match && match[1]) cleanName = match[1];
+
+          const fileType = getCategoryFromFilename(cleanName, sFile.metadata?.mimetype || '');
+          const fileSize = sFile.metadata?.size || sFile.size || 0;
+
+          return {
+            user_id: userId,
+            filename: cleanName,
+            storage_path: storagePath,
+            file_type: fileType,
+            size: fileSize,
+            created_at: sFile.created_at || new Date().toISOString()
+          };
+        });
+
+        // Try batch persisting in DB so they have permanent DB UUIDs and survive refreshes
+        let batchSucceeded = false;
+        try {
+          const { data: inserted, error: insErr } = await supabase
+            .from('files')
+            .insert(recordsToInsert)
+            .select();
+          if (!insErr && inserted && inserted.length > 0) {
+            files.push(...inserted);
+            batchSucceeded = true;
+          }
+        } catch (e) {
+          console.warn('Batch storage insert note:', e?.message || e);
+        }
+
+        // If batch insert failed or only partially inserted, push virtual records so user never loses access
+        if (!batchSucceeded) {
+          for (let i = 0; i < recordsToInsert.length; i++) {
+            const rec = recordsToInsert[i];
+            const sFile = unindexedFiles[i];
+            files.push({
+              id: sFile.id || 'storage_' + Math.random().toString(36).substring(2, 9),
+              ...rec
+            });
+          }
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('Storage sync warning:', syncErr?.message || syncErr);
+  }
+
+  // 3. Strict Deduplication: Ensure each file is completely unique by ID and storage_path
   const uniqueFiles = [];
   const seenIds = new Set();
   const seenPaths = new Set();
