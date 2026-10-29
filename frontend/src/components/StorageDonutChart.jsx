@@ -30,7 +30,7 @@ export const formatBytes = (bytes, decimals = 1) => {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 };
 
-const StorageDonutChart = ({ files = [], totalLimit = 104857600 }) => {
+const StorageDonutChart = ({ files = [], totalLimit = 104857600, showCardWrapper = true }) => {
   // Aggregate file sizes by category
   const categorySizes = {
     images: 0,
@@ -61,18 +61,8 @@ const StorageDonutChart = ({ files = [], totalLimit = 104857600 }) => {
 
   const activeCategories = Object.entries(categorySizes).filter(([_, size]) => size > 0);
 
-  return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-          Storage Breakdown
-        </h4>
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-          {usedPercent.toFixed(1)}% Used
-        </span>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-center gap-6">
+  const innerContent = (
+    <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
         {/* SVG Donut */}
         <div className="relative w-28 h-28 shrink-0 flex items-center justify-center">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -154,6 +144,23 @@ const StorageDonutChart = ({ files = [], totalLimit = 104857600 }) => {
           </div>
         </div>
       </div>
+  );
+
+  if (!showCardWrapper) {
+    return innerContent;
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
+      <div className="flex items-center justify-between mb-4">
+        <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+          Storage Breakdown
+        </h4>
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+          {usedPercent.toFixed(1)}% Used
+        </span>
+      </div>
+      {innerContent}
     </div>
   );
 };

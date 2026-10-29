@@ -900,7 +900,7 @@ const Admin = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300 font-sans">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300 font-sans">
       
       {/* Mobile Top Bar */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-slate-950 text-white z-30 shadow-md border-b border-slate-850">
@@ -942,8 +942,8 @@ const Admin = () => {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-72 bg-slate-950 text-slate-100 flex flex-col p-5 z-40 border-r border-slate-850 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
-          isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 opacity-0'
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-slate-950 text-slate-100 flex flex-col p-5 z-40 border-r border-slate-850 shrink-0 select-none transition-transform duration-300 ease-in-out ${
+          isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-6">
@@ -1122,7 +1122,7 @@ const Admin = () => {
       </aside>
 
       {/* Main Content View */}
-      <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
+      <main className="flex-1 lg:h-screen lg:overflow-y-auto p-4 sm:p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10 custom-scrollbar">
         
         {/* Header Bar */}
         <header className="flex justify-between items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">

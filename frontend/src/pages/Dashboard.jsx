@@ -55,7 +55,8 @@ import {
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
   History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy,
-  EyeOff, User, GraduationCap, Mail, Sun, Moon, QrCode, RefreshCw, MicOff, ChevronRight, Home, FolderPlus
+  EyeOff, User, GraduationCap, Mail, Sun, Moon, QrCode, RefreshCw, MicOff, ChevronRight, Home, FolderPlus,
+  Sliders, CheckCircle2, ArrowRight, ShieldCheck, HardDrive, Zap
 } from 'lucide-react';
 
 
@@ -155,6 +156,8 @@ const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
   const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
   const [isListening, setIsListening] = useState(false);
+  const [overviewFileFilter, setOverviewFileFilter] = useState('all');
+  const [copiedSnippetId, setCopiedSnippetId] = useState(null);
 
   // Versioning and Duplicate Modals
   const [versionModalFile, setVersionModalFile] = useState(null);
@@ -3144,7 +3147,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300">
+    <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300">
       
       {/* Mobile Top bar */}
       <div className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-brand-border-light dark:border-brand-border-dark z-30 shadow-xs sticky top-0">
@@ -3190,11 +3193,11 @@ const Dashboard = () => {
 
       {/* Sidebar navigation */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-brand-border-light dark:border-brand-border-dark flex flex-col p-5 z-50 shrink-0 transform lg:transform-none lg:opacity-100 transition-all duration-300 ${
-          isDrawerOpen ? 'translate-x-0 opacity-100' : '-translate-x-full lg:translate-x-0 lg:opacity-100'
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-brand-border-light dark:border-brand-border-dark flex flex-col p-5 z-40 shrink-0 select-none transition-transform duration-300 ease-in-out ${
+          isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8">
+        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8 shrink-0">
           <div className="flex items-center gap-2.5">
             <Shield className="w-7 h-7 text-brand-primary stroke-[2.5]" />
             <span className="font-display font-black text-xl text-slate-800 dark:text-white">
@@ -3214,7 +3217,7 @@ const Dashboard = () => {
           </button>
         </div>
 
-        <nav className="flex-1 flex flex-col gap-1.5">
+        <nav className="flex-1 flex flex-col gap-1.5 overflow-y-auto custom-scrollbar pr-1 py-1">
           <button
             onClick={() => {
               setActiveTab('overview');
@@ -3349,7 +3352,7 @@ const Dashboard = () => {
       )}
 
       {/* Main dashboard content body */}
-      <main className="flex-1 p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10">
+      <main className="flex-1 lg:h-screen lg:overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10 custom-scrollbar">
         <GlobalAnnouncementBanner />
         
         {activeAlert && (
@@ -3448,6 +3451,62 @@ const Dashboard = () => {
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
+            {/* Hero Welcome & Security Banner */}
+            <div className="glass-card relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-brand-primary/25 dark:border-brand-primary/30 bg-gradient-to-br from-brand-primary/10 via-indigo-600/5 to-purple-600/10 dark:from-brand-primary/15 dark:via-indigo-950/40 dark:to-purple-950/25 shadow-xs backdrop-blur-md">
+              {/* Decorative Background Glows */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none -mr-24 -mt-24"></div>
+              <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="space-y-3 max-w-2xl">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-bold tracking-wide">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+                    <span>{getGreeting()}, {fullName ? fullName.split(' ')[0] : (user?.email?.split('@')[0] || 'Explorer')}</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  </div>
+
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight">
+                    Encrypted Cloud Vault
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    Zero-Knowledge client-side protection is active. Every file and code snippet is encrypted with <span className="font-bold text-slate-800 dark:text-white">AES-256 GCM</span> before leaving your device.
+                  </p>
+
+                  {/* Micro Trust Indicators */}
+                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AES-256 Armed
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                      <Zap className="w-3.5 h-3.5 text-indigo-500" /> Resumable Sync
+                    </div>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                      <QrCode className="w-3.5 h-3.5 text-purple-500" /> Instant QR Beam
+                    </div>
+                  </div>
+                </div>
+
+                {/* Hero Quick Action Buttons */}
+                <div className="flex flex-wrap sm:flex-nowrap lg:flex-col gap-2.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn-primary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+                  >
+                    <UploadCloud className="w-4 h-4" /> Upload New File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('clipboard')}
+                    className="btn-secondary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    <Clipboard className="w-4 h-4 text-amber-500" /> New Clipboard Note
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Storage Analytics Component */}
             <StorageAnalytics 
               totalStorageUsed={usedStorage}
               maxStorageBytes={storageLimit}
@@ -3457,9 +3516,15 @@ const Dashboard = () => {
             />
 
             {/* Quick Action Toolbar */}
-            <div className="glass-card p-4 flex flex-wrap items-center justify-between gap-3 border-slate-200/70 dark:border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-1">Quick Tools:</span>
+            <div className="glass-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Fast Vault Tools</h4>
+                  <p className="text-[10px] text-slate-400">Quick create and maintenance utilities</p>
+                </div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -3488,7 +3553,7 @@ const Dashboard = () => {
                   onClick={() => setShowRecordModal(true)}
                   className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                 >
-                  <Mic className="w-3.5 h-3.5 text-rose-500" /> Record Memo
+                  <Mic className="w-3.5 h-3.5 text-rose-500" /> Record Audio
                 </button>
                 <button
                   type="button"
@@ -3504,6 +3569,13 @@ const Dashboard = () => {
                 >
                   <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Deduplicate
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('vault')}
+                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <FolderKanban className="w-3.5 h-3.5 text-indigo-500" /> Explorer
+                </button>
               </div>
             </div>
 
@@ -3517,25 +3589,28 @@ const Dashboard = () => {
                 }
               }}
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-brand-primary/30 hover:border-brand-primary/70 bg-gradient-to-br from-brand-primary/5 via-transparent to-brand-secondary/5 rounded-2xl p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer group hover:shadow-lg"
+              className="border-2 border-dashed border-brand-primary/30 hover:border-brand-primary/70 bg-gradient-to-br from-brand-primary/5 via-transparent to-indigo-500/5 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer group hover:shadow-md"
             >
-              <div className="w-12 h-12 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-sm">
-                <UploadCloud className="w-6 h-6" />
+              <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-xs">
+                <UploadCloud className="w-7 h-7" />
               </div>
               <div>
-                <p className="font-bold text-sm text-slate-800 dark:text-white">
+                <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">
                   Quick Upload to Encrypted Cloud
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
                   Drag & drop files here or <span className="text-brand-primary font-semibold underline underline-offset-2">browse from your computer</span>. Stored with client-side zero-knowledge encryption.
                 </p>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5 text-amber-500" /> AES-256 GCM
                 </span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
                   <Check className="w-2.5 h-2.5 text-emerald-500" /> Multi-File Queue
+                </span>
+                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                  <ShieldCheck className="w-2.5 h-2.5 text-indigo-500" /> Chunked Transfer
                 </span>
               </div>
             </div>
@@ -3544,57 +3619,65 @@ const Dashboard = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div
                 onClick={() => setActiveTab('upload')}
-                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-brand-primary/40 hover:shadow-md transition-all group"
+                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-brand-primary/50 hover:shadow-md transition-all group"
               >
-                <div className="p-3 bg-brand-primary/10 rounded-xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all">
-                  <UploadCloud className="w-5 h-5" />
+                <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all">
+                  <UploadCloud className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Send Files</h4>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">Advanced Uploader</p>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">Advanced Uploader</p>
+                  <p className="text-[11px] text-slate-400 truncate">Multi-file queue & encryption</p>
                 </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
               </div>
 
               <div
                 onClick={() => setActiveTab('clipboard')}
-                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-amber-500/40 hover:shadow-md transition-all group"
+                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all group"
               >
-                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                  <Clipboard className="w-5 h-5" />
+                <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                  <Clipboard className="w-6 h-6" />
                 </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clipboard Clippings</h4>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                    {notes.filter(n => !n.is_deleted).length} active snippets
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clipboard Snippets</h4>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                    {notes.filter(n => !n.is_deleted).length} Active Snippets
                   </p>
+                  <p className="text-[11px] text-slate-400 truncate">Fast code & text clipping</p>
                 </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
               </div>
 
               <div
                 onClick={() => setActiveTab('vault')}
-                className="glass-card p-5 flex items-center gap-4 cursor-pointer hover:border-rose-500/40 hover:shadow-md transition-all group"
+                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-rose-500/50 hover:shadow-md transition-all group"
               >
-                <div className="p-3 bg-rose-500/10 rounded-xl text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all">
-                  <FolderKanban className="w-5 h-5" />
+                <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all">
+                  <FolderKanban className="w-6 h-6" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vault Explorer</h4>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-200 mt-0.5">
-                    {files.filter(f => !f.is_deleted).length} encrypted files
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
+                    {files.filter(f => !f.is_deleted).length} Encrypted Files
                   </p>
+                  <p className="text-[11px] text-slate-400 truncate">Folders & hierarchical view</p>
                 </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 group-hover:translate-x-1 transition-all" />
               </div>
             </div>
 
             {/* Split Grid: Recent Files & Recent Snippets */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Files Panel */}
-              <div className="glass-card p-5 flex flex-col justify-between border-slate-200/70 dark:border-slate-800">
+              <div className="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs">
                 <div>
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                      <File className="w-4 h-4 text-brand-primary" />
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Files</h3>
+                      <div className="w-7 h-7 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                        <File className="w-3.5 h-3.5" />
+                      </div>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Vault Files</h3>
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-full">
                         {files.filter(f => !f.is_deleted).length} Total
                       </span>
@@ -3602,36 +3685,76 @@ const Dashboard = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab('vault')}
-                      className="text-xs font-bold text-brand-primary hover:underline cursor-pointer"
+                      className="text-xs font-bold text-brand-primary hover:underline cursor-pointer flex items-center gap-1"
                     >
-                      View All &rarr;
+                      View All <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
 
+                  {/* Category Filter Pills for Overview Files */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 custom-scrollbar">
+                    {[
+                      { id: 'all', label: 'All' },
+                      { id: 'documents', label: 'Docs' },
+                      { id: 'images', label: 'Images' },
+                      { id: 'code', label: 'Code' },
+                      { id: 'media', label: 'Media' },
+                      { id: 'archives', label: 'Archives' },
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setOverviewFileFilter(tab.id)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          overviewFileFilter === tab.id
+                            ? 'bg-brand-primary text-white shadow-xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+
                   {files.filter(f => !f.is_deleted).length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                      <FolderKanban className="w-8 h-8 opacity-40 text-slate-400" />
-                      <span>No files in your vault yet.</span>
+                    <div className="py-10 text-center text-slate-400 text-xs flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <FolderKanban className="w-6 h-6 opacity-60" />
+                      </div>
+                      <p className="font-medium">No files uploaded in your vault yet.</p>
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="btn-secondary py-1.5 px-3 text-xs font-bold mt-1"
+                        className="btn-primary py-2 px-4 text-xs font-bold mt-1"
                       >
                         Upload First File
                       </button>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {files.filter(f => !f.is_deleted).slice(0, 5).map((file) => (
+                      {files
+                        .filter(f => !f.is_deleted)
+                        .filter(file => {
+                          if (overviewFileFilter === 'all') return true;
+                          const cat = getFileCategory(file.filename, file.file_type);
+                          if (overviewFileFilter === 'documents') return cat === 'document' || cat === 'text';
+                          if (overviewFileFilter === 'images') return cat === 'image';
+                          if (overviewFileFilter === 'code') return cat === 'code';
+                          if (overviewFileFilter === 'media') return cat === 'video' || cat === 'audio';
+                          if (overviewFileFilter === 'archives') return cat === 'zip';
+                          return true;
+                        })
+                        .slice(0, 5)
+                        .map((file) => (
                         <div
                           key={file.id}
-                          className="py-2.5 flex items-center justify-between gap-3 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 rounded-lg px-2 transition-colors"
+                          className="py-2.5 flex items-center justify-between gap-3 group hover:bg-slate-50/70 dark:hover:bg-slate-800/40 rounded-xl px-2.5 transition-colors"
                         >
                           <div
                             onClick={() => handlePreviewFile(file)}
                             className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                           >
-                            <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0">
+                            <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl shrink-0 text-brand-primary">
                               {getFileIcon(file.filename)}
                             </div>
                             <div className="min-w-0 flex-1">
@@ -3655,7 +3778,7 @@ const Dashboard = () => {
                             <button
                               type="button"
                               onClick={() => handlePreviewFile(file)}
-                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                               title="Preview"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -3663,7 +3786,7 @@ const Dashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleDownloadFileDirect(file.storage_path, file.filename)}
-                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                               title="Download"
                             >
                               <Download className="w-3.5 h-3.5" />
@@ -3671,7 +3794,7 @@ const Dashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleShowQrForFile(file)}
-                              className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                              className="p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-indigo-400 transition-colors"
                               title="QR Code Share"
                             >
                               <QrCode className="w-3.5 h-3.5" />
@@ -3679,7 +3802,7 @@ const Dashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleGenerateShareCode(file)}
-                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                               title="Share Code"
                             >
                               <Share2 className="w-3.5 h-3.5" />
@@ -3693,11 +3816,13 @@ const Dashboard = () => {
               </div>
 
               {/* Recent Clippings Panel */}
-              <div className="glass-card p-5 flex flex-col justify-between border-slate-200/70 dark:border-slate-800">
+              <div className="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs">
                 <div>
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
-                      <Clipboard className="w-4 h-4 text-amber-500" />
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
+                        <Clipboard className="w-3.5 h-3.5" />
+                      </div>
                       <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Clippings</h3>
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full">
                         {notes.filter(n => !n.is_deleted).length} Total
@@ -3706,30 +3831,32 @@ const Dashboard = () => {
                     <button
                       type="button"
                       onClick={() => setActiveTab('clipboard')}
-                      className="text-xs font-bold text-amber-500 hover:underline cursor-pointer"
+                      className="text-xs font-bold text-amber-500 hover:underline cursor-pointer flex items-center gap-1"
                     >
-                      View All &rarr;
+                      View All <ArrowRight className="w-3 h-3" />
                     </button>
                   </div>
 
                   {notes.filter(n => !n.is_deleted).length === 0 ? (
-                    <div className="py-8 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
-                      <Clipboard className="w-8 h-8 opacity-40 text-slate-400" />
-                      <span>No saved notes or code clippings yet.</span>
+                    <div className="py-10 text-center text-slate-400 text-xs flex flex-col items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+                        <Clipboard className="w-6 h-6 opacity-60" />
+                      </div>
+                      <p className="font-medium">No saved notes or code clippings yet.</p>
                       <button
                         type="button"
                         onClick={() => setActiveTab('clipboard')}
-                        className="btn-secondary py-1.5 px-3 text-xs font-bold mt-1"
+                        className="btn-secondary py-2 px-4 text-xs font-bold mt-1"
                       >
-                        Create Note
+                        Create First Note
                       </button>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {notes.filter(n => !n.is_deleted).slice(0, 4).map((note) => (
+                      {notes.filter(n => !n.is_deleted).slice(0, 5).map((note) => (
                         <div
                           key={note.id}
-                          className="py-2.5 flex items-start justify-between gap-3 group hover:bg-slate-50/50 dark:hover:bg-slate-900/30 rounded-lg px-2 transition-colors"
+                          className="py-2.5 flex items-start justify-between gap-3 group hover:bg-slate-50/70 dark:hover:bg-slate-800/40 rounded-xl px-2.5 transition-colors"
                         >
                           <div
                             onClick={() => handleViewNote(note)}
@@ -3753,16 +3880,26 @@ const Dashboard = () => {
                           <div className="flex items-center gap-1 shrink-0 pt-0.5">
                             <button
                               type="button"
-                              onClick={() => handleCopyNote(decryptedNotesMap[note.id] || note.content)}
-                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              onClick={() => {
+                                const textToCopy = decryptedNotesMap[note.id] || note.content;
+                                navigator.clipboard.writeText(textToCopy);
+                                setCopiedSnippetId(note.id);
+                                showToast('Snippet copied to clipboard!', 'success');
+                                setTimeout(() => setCopiedSnippetId(null), 2000);
+                              }}
+                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                               title="Copy snippet"
                             >
-                              <Copy className="w-3.5 h-3.5" />
+                              {copiedSnippetId === note.id ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
                             </button>
                             <button
                               type="button"
                               onClick={() => handleViewNote(note)}
-                              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
                               title="View Note"
                             >
                               <Eye className="w-3.5 h-3.5" />
@@ -3772,6 +3909,45 @@ const Dashboard = () => {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* CloudVault Trust & Security Architecture Badges */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Zero-Knowledge Guarantee</h5>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    Encryption happens in your local browser using AES-256 GCM. Your private files cannot be accessed by anyone else.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
+                  <QrCode className="w-5 h-5" />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Instant QR Mobile Transfer</h5>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    Transfer files to mobile phones or lab computers with a one-time secure QR code without typing passwords.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Smart Hash Deduplication</h5>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                    Detect and remove duplicate files with SHA-256 hashing to maximize your free cloud storage quota.
+                  </p>
                 </div>
               </div>
             </div>
