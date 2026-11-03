@@ -50,6 +50,10 @@ import SnippetEditor from '../components/dashboard/SnippetEditor';
 import ShareModal from '../components/dashboard/ShareModal';
 import StorageAnalytics from '../components/dashboard/StorageAnalytics';
 import PdfCanvasViewer from '../components/dashboard/PdfCanvasViewer';
+import AudioWaveformPlayer from '../components/dashboard/AudioWaveformPlayer';
+import CodePreviewModal from '../components/dashboard/CodePreviewModal';
+import OfficeDocumentViewer from '../components/dashboard/OfficeDocumentViewer';
+import DuplicateCleanerModal from '../components/dashboard/DuplicateCleanerModal';
 
 import {
   LayoutDashboard, ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
@@ -1398,7 +1402,26 @@ const Dashboard = () => {
 
       // Task 2.3: Duplicate Detection Check
       if (!forceUpload) {
-        const existingDup = files.find(f => !f.is_deleted && f.content_hash === contentHash);
+        const cleanIncomingName = file.name.trim().toLowerCase();
+        const incomingBaseRoot = cleanIncomingName
+          .replace(/[_\s-]?\(?\d+\)?\.[^.]+$/, '')
+          .replace(/[_\s-]?final(_final)*\.[^.]+$/i, '')
+          .replace(/[_\s-]?copy\.[^.]+$/i, '');
+
+        const existingDup = files.find(f => {
+          if (f.is_deleted) return false;
+          if (contentHash && f.content_hash && f.content_hash === contentHash) return true;
+          const fClean = f.filename.trim().toLowerCase();
+          if (fClean === cleanIncomingName) return true;
+          const fBaseRoot = fClean
+            .replace(/[_\s-]?\(?\d+\)?\.[^.]+$/, '')
+            .replace(/[_\s-]?final(_final)*\.[^.]+$/i, '')
+            .replace(/[_\s-]?copy\.[^.]+$/i, '');
+          if (fBaseRoot === incomingBaseRoot && Math.abs((f.size || 0) - file.size) < 1024 * 50) {
+            return true;
+          }
+          return false;
+        });
         if (existingDup) {
           setDuplicateModalData({ uploadId, file, passphrase, existingDup });
           setActiveUploads((prev) => {
@@ -2766,7 +2789,56 @@ const Dashboard = () => {
         const url = URL.createObjectURL(blob);
         setPreviewImage({ title: cleanName, url: url });
       } 
-      else if (category === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
+      else if (
+      category === 'document' ||
+      ['docx', 'doc', 'pptx', 'ppt', 'xlsx', 'xls', 'csv', 'odt', 'ods', 'odp'].some(ext => file.filename.toLowerCase().endsWith('.' + ext))
+    ) {
+      const ext = file.filename.split('.').pop().toLowerCase();
+      if (ext === 'pdf') {
+        try {
+          if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
+            URL.revokeObjectURL(previewDoc.url);
+          }
+          const { data, error } = await supabase.storage
+            .from('vault')
+            .download(file.storage_path);
+          if (error) throw error;
+          
+          const blob = new Blob([data], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          setPreviewDoc({
+            title: file.filename,
+            url: blobUrl,
+            type: 'pdf',
+            size: file.size,
+            storagePath: file.storage_path
+          });
+        } catch (e) {
+          console.error('PDF preview error:', e);
+          showToast('Failed to load PDF preview.', 'danger');
+        }
+      } else {
+        try {
+          showToast('Preparing document preview...', 'info');
+          const { data, error } = await supabase.storage
+            .from('vault')
+            .createSignedUrl(file.storage_path, 3600);
+          if (error) throw error;
+
+          setPreviewDoc({
+            title: file.filename,
+            url: data.signedUrl,
+            type: 'office',
+            size: file.size,
+            storagePath: file.storage_path
+          });
+        } catch (e) {
+          console.error('Office preview error:', e);
+          showToast('Failed to generate document preview.', 'danger');
+        }
+      }
+    }
+    else if (false) {
         const blob = new Blob([decryptedBuffer], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
         setPreviewDoc({ title: cleanName, url: url, type: 'pdf', size: decryptedBuffer.byteLength });
@@ -4013,6 +4085,7 @@ const Dashboard = () => {
                   <input
                     type="file"
                     id="dashboard-file-input"
+                    ref={vaultFileInputRef}
                     multiple
                     className="hidden"
                     onChange={handleBrowseFiles}
@@ -6294,47 +6367,17 @@ const Dashboard = () => {
 
       {/* 6. Code/Text preview modal */}
       {previewText && (
-        <div onClick={() => setPreviewText(null)} className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 cursor-pointer">
-          <div onClick={(e) => e.stopPropagation()} className="glass-card max-w-xl w-full p-6 shadow-2xl animate-scale-up flex flex-col max-h-[85vh] cursor-default">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white truncate pr-6">
-                Preview: {previewText.title}
-              </h3>
-              <button
-                onClick={() => setPreviewText(null)}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              >
-                <X className="w-4.5 h-4.5" />
-              </button>
-            </div>
-            
-            <div className="flex-1 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 overflow-y-auto custom-scrollbar max-h-[50vh] font-mono text-xs text-slate-800 dark:text-slate-200 whitespace-pre-wrap break-all">
-              {previewText.content}
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2.5">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(previewText.content)
-                    .then(() => showToast('Copied content to clipboard!', 'success'))
-                    .catch(() => showToast('Copy failed.', 'danger'));
-                }}
-                className="btn-primary py-2 px-4 text-xs font-bold"
-              >
-                Copy Content
-              </button>
-              <button
-                onClick={() => setPreviewText(null)}
-                className="btn-secondary py-2 px-4 text-xs font-bold"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
+        <CodePreviewModal
+          previewText={previewText}
+          onClose={() => setPreviewText(null)}
+          onOpenInCompiler={(lang, code) => {
+            setActiveTab('compiler');
+            setPreviewText(null);
+            showToast(`Loaded ${previewText.title} into Compiler`, 'info');
+          }}
+        />
       )}
 
-      
       {/* 6b. Document / PDF In-App Preview Modal */}
       {previewDoc && (
         <div 
@@ -6347,7 +6390,7 @@ const Dashboard = () => {
           }}
         >
           <div 
-            className={`glass-card max-w-5xl w-full ${previewDoc.type === 'pdf' ? 'h-[92vh] sm:h-[88vh]' : 'max-h-[88vh]'} flex flex-col p-3 sm:p-5 shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95`}
+            className={`glass-card max-w-5xl w-full ${(previewDoc.type === 'pdf' || previewDoc.type === 'office') ? 'h-[92vh] sm:h-[88vh]' : 'max-h-[88vh]'} flex flex-col p-3 sm:p-5 shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
@@ -6410,6 +6453,15 @@ const Dashboard = () => {
             {previewDoc.type === 'pdf' ? (
               <div className="flex-1 mt-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 relative">
                 <PdfCanvasViewer
+                  fileUrl={previewDoc.url}
+                  fileName={previewDoc.title}
+                  storagePath={previewDoc.storagePath}
+                  onDownload={() => handleDownloadFileDirect(previewDoc.storagePath, previewDoc.title)}
+                />
+              </div>
+            ) : previewDoc.type === 'office' ? (
+              <div className="flex-1 mt-3 rounded-xl overflow-hidden relative">
+                <OfficeDocumentViewer
                   fileUrl={previewDoc.url}
                   fileName={previewDoc.title}
                   storagePath={previewDoc.storagePath}
@@ -6709,9 +6761,15 @@ const Dashboard = () => {
                   <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest animate-pulse">Recording...</span>
                 </div>
               ) : audioUrl ? (
-                <div className="flex flex-col items-center gap-3 w-full px-4">
-                  <audio src={audioUrl} controls className="w-full custom-audio-player h-10 rounded-lg" />
-                  <span className="text-[10px] font-semibold text-green-500 uppercase tracking-widest">Memo Recorded!</span>
+                <div className="flex flex-col items-center gap-2 w-full px-2 sm:px-4">
+                  <AudioWaveformPlayer
+                    audioUrl={audioUrl}
+                    title="Recorded Voice Memo"
+                    autoPlay={false}
+                  />
+                  <span className="text-[10px] font-semibold text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Memo Ready to Upload!
+                  </span>
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2 py-4">
@@ -6848,15 +6906,13 @@ const Dashboard = () => {
                   <div className="w-16 h-16 rounded-full bg-brand-primary/10 flex items-center justify-center">
                     <Play className="w-8 h-8 text-brand-primary" />
                   </div>
-                  <p className="text-sm text-slate-300 font-medium truncate max-w-full" title={previewMedia.title}>
-                    {previewMedia.title}
-                  </p>
-                  <audio
-                    src={previewMedia.url}
-                    controls
-                    autoPlay
-                    className="w-full max-w-md rounded-xl"
-                  />
+                  <div className="w-full max-w-lg">
+                    <AudioWaveformPlayer
+                      audioUrl={previewMedia.url}
+                      title={previewMedia.title}
+                      autoPlay={true}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -6945,37 +7001,41 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Duplicate File Warning Modal (Task 2.3) */}
+      {/* Duplicate File Warning Modal */}
       {duplicateModalData && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left">
+          <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left border border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3 text-amber-500">
-              <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-800 dark:text-white">Duplicate File Detected</h3>
-                <p className="text-xs text-slate-400">Identical content already stored in vault</p>
+                <h3 className="text-base font-bold text-slate-850 dark:text-white">Duplicate File Detected</h3>
+                <p className="text-xs text-slate-400">Ye file already vault me uploaded hai</p>
               </div>
             </div>
 
-            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-slate-700 dark:text-slate-300">
-              <p>
-                The file <span className="font-bold text-amber-600 dark:text-amber-400">"{duplicateModalData.file.name}"</span> has identical content to an existing file:
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-slate-700 dark:text-slate-300 space-y-2">
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Aapki nayi file: <span className="font-bold text-brand-primary">"{duplicateModalData.file.name}"</span> ({formatBytes(duplicateModalData.file.size)})
               </p>
-              <div className="mt-2 font-mono text-[11px] bg-white/50 dark:bg-slate-900/50 p-2 rounded-lg truncate flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-brand-primary shrink-0" />
-                <span>{duplicateModalData.existingDup.filename} ({formatBytes(duplicateModalData.existingDup.size)})</span>
+              <div className="font-mono text-[11px] bg-white/70 dark:bg-slate-900/70 p-2.5 rounded-lg flex items-center justify-between gap-1.5 border border-amber-500/20">
+                <div className="flex items-center gap-1.5 truncate">
+                  <FileText className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="truncate">Already Exists: {duplicateModalData.existingDup.filename}</span>
+                </div>
+                <span className="text-slate-400 shrink-0">({formatBytes(duplicateModalData.existingDup.size)})</span>
               </div>
+              <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                💡 Kya aap ise replace karna chahte hain? Replace karne se purani copy remove ho jayegi aur aapki free storage waste nahi hogi.
+              </p>
             </div>
 
-            <p className="text-xs text-slate-500">Would you like to upload it anyway or skip upload to avoid duplicate storage?</p>
-
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setDuplicateModalData(null)}
-                className="btn-secondary py-2 px-3.5 text-xs font-bold"
+                className="btn-secondary py-2 px-3.5 text-xs font-bold order-3 sm:order-1 cursor-pointer"
               >
                 Skip Upload
               </button>
@@ -6986,9 +7046,27 @@ const Dashboard = () => {
                   setDuplicateModalData(null);
                   startUploadingFile(uploadId, file, passphrase, true);
                 }}
-                className="btn-primary py-2 px-3.5 text-xs font-bold"
+                className="btn-secondary py-2 px-3.5 text-xs font-bold order-2 cursor-pointer"
+                title="Dono copies save karein"
               >
-                Upload Anyway
+                Keep Both
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const { uploadId, file, passphrase, existingDup } = duplicateModalData;
+                  setDuplicateModalData(null);
+                  try {
+                    await executeFileDelete(existingDup, 'permanent');
+                  } catch (e) {
+                    console.warn('Replace cleanup warning:', e);
+                  }
+                  startUploadingFile(uploadId, file, passphrase, true);
+                  showToast('Replaced existing file and saved storage quota!', 'success');
+                }}
+                className="btn-primary py-2 px-3.5 text-xs font-bold order-1 sm:order-3 shadow-xs cursor-pointer"
+              >
+                Replace & Save Storage
               </button>
             </div>
           </div>
@@ -7086,214 +7164,17 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Duplicate File Cleaner Modal (Task: Clean same-same files & keep 1 original file) */}
-      {showDuplicateCleanerModal && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="glass-card max-w-2xl w-full p-6 shadow-2xl animate-scale-up flex flex-col gap-4 text-left border-slate-200 dark:border-slate-800 max-h-[90vh]">
-            {/* Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
-                  <Copy className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    Duplicate Files Cleaner
-                    {getDuplicateGroups().length > 0 && (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-amber-500/15 text-amber-600 dark:text-amber-400 font-extrabold border border-amber-500/30">
-                        {getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)} Redundant Copies
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Safely remove duplicate copies while keeping 1 original file protected in your vault.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowDuplicateCleanerModal(false)}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {getDuplicateGroups().length === 0 ? (
-              <div className="py-12 flex flex-col items-center justify-center text-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-                  <Check className="w-7 h-7 stroke-[3]" />
-                </div>
-                <h4 className="text-base font-bold text-slate-800 dark:text-white">Vault is Clean & Unique!</h4>
-                <p className="text-xs text-slate-400 max-w-sm">
-                  No duplicate files found in your vault. All files are unique and properly organized.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowDuplicateCleanerModal(false)}
-                  className="btn-primary py-2 px-5 text-xs font-bold mt-2 cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            ) : (
-              <>
-                {/* Summary Reclaim Bar */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-amber-500" />
-                      <span>
-                        Found {getDuplicateGroups().length} duplicate set(s) ({getDuplicateGroups().reduce((acc, g) => acc + g.duplicates.length, 0)} redundant copies)
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                      Cleaning will reclaim <strong className="text-brand-primary">{formatBytes(getDuplicateGroups().reduce((acc, g) => acc + g.reclaimableBytes, 0))}</strong> of storage space.
-                    </p>
-                  </div>
-
-                  {/* Clean all button */}
-                  <button
-                    type="button"
-                    onClick={() => handleCleanDuplicates(null, duplicateDeleteMode === 'permanent')}
-                    disabled={cleaningDuplicates}
-                    className="btn-primary py-2.5 px-4 text-xs font-bold shrink-0 flex items-center gap-2 shadow-md shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
-                  >
-                    {cleaningDuplicates ? (
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <Trash className="w-3.5 h-3.5" />
-                    )}
-                    <span>Clean All Duplicates (Keep 1 Original)</span>
-                  </button>
-                </div>
-
-                {/* Deletion Mode selector */}
-                <div className="flex items-center justify-between text-xs px-1">
-                  <span className="text-slate-500 font-semibold">Delete Target:</span>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-300">
-                      <input
-                        type="radio"
-                        name="dupMode"
-                        checked={duplicateDeleteMode === 'trash'}
-                        onChange={() => setDuplicateDeleteMode('trash')}
-                        className="accent-brand-primary cursor-pointer"
-                      />
-                      <span>Move to Trash (Restore anytime)</span>
-                    </label>
-                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-600 dark:text-slate-300">
-                      <input
-                        type="radio"
-                        name="dupMode"
-                        checked={duplicateDeleteMode === 'permanent'}
-                        onChange={() => setDuplicateDeleteMode('permanent')}
-                        className="accent-red-500 cursor-pointer"
-                      />
-                      <span className="text-red-500 font-semibold">Delete Permanently</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Duplicate Groups List */}
-                <div className="flex flex-col gap-4 overflow-y-auto max-h-[50vh] custom-scrollbar pr-1">
-                  {getDuplicateGroups().map((group, gIdx) => (
-                    <div
-                      key={group.id || gIdx}
-                      className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 flex flex-col gap-3 shadow-xs"
-                    >
-                      {/* Group Header */}
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800/80">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <FileText className="w-4 h-4 text-brand-primary shrink-0" />
-                          <span className="text-xs font-bold text-slate-800 dark:text-white truncate" title={group.filename}>
-                            {group.filename}
-                          </span>
-                          <span className="text-[10px] text-slate-400 hidden sm:block">({formatBytes(group.original.size)})</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
-                          {group.duplicates.length} duplicate copy(ies)
-                        </span>
-                      </div>
-
-                      {/* Original file row */}
-                      <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3 text-xs">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Shield className="w-4 h-4 text-emerald-500 shrink-0" />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-bold text-emerald-700 dark:text-emerald-300">Original File</span>
-                              <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500 text-white font-extrabold uppercase">
-                                Kept Safe
-                              </span>
-                            </div>
-                            <p className="text-[10px] text-emerald-600/80 dark:text-emerald-400/80 truncate mt-0.5">
-                              Uploaded {new Date(group.original.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} • Location: {folders.find(f => f.id === group.original.folder_id)?.name || 'Vault Root'}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                          Will NOT be touched
-                        </span>
-                      </div>
-
-                      {/* Redundant copies rows */}
-                      <div className="flex flex-col gap-1.5">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                          Redundant Copies:
-                        </span>
-                        {group.duplicates.map((dup, dIdx) => (
-                          <div
-                            key={dup.id || dIdx}
-                            className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 text-xs"
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                              <div className="min-w-0">
-                                <span className="font-semibold text-slate-700 dark:text-slate-300 truncate block">
-                                  Duplicate Copy #{dIdx + 1} ({formatBytes(dup.size)})
-                                </span>
-                                <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                                  Uploaded {new Date(dup.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })} • Location: {folders.find(f => f.id === dup.folder_id)?.name || 'Vault Root'}
-                                </p>
-                              </div>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleCleanDuplicates([dup.id], duplicateDeleteMode === 'permanent')}
-                              disabled={cleaningDuplicates}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 border border-red-200/60 dark:border-red-900/40 shrink-0 transition-colors flex items-center gap-1 cursor-pointer"
-                              title="Delete only this duplicate copy"
-                            >
-                              <Trash className="w-3 h-3" />
-                              <span>Delete Copy</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Footer */}
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-[11px] text-slate-400">
-                    Original files are permanently protected. Only redundant copies are removed.
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowDuplicateCleanerModal(false)}
-                    className="btn-secondary py-2 px-4 text-xs font-semibold cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {/* Duplicate File Cleaner Modal */}
+      <DuplicateCleanerModal
+        isOpen={showDuplicateCleanerModal}
+        onClose={() => setShowDuplicateCleanerModal(false)}
+        files={files}
+        onDeleteDuplicates={async (fileIds) => {
+          await executeBatchDelete(fileIds, 'permanent');
+          await fetchVaultFiles();
+          await fetchStorageStats();
+        }}
+      />
 
       {/* View Note / Clipboard Snippet Modal (Task: Clipboard paste me view ka option) */}
       {viewingNote && (
