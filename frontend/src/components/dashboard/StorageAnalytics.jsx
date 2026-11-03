@@ -29,9 +29,9 @@ const StorageAnalytics = ({
     : { text: 'Optimal Space', color: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 border-emerald-200 dark:border-emerald-900/50' };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 sm:gap-6">
       {/* Donut Chart Card */}
-      <div className="glass-card border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+      <div className="glass-card border border-slate-200/80 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col justify-between">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 dark:bg-indigo-400/10 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
@@ -54,7 +54,7 @@ const StorageAnalytics = ({
       </div>
 
       {/* Quota Progress & Summary */}
-      <div className="lg:col-span-2 glass-card border border-slate-200/80 dark:border-slate-800 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
+      <div className="lg:col-span-2 glass-card border border-slate-200/80 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col justify-between">
         <div>
           <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
             <div>

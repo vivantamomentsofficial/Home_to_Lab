@@ -49,6 +49,7 @@ import FileGrid from '../components/dashboard/FileGrid';
 import SnippetEditor from '../components/dashboard/SnippetEditor';
 import ShareModal from '../components/dashboard/ShareModal';
 import StorageAnalytics from '../components/dashboard/StorageAnalytics';
+import PdfCanvasViewer from '../components/dashboard/PdfCanvasViewer';
 
 import {
   LayoutDashboard, ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
@@ -2942,8 +2943,7 @@ const Dashboard = () => {
     } 
     else if (category === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
       try {
-        showToast('Loading PDF document preview...', 'info');
-        if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
+                if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
           URL.revokeObjectURL(previewDoc.url);
         }
         const { data, error } = await supabase.storage
@@ -3541,7 +3541,7 @@ const Dashboard = () => {
             className="space-y-6 animate-fade-in"
           >
             {/* 1. Hero Welcome Card */}
-            <div className="glass-card relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-br from-white/95 via-slate-50/90 to-sky-500/5 dark:from-slate-900/95 dark:via-slate-900/90 dark:to-indigo-950/30 shadow-xs backdrop-blur-xl">
+            <div className="glass-card relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-8 border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-br from-white/95 via-slate-50/90 to-sky-500/5 dark:from-slate-900/95 dark:via-slate-900/90 dark:to-indigo-950/30 shadow-xs backdrop-blur-xl">
               {/* Decorative Subtle Ambient Glows */}
               <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
               <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
@@ -3560,9 +3560,19 @@ const Dashboard = () => {
                   <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                     Your personal, secure cloud storage. Upload files, organize them into folders, and keep quick notes safely encrypted.
                   </p>
+                  {/* Mobile Single Quick Action */}
+                  <div className="flex lg:hidden pt-1">
+                    <button
+                      type="button"
+                      onClick={() => vaultFileInputRef.current?.click()}
+                      className="btn-primary py-2.5 px-4 text-xs font-bold flex items-center justify-center gap-2 shadow-sm w-full"
+                    >
+                      <UploadCloud className="w-4 h-4 stroke-[2.2]" /> Upload Files
+                    </button>
+                  </div>
 
                   {/* Micro Indicators */}
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <div className="hidden sm:flex flex-wrap items-center gap-2 pt-1">
                     <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AES-256 Protected
                     </div>
@@ -3576,7 +3586,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Hero Quick Action Buttons */}
-                <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
+                <div className="hidden lg:flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={() => vaultFileInputRef.current?.click()}
@@ -3625,88 +3635,88 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
                 {/* 1. Upload */}
                 <div
                   onClick={() => vaultFileInputRef.current?.click()}
-                  className="p-4 rounded-2xl bg-sky-500/5 hover:bg-sky-500/10 border border-sky-500/15 hover:border-sky-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-sky-500/5 hover:bg-sky-500/10 border border-sky-500/15 hover:border-sky-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <UploadCloud className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">Upload</span>
-                    <span className="text-[10px] text-slate-400">Add files</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Add files</span>
                   </div>
                 </div>
 
                 {/* 2. New Folder */}
                 <div
                   onClick={handleCreateFolder}
-                  className="p-4 rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/15 hover:border-amber-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/15 hover:border-amber-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FolderPlus className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FolderPlus className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">Folder</span>
-                    <span className="text-[10px] text-slate-400">Organize files</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Organize files</span>
                   </div>
                 </div>
 
                 {/* 3. Text Document */}
                 <div
                   onClick={handleOpenCreateTxtModal}
-                  className="p-4 rounded-2xl bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/15 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/15 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <FileText className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">Text File</span>
-                    <span className="text-[10px] text-slate-400">Create .txt</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Create .txt</span>
                   </div>
                 </div>
 
                 {/* 4. Voice Memo */}
                 <div
                   onClick={() => setShowRecordModal(true)}
-                  className="p-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 hover:border-rose-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 hover:border-rose-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Mic className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Mic className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">Voice Memo</span>
-                    <span className="text-[10px] text-slate-400">Record audio</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Record audio</span>
                   </div>
                 </div>
 
                 {/* 5. Quick Note */}
                 <div
                   onClick={() => setActiveTab('clipboard')}
-                  className="p-4 rounded-2xl bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Edit3 className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Edit3 className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">New Note</span>
-                    <span className="text-[10px] text-slate-400">Save thoughts</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Save thoughts</span>
                   </div>
                 </div>
 
                 {/* 6. Clean Duplicates */}
                 <div
                   onClick={() => setShowDuplicateCleanerModal(true)}
-                  className="p-4 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 hover:border-purple-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
+                  className="p-2.5 sm:p-4 rounded-xl sm:rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 hover:border-purple-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
-                    <Copy className="w-5 h-5 stroke-[2.2]" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Copy className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.2]" />
                   </div>
                   <div>
                     <span className="text-xs font-bold text-slate-800 dark:text-white block">Duplicates</span>
-                    <span className="text-[10px] text-slate-400">Clean copies</span>
+                    <span className="text-[10px] text-slate-400 hidden sm:block">Clean copies</span>
                   </div>
                 </div>
               </div>
@@ -4018,7 +4028,7 @@ const Dashboard = () => {
                       <span className="text-xs font-bold text-slate-800 dark:text-white block">
                         Save To Folder
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-400 hidden sm:block">
                         Choose which folder to place your uploaded files in
                       </span>
                     </div>
@@ -4280,7 +4290,7 @@ const Dashboard = () => {
                       </div>
                       
                       <div className="flex justify-between items-center mt-4 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400 hidden sm:block">
                           {new Date(note.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                         </span>
                         <div className="flex gap-1">
@@ -5491,11 +5501,11 @@ const Dashboard = () => {
                             <span className="font-semibold text-slate-700 dark:text-slate-300">
                               IP: {log.ip_address || 'Unknown'}
                             </span>
-                            <span className="text-[10px] text-slate-400">
+                            <span className="text-[10px] text-slate-400 hidden sm:block">
                               {log.email}
                             </span>
                           </div>
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 hidden sm:block">
                             {new Date(log.login_time).toLocaleString()}
                           </span>
                         </div>
@@ -6397,17 +6407,12 @@ const Dashboard = () => {
             {/* Content Body */}
             {previewDoc.type === 'pdf' ? (
               <div className="flex-1 mt-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 relative">
-                <object
-                  data={`${previewDoc.url}#toolbar=1&navpanes=0`}
-                  type="application/pdf"
-                  className="w-full h-full rounded-xl"
-                >
-                  <iframe
-                    src={`${previewDoc.url}#toolbar=1&navpanes=0`}
-                    className="w-full h-full border-0 rounded-xl"
-                    title={previewDoc.title}
-                  />
-                </object>
+                <PdfCanvasViewer
+                  fileUrl={previewDoc.url}
+                  fileName={previewDoc.title}
+                  storagePath={previewDoc.storagePath}
+                  onDownload={() => handleDownloadFileDirect(previewDoc.storagePath, previewDoc.title)}
+                />
               </div>
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
@@ -6711,7 +6716,7 @@ const Dashboard = () => {
                   <div className="w-12 h-12 rounded-full border border-dashed border-slate-300 dark:border-slate-700 flex items-center justify-center text-slate-400">
                     <Mic className="w-5 h-5 text-brand-primary" />
                   </div>
-                  <span className="text-[10px] text-slate-400">Microphone ready to capture</span>
+                  <span className="text-[10px] text-slate-400 hidden sm:block">Microphone ready to capture</span>
                 </div>
               )}
             </div>
@@ -7086,7 +7091,7 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-500 shrink-0">
                   <Copy className="w-5 h-5" />
                 </div>
                 <div>
@@ -7202,7 +7207,7 @@ const Dashboard = () => {
                           <span className="text-xs font-bold text-slate-800 dark:text-white truncate" title={group.filename}>
                             {group.filename}
                           </span>
-                          <span className="text-[10px] text-slate-400">({formatBytes(group.original.size)})</span>
+                          <span className="text-[10px] text-slate-400 hidden sm:block">({formatBytes(group.original.size)})</span>
                         </div>
                         <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 shrink-0">
                           {group.duplicates.length} duplicate copy(ies)
@@ -7295,7 +7300,7 @@ const Dashboard = () => {
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
                   <Clipboard className="w-5 h-5" />
                 </div>
                 <div className="min-w-0">

@@ -499,12 +499,12 @@ const Home = () => {
         </div>
 
         {/* Hero Title (Original Tagline Maintained Exactly) */}
-        <h1 className="hero-heading-fluid font-black font-display tracking-tight mb-4 text-slate-900 leading-tight">
-          Home to Lab, Instantly.
+        <h1 className="hero-heading-fluid font-black font-display tracking-tight mb-4 text-slate-900 dark:text-white leading-tight">
+          Transfer Files &amp; Code <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">Home to Lab</span>, Instantly.
         </h1>
 
         {/* Hero Subtitle */}
-        <p className="text-sm sm:text-base text-slate-600 max-w-2xl leading-relaxed mb-9 mx-auto font-normal">
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-2xl leading-relaxed mb-9 mx-auto font-normal">
           Send files and code snippets from home without signing in. Enter your 6-digit code on any college computer to access your work in seconds — no USB drives, no left-behind logins.
         </p>
 
@@ -513,16 +513,16 @@ const Home = () => {
         {/* ========================================================================= */}
         <div
           id="retrieve-section"
-          className="glass-card max-w-lg w-full p-5 sm:p-7 shadow-2xl rounded-3xl mb-12 text-left relative overflow-hidden border border-slate-200/90 bg-white"
+          className="glass-card max-w-lg w-full p-5 sm:p-7 shadow-2xl rounded-3xl mb-12 text-left relative overflow-hidden border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl"
         >
           {/* Mode Switcher Tabs */}
-          <div className="flex bg-slate-100 p-1.5 rounded-2xl mb-5 font-bold text-xs border border-slate-200/70">
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl mb-5 font-bold text-xs border border-slate-200/70 dark:border-slate-700">
             <button
               onClick={() => setActiveTab('receive')}
               className={`flex-1 py-2.5 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 transition-all cursor-pointer text-[11px] sm:text-xs ${
                 activeTab === 'receive'
-                  ? 'bg-white text-brand-primary shadow-xs font-bold'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? 'bg-white dark:bg-slate-700 text-brand-primary dark:text-brand-primary-light shadow-xs font-bold'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
               }`}
             >
               <DownloadCloud className="w-4 h-4 shrink-0" />
@@ -550,12 +550,12 @@ const Home = () => {
                   <DownloadCloud className="w-5 h-5" />
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-slate-900 font-display">Quick Lab Retrieval</h2>
-                  <p className="text-xs text-slate-500">Download files or copy code on any PC without login</p>
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white font-display">Quick Lab Retrieval</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Download files or copy code on any PC without login</p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed mb-4">
                 Enter your <strong>6-digit access code</strong> to download your file or view your code snippet:
               </p>
 
@@ -566,7 +566,7 @@ const Home = () => {
                   placeholder="XXXXXX"
                   value={shareCode}
                   onChange={(e) => setShareCode(e.target.value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())}
-                  className="w-full sm:w-44 text-center font-bold font-mono tracking-[4px] sm:tracking-[6px] text-lg sm:text-xl uppercase h-12 bg-slate-50 border border-slate-300 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all shadow-inner text-slate-900"
+                  className="w-full sm:w-44 text-center font-bold font-mono tracking-[4px] sm:tracking-[6px] text-lg sm:text-xl uppercase h-12 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 rounded-xl outline-none transition-all shadow-inner text-slate-900 dark:text-white"
                   required
                   aria-label="6-Digit Access Code"
                 />
@@ -586,8 +586,8 @@ const Home = () => {
               </form>
 
               {/* Instant Try Demo Codes */}
-              <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
-                <span className="font-semibold text-slate-600">Try sample test codes:</span>
+              <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="font-semibold text-slate-600 dark:text-slate-400">Try sample test codes:</span>
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -595,7 +595,7 @@ const Home = () => {
                       setShareCode('8F3K9A');
                       handleRetrieveCode(null, '8F3K9A');
                     }}
-                    className="font-mono font-bold px-2 py-1 rounded-lg bg-sky-50 text-sky-700 border border-sky-200 hover:bg-sky-100 transition-colors cursor-pointer"
+                    className="font-mono font-bold px-2 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/60 transition-colors cursor-pointer"
                     title="Load Assignment Code Script"
                   >
                     ⚡ 8F3K9A (Code Script)
@@ -673,8 +673,8 @@ const Home = () => {
                 /* Form Panel */
                 <form onSubmit={handleQuickSendSubmit} className="space-y-3.5">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-700">Choose Transfer Type:</span>
-                    <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-bold">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Choose Transfer Type:</span>
+                    <div className="flex gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold border border-slate-200/60 dark:border-slate-700">
                       <button
                         type="button"
                         onClick={() => setSendKind('file')}
@@ -702,9 +702,9 @@ const Home = () => {
 
                   {sendKind === 'file' ? (
                     <div>
-                      <label className="border-2 border-dashed border-slate-300 hover:border-brand-primary rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-all text-center group">
+                      <label className="border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-brand-primary dark:hover:border-brand-primary rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-all text-center group">
                         <UploadCloud className="w-8 h-8 text-brand-primary mb-2 group-hover:scale-110 transition-transform" />
-                        <span className="text-xs font-bold text-slate-700">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
                           {sendFile ? sendFile.name : 'Click to select file or drag & drop'}
                         </span>
                         <span className="text-[10px] text-slate-400 mt-1">
@@ -728,14 +728,14 @@ const Home = () => {
                         placeholder="Title / Filename (e.g. Lab3_Assignment.cpp or notes.txt)"
                         value={sendTitle}
                         onChange={(e) => setSendTitle(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary"
+                        className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-primary"
                       />
                       <textarea
                         rows={4}
                         placeholder="Paste your code script or text snippet here (Max 100 KB)..."
                         value={sendText}
                         onChange={(e) => setSendText(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 outline-none focus:border-brand-primary font-mono resize-none"
+                        className="w-full bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-200 outline-none focus:border-brand-primary font-mono resize-none"
                         required
                       ></textarea>
                     </div>
@@ -823,18 +823,18 @@ const Home = () => {
       {/* ========================================================================= */}
       <section className="px-4 sm:px-6 lg:px-[8%] pb-14 z-10 relative">
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-blue-50 via-indigo-50/60 to-sky-50 border border-blue-200/90 shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
+          <div className="rounded-2xl p-5 sm:p-6 bg-gradient-to-r from-blue-50 via-indigo-50/60 to-sky-50 dark:from-slate-900 dark:via-indigo-950/40 dark:to-slate-900 border border-blue-200/90 dark:border-indigo-900/50 shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
             <div className="space-y-2 max-w-xl text-left">
               <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-blue-700 text-[11px] font-bold uppercase tracking-wider">
                 <Code2 className="w-3.5 h-3.5 text-blue-600" />
                 <span>CloudVault ✕ OneCompiler Official Collaboration</span>
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-black font-display text-slate-900 leading-tight">
+              <h2 className="text-xl sm:text-2xl font-black font-display text-slate-900 dark:text-white leading-tight">
                 Free In-Browser Online Compiler &amp; IDE
               </h2>
 
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 Run C, C++, Java, Python, JavaScript, and SQL directly in your browser. Zero setup, zero installation on restricted college lab computers.
               </p>
 
@@ -869,28 +869,28 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 3. REAL PROBLEMS SOLVED FOR COLLEGE LAB WORK                              */}
       {/* ========================================================================= */}
-      <section className="py-16 px-4 sm:px-6 lg:px-[8%] bg-white/70 border-y border-slate-200/80 z-10">
+      <section className="py-16 px-4 sm:px-6 lg:px-[8%] bg-white/70 dark:bg-slate-900/60 border-y border-slate-200/80 dark:border-slate-800 z-10">
         <div className="max-w-5xl mx-auto space-y-10">
           <div className="text-center space-y-2">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
               Real Campus Challenges Solved
             </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold font-display text-slate-900">
+            <h2 className="text-2xl sm:text-4xl font-extrabold font-display text-slate-900 dark:text-white">
               Why Students Depend on CloudVault
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-xl mx-auto">
               Built specifically to eliminate the real headaches encountered in college computer labs and libraries.
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-bold">
                   <ShieldAlert className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 font-display">Blocked USB Ports</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white font-display">Blocked USB Ports</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Lab administrators often disable USB drive access on college computers. CloudVault lets you transfer files wirelessly via a 6-digit PIN.
                 </p>
               </div>
@@ -899,13 +899,13 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center font-bold">
                   <Lock className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 font-display">Avoid Corrupted Pendrives</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white font-display">Avoid Corrupted Pendrives</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Shared lab computers frequently corrupt USB pendrives with shortcut viruses. Transferring files over the web keeps your personal drives safe.
                 </p>
               </div>
@@ -914,13 +914,13 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold">
                   <ShieldCheck className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 font-display">No Public Logins</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white font-display">No Public Logins</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Typing personal Gmail or cloud storage passwords on public lab computers risks keyloggers and left-behind sessions. Quick Send requires zero login.
                 </p>
               </div>
@@ -929,13 +929,13 @@ const Home = () => {
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white border border-slate-200/90 shadow-xs hover:shadow-md">
+            <div className="p-5 rounded-2xl flex flex-col justify-between hover:border-brand-primary/40 transition-all bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md">
               <div className="space-y-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-500 flex items-center justify-center font-bold">
                   <Terminal className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-sm text-slate-900 font-display">Missing Lab Compilers</h3>
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <h3 className="font-bold text-sm text-slate-900 dark:text-white font-display">Missing Lab Compilers</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   If lab computers lack compilers or restrict installation, CloudVault ✕ OneCompiler lets you run C, C++, Java, Python, and SQL directly in your browser.
                 </p>
               </div>
@@ -966,37 +966,37 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {/* Step 1 */}
-            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+            <div className="p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
               <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold">
                 <UploadCloud className="w-5 h-5" />
               </div>
               <div className="text-[11px] font-bold text-amber-600 uppercase tracking-wider">Step 01 • At Home or on Phone</div>
-              <h3 className="font-bold text-base text-slate-900 font-display">Drop File or Paste Code</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white font-display">Drop File or Paste Code</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Upload your assignment file (up to 25MB) or paste your code snippet directly (up to 100KB). No account or signup needed.
               </p>
             </div>
 
             {/* Step 2 */}
-            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+            <div className="p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
               <div className="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center font-bold">
                 <Key className="w-5 h-5" />
               </div>
               <div className="text-[11px] font-bold text-brand-primary uppercase tracking-wider">Step 02 • Instant Security Token</div>
-              <h3 className="font-bold text-base text-slate-900 font-display">Get a 6-Digit PIN &amp; QR</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white font-display">Get a 6-Digit PIN &amp; QR</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 CloudVault creates an instant 6-character code (like <code className="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-brand-primary font-bold">8F3K9A</code>). Optional self-destruct deletes it after retrieval.
               </p>
             </div>
 
             {/* Step 3 */}
-            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
+            <div className="p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all space-y-3 relative group">
               <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center font-bold">
                 <Terminal className="w-5 h-5" />
               </div>
               <div className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider">Step 03 • College Lab Terminal</div>
-              <h3 className="font-bold text-base text-slate-900 font-display">Download or Run Code</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <h3 className="font-bold text-base text-slate-900 dark:text-white font-display">Download or Run Code</h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 Open <strong className="text-slate-800">hometolab.in</strong> on the lab PC, type the 6 digits, and your file or code appears instantly. Run it directly or save it.
               </p>
             </div>
@@ -1007,13 +1007,13 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 5. TWO WAYS TO USE CLOUDVAULT: GUEST VS STUDENT VAULT                     */}
       {/* ========================================================================= */}
-      <section className="py-20 px-4 sm:px-6 lg:px-[8%] bg-slate-50/70 border-y border-slate-200/80 z-10 text-center">
+      <section className="py-20 px-4 sm:px-6 lg:px-[8%] bg-slate-50/70 dark:bg-slate-950/60 border-y border-slate-200/80 dark:border-slate-800 z-10 text-center">
         <div className="max-w-4xl mx-auto space-y-10">
           <div className="space-y-3">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
               Tailored For Student Life
             </span>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900">
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-slate-900 dark:text-white">
               Two Simple Ways to Use CloudVault
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 max-w-lg mx-auto">
@@ -1023,25 +1023,25 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
             {/* Direct Guest Transfer Card */}
-            <div className="p-7 rounded-2xl bg-white border border-slate-200/90 space-y-5 hover:border-slate-300 transition-all shadow-xs flex flex-col justify-between">
+            <div className="p-7 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 space-y-5 hover:border-slate-300 dark:hover:border-slate-700 transition-all shadow-xs flex flex-col justify-between">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
                       No Login Required
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1 font-display">Direct Guest Transfer</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 font-display">Direct Guest Transfer</h3>
                   </div>
                   <div className="p-2.5 bg-amber-500/10 text-amber-600 rounded-xl">
                     <Zap className="w-5 h-5" />
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Best for quick lab practicals when you just need to get your code or document onto a shared PC without signing in.
                 </p>
 
-                <ul className="space-y-2.5 text-xs text-slate-700">
+                <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
                   <li className="flex items-center gap-2.5">
                     <Check className="w-4 h-4 text-emerald-500 shrink-0" />
                     <span>Send files up to <strong>25 MB</strong> per transfer</span>
@@ -1091,18 +1091,18 @@ const Home = () => {
                     <span className="text-[10px] font-black uppercase tracking-wider text-brand-primary bg-brand-primary/10 px-2.5 py-0.5 rounded-full border border-brand-primary/20">
                       Free Student Account
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 mt-1 font-display">Personal Cloud Vault</h3>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-1 font-display">Personal Cloud Vault</h3>
                   </div>
                   <div className="p-2.5 bg-brand-primary/10 text-brand-primary rounded-xl">
                     <HardDrive className="w-5 h-5" />
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   Your private cloud vault for all 4 years of college. Store assignments, notes, project files, and sync your clipboard everywhere.
                 </p>
 
-                <ul className="space-y-2.5 text-xs text-slate-700">
+                <ul className="space-y-2.5 text-xs text-slate-700 dark:text-slate-300">
                   <li className="flex items-center gap-2.5">
                     <Check className="w-4 h-4 text-brand-primary shrink-0" />
                     <span><strong>100 MB Free Storage</strong> on signup (upgradeable to 2GB)</span>
@@ -1219,7 +1219,7 @@ const Home = () => {
       {/* ========================================================================= */}
       {/* 7. SUPPORT & FEEDBACK                                                     */}
       {/* ========================================================================= */}
-      <section id="feedback" className="py-16 px-4 sm:px-6 lg:px-[8%] bg-white/70 border-t border-slate-200/80 z-10">
+      <section id="feedback" className="py-16 px-4 sm:px-6 lg:px-[8%] bg-white/70 dark:bg-slate-900/60 border-t border-slate-200/80 dark:border-slate-800 z-10">
         <div className="max-w-4xl mx-auto space-y-8">
           <div className="text-center space-y-2">
             <span className="px-3.5 py-1 bg-brand-primary/10 text-brand-primary text-xs font-bold rounded-full uppercase tracking-wider">
@@ -1241,12 +1241,12 @@ const Home = () => {
                   <Shield className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-slate-900 font-display">Direct Administrator Support</h3>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white font-display">Direct Administrator Support</h3>
                   <p className="text-xs text-slate-500">Fast 24-48h Response</p>
                 </div>
               </div>
 
-              <p className="text-xs text-slate-600 leading-relaxed">
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                 If you encounter any issues during lab sessions, have questions regarding file expiration, or wish to request a feature, you can contact the developer directly:
               </p>
 

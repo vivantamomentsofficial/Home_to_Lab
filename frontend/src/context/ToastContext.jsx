@@ -1,36 +1,65 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { X, CheckCircle2, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 
 const ToastContext = createContext({
-  showToast: (message, type = 'info') => {},
+  showToast: (message, type = 'info', duration = null) => {},
 });
 
 export const useToast = () => useContext(ToastContext);
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const timersRef = useRef(new Map());
 
-  const showToast = useCallback((message, type = 'info') => {
-    const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, message, type }]);
-
-    // Auto-remove toast after 4 seconds
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4000);
+  const removeToast = useCallback((id) => {
+    // Clear timer if exists
+    if (timersRef.current.has(id)) {
+      clearTimeout(timersRef.current.get(id));
+      timersRef.current.delete(id);
+    }
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const removeToast = (id) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  const showToast = useCallback((message, type = 'info', customDuration = null) => {
+    if (!message) return;
+
+    // Determine auto-dismiss timeout based on type
+    const duration = customDuration || (
+      type === 'info' ? 2200 :
+      type === 'success' ? 2800 :
+      3800 // danger or warning
+    );
+
+    setToasts((prev) => {
+      // 1. DEDUPLICATION: If an identical toast already exists, don't duplicate
+      const existing = prev.find((t) => t.message === message);
+      if (existing) {
+        // Reset its timer
+        if (timersRef.current.has(existing.id)) {
+          clearTimeout(timersRef.current.get(existing.id));
+        }
+        const timerId = setTimeout(() => removeToast(existing.id), duration);
+        timersRef.current.set(existing.id, timerId);
+        return prev;
+      }
+
+      const id = 'toast_' + Math.random().toString(36).substring(2, 9);
+      const timerId = setTimeout(() => removeToast(id), duration);
+      timersRef.current.set(id, timerId);
+
+      // Keep max 2 toasts at a time on screen to avoid clutter
+      const trimmed = prev.length >= 2 ? prev.slice(prev.length - 1) : prev;
+      return [...trimmed, { id, message, type }];
+    });
+  }, [removeToast]);
 
   const getIcon = (type) => {
-    const iconClass = "w-5 h-5 flex-shrink-0";
+    const iconClass = "w-4.5 h-4.5 flex-shrink-0 mt-0.5";
     switch (type) {
       case 'success':
-        return <CheckCircle2 className={`${iconClass} text-green-500`} />;
+        return <CheckCircle2 className={`${iconClass} text-emerald-500`} />;
       case 'danger':
-        return <AlertTriangle className={`${iconClass} text-red-500`} />;
+        return <AlertTriangle className={`${iconClass} text-rose-500`} />;
       case 'warning':
         return <AlertCircle className={`${iconClass} text-amber-500`} />;
       case 'info':
@@ -39,17 +68,17 @@ export const ToastProvider = ({ children }) => {
     }
   };
 
-  const getBorderColor = (type) => {
+  const getToastStyle = (type) => {
     switch (type) {
       case 'success':
-        return 'border-green-500/20 bg-green-50 dark:bg-green-950/20';
+        return 'border-emerald-500/25 bg-white/95 dark:bg-slate-900/95 shadow-emerald-500/5 text-slate-850 dark:text-slate-100';
       case 'danger':
-        return 'border-red-500/20 bg-red-50 dark:bg-red-950/20';
+        return 'border-rose-500/25 bg-white/95 dark:bg-slate-900/95 shadow-rose-500/5 text-slate-850 dark:text-slate-100';
       case 'warning':
-        return 'border-amber-500/20 bg-amber-50 dark:bg-amber-950/20';
+        return 'border-amber-500/25 bg-white/95 dark:bg-slate-900/95 shadow-amber-500/5 text-slate-850 dark:text-slate-100';
       case 'info':
       default:
-        return 'border-sky-500/20 bg-sky-50 dark:bg-sky-950/20';
+        return 'border-sky-500/25 bg-white/95 dark:bg-slate-900/95 shadow-sky-500/5 text-slate-850 dark:text-slate-100';
     }
   };
 
@@ -57,22 +86,31 @@ export const ToastProvider = ({ children }) => {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       
-      {/* Toast container overlay */}
-      <div className="fixed bottom-5 right-5 z-[99999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      {/* Toast container overlay - positioned safely above mobile bottom nav bar (bottom-20) and bottom-6 on desktop */}
+      <div 
+        className="fixed bottom-20 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-[99999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none transition-all duration-200"
+        aria-live="polite"
+      >
         {toasts.map((toast) => (
           <div
             key={toast.id}
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-md animate-scale-up ${getBorderColor(
+            onClick={() => removeToast(toast.id)}
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 sm:p-4 rounded-2xl border shadow-xl backdrop-blur-xl animate-scale-up cursor-pointer transition-all duration-200 hover:scale-[1.01] active:scale-[0.98] ${getToastStyle(
               toast.type
             )}`}
           >
             {getIcon(toast.type)}
-            <div className="flex-1 text-sm font-medium text-slate-800 dark:text-slate-200 break-words">
+            <div className="flex-1 text-xs sm:text-sm font-semibold break-words leading-snug">
               {toast.message}
             </div>
             <button
-              onClick={() => removeToast(toast.id)}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeToast(toast.id);
+              }}
+              className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 p-0.5 rounded-lg transition-colors shrink-0"
+              aria-label="Dismiss toast"
             >
               <X className="w-4 h-4" />
             </button>
