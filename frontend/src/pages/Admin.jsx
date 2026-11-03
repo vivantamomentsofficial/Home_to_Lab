@@ -161,25 +161,31 @@ const Admin = () => {
     } catch (err) {
       console.warn('Backend /api/admin/stats unreachable, falling back to direct Supabase queries:', err);
       try {
-        const [profilesRes, filesRes, notesRes, requestsRes, loginsRes] = await Promise.all([
-          supabase.from('profiles').select('id, used_storage, is_locked, is_suspended', { count: 'exact' }),
+        const [profilesRes, filesRes, notesRes, requestsRes, loginsRes] = await Promise.allSettled([
+          supabase.from('profiles').select('id, used_storage, upload_locked, clipboard_locked, is_suspended', { count: 'exact' }),
           supabase.from('files').select('id, size', { count: 'exact' }).eq('is_deleted', false),
           supabase.from('notes').select('id', { count: 'exact' }).eq('is_deleted', false),
           supabase.from('storage_requests').select('id, status', { count: 'exact' }).eq('status', 'pending'),
           supabase.from('login_logs').select('id', { count: 'exact' })
         ]);
-        const profiles = profilesRes.data || [];
-        const files = filesRes.data || [];
+        const profiles = profilesRes.status === 'fulfilled' && profilesRes.value?.data ? profilesRes.value.data : [];
+        const files = filesRes.status === 'fulfilled' && filesRes.value?.data ? filesRes.value.data : [];
         const totalStorageBytes = files.reduce((acc, f) => acc + (Number(f.size) || 0), 0);
+        const usersCount = (profilesRes.status === 'fulfilled' && (profilesRes.value?.count ?? profiles.length)) || profiles.length || 0;
+        const filesCount = (filesRes.status === 'fulfilled' && (filesRes.value?.count ?? files.length)) || files.length || 0;
+        const notesCount = (notesRes.status === 'fulfilled' && notesRes.value?.count) || 0;
+        const loginsCount = (loginsRes.status === 'fulfilled' && loginsRes.value?.count) || 0;
+        const pendingRequestsCount = (requestsRes.status === 'fulfilled' && requestsRes.value?.count) || 0;
+
         setStats({
-          usersCount: profilesRes.count || profiles.length || 0,
-          filesCount: filesRes.count || files.length || 0,
-          notesCount: notesRes.count || 0,
-          loginsCount: loginsRes.count || 0,
-          pendingRequestsCount: requestsRes.count || 0,
+          usersCount,
+          filesCount,
+          notesCount,
+          loginsCount,
+          pendingRequestsCount,
           totalStorageBytes,
           suspendedCount: profiles.filter(p => p.is_suspended).length,
-          lockedCount: profiles.filter(p => p.is_locked).length
+          lockedCount: profiles.filter(p => p.upload_locked || p.clipboard_locked).length
         });
       } catch (fallbackErr) {
         console.error('Supabase fetchStats fallback error:', fallbackErr);
@@ -194,12 +200,50 @@ const Admin = () => {
     setAnalyticsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/analytics`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load analytics.');
-      setAnalytics(data);
+      if (res.ok) {
+        const data = await res.json();
+        setAnalytics(data);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load storage analytics.', 'danger');
+      console.warn('Backend /api/admin/analytics unreachable, computing breakdown from Supabase:', err);
+      try {
+        const { data: files } = await supabase.from('files').select('filename, size').eq('is_deleted', false);
+        if (files) {
+          const breakdown = {
+            images: { count: 0, bytes: 0 },
+            documents: { count: 0, bytes: 0 },
+            code: { count: 0, bytes: 0 },
+            text: { count: 0, bytes: 0 },
+            media: { count: 0, bytes: 0 },
+            archives: { count: 0, bytes: 0 },
+            other: { count: 0, bytes: 0 }
+          };
+          for (const f of files) {
+            const name = (f.filename || '').toLowerCase();
+            const sz = Number(f.size) || 0;
+            if (name.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/)) {
+              breakdown.images.count++; breakdown.images.bytes += sz;
+            } else if (name.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/)) {
+              breakdown.documents.count++; breakdown.documents.bytes += sz;
+            } else if (name.match(/\.(js|jsx|ts|tsx|py|java|c|cpp|cs|html|css|json|sql|sh)$/)) {
+              breakdown.code.count++; breakdown.code.bytes += sz;
+            } else if (name.match(/\.(txt|md|log|csv)$/)) {
+              breakdown.text.count++; breakdown.text.bytes += sz;
+            } else if (name.match(/\.(mp4|webm|mkv|mp3|wav|ogg|m4a)$/)) {
+              breakdown.media.count++; breakdown.media.bytes += sz;
+            } else if (name.match(/\.(zip|tar|gz|rar|7z)$/)) {
+              breakdown.archives.count++; breakdown.archives.bytes += sz;
+            } else {
+              breakdown.other.count++; breakdown.other.bytes += sz;
+            }
+          }
+          setAnalytics({ categoryBreakdown: breakdown });
+        }
+      } catch (fbErr) {
+        console.warn('Analytics local computation skipped:', fbErr);
+      }
     } finally {
       setAnalyticsLoading(false);
     }

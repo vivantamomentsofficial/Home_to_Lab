@@ -179,20 +179,24 @@ export const AuthProvider = ({ children }) => {
 
               // 3. Direct Supabase insertion fallback if backend was offline or failed
               if (!backendLogged) {
-                await client.from('login_logs').insert({
-                  user_id: newSession.user.id,
-                  email: newSession.user.email || 'guest@cloudvault.local',
-                  login_time: new Date().toISOString(),
-                  ip_address: publicIp || 'Unknown',
-                  user_agent: navigator.userAgent || 'Unknown'
-                }).catch(() => {});
+                try {
+                  await client.from('login_logs').insert({
+                    user_id: newSession.user.id,
+                    email: newSession.user.email || 'guest@cloudvault.local',
+                    login_time: new Date().toISOString(),
+                    ip_address: publicIp || 'Unknown',
+                    user_agent: navigator.userAgent || 'Unknown'
+                  });
+                } catch {}
               }
 
               // 4. Update profile with last known login IP
               if (publicIp) {
-                await client.from('profiles').update({
-                  last_login_ip: publicIp
-                }).eq('id', newSession.user.id).catch(() => {});
+                try {
+                  await client.from('profiles').update({
+                    last_login_ip: publicIp
+                  }).eq('id', newSession.user.id);
+                } catch {}
               }
             } catch (err) {
               console.error('Failed to log login action:', err);

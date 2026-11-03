@@ -4945,7 +4945,7 @@ const Dashboard = () => {
                             </div>
                             
                             {/* File actions dropdown menu */}
-                            <div className="relative file-menu-container">
+                            <div onClick={(e) => e.stopPropagation()} className="relative file-menu-container">
                               <button
                                 type="button"
                                 onClick={(e) => {
@@ -4958,7 +4958,7 @@ const Dashboard = () => {
                                 <MoreVertical className="w-4 h-4" />
                               </button>
                               {activeMenuId === file.id && (
-                                <div className="absolute right-0 top-8 w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                                <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-8 w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                                   {file.is_deleted ? (
                                     <>
                                       <button
@@ -5269,7 +5269,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Mobile dropdown actions menu */}
-                        <div className="md:hidden relative shrink-0 file-menu-container">
+                        <div onClick={(e) => e.stopPropagation()} className="md:hidden relative shrink-0 file-menu-container">
                           <button
                             type="button"
                             onClick={(e) => {
@@ -5282,7 +5282,7 @@ const Dashboard = () => {
                             <MoreVertical className="w-4 h-4" />
                           </button>
                           {activeMenuId === file.id && (
-                            <div className="absolute right-0 top-9 w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                            <div onClick={(e) => e.stopPropagation()} className="absolute right-0 top-9 w-44 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 rounded-2xl shadow-2xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
                               {file.is_deleted ? (
                                 <>
                                   <button
