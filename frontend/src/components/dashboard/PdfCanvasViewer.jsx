@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Loader2, Download, ExternalLink, AlertCircle } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Loader2, Download, ExternalLink, Smartphone, Monitor } from 'lucide-react';
 
-// Configure PDF.js worker from local static asset
+// Configure PDF.js worker from local public static asset
 if (typeof window !== 'undefined') {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
@@ -12,11 +12,17 @@ if (typeof window !== 'undefined') {
 }
 
 const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
+  // Auto-detect mobile devices: on mobile default to canvas, on desktop default to native iframe
+  const isMobileDevice = typeof window !== 'undefined' && (
+    window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  );
+
+  const [viewMode, setViewMode] = useState(isMobileDevice ? 'canvas' : 'native'); // 'native' | 'canvas'
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [canvasError, setCanvasError] = useState(null);
   const [rotation, setRotation] = useState(0);
 
   const canvasRef = useRef(null);
@@ -24,17 +30,18 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
   const renderTaskRef = useRef(null);
   const containerRef = useRef(null);
 
+  // Load PDF with PDF.js for canvas rendering
   useEffect(() => {
+    if (!fileUrl) return;
     let isCancelled = false;
 
-    const loadPdf = async () => {
+    const loadPdfData = async () => {
       try {
         setLoading(true);
-        setError(null);
+        setCanvasError(null);
 
-        // Fetch arrayBuffer from url or blob
         const response = await fetch(fileUrl);
-        if (!response.ok) throw new Error('Failed to fetch PDF binary data.');
+        if (!response.ok) throw new Error('Failed to load PDF data.');
         const arrayBuffer = await response.arrayBuffer();
 
         const loadingTask = pdfjsLib.getDocument({
@@ -53,7 +60,6 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
         setNumPages(pdf.numPages);
         setCurrentPage(1);
 
-        // Calculate auto-fit scale based on container width
         if (containerRef.current) {
           const containerWidth = containerRef.current.clientWidth - 32;
           const page = await pdf.getPage(1);
@@ -64,17 +70,19 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
 
         setLoading(false);
       } catch (err) {
-        console.error('Error loading PDF with PDF.js:', err);
+        console.warn('PDF.js canvas parsing notice:', err);
         if (!isCancelled) {
-          setError(err.message || 'Unable to render PDF document.');
+          setCanvasError(err.message || 'Canvas rendering error');
           setLoading(false);
+          // If canvas mode encounters issue on desktop, seamlessly default to native view
+          if (!isMobileDevice) {
+            setViewMode('native');
+          }
         }
       }
     };
 
-    if (fileUrl) {
-      loadPdf();
-    }
+    loadPdfData();
 
     return () => {
       isCancelled = true;
@@ -84,17 +92,15 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
         } catch {}
       }
     };
-  }, [fileUrl]);
+  }, [fileUrl, isMobileDevice]);
 
-  // Render current page when currentPage, scale, or rotation changes
+  // Render page onto canvas
   useEffect(() => {
+    if (viewMode !== 'canvas' || !pdfDocRef.current || !canvasRef.current || loading) return;
     let isCancelled = false;
 
     const renderPage = async () => {
-      if (!pdfDocRef.current || !canvasRef.current || loading) return;
-
       try {
-        // Cancel any pending render task to prevent collision
         if (renderTaskRef.current) {
           try {
             renderTaskRef.current.cancel();
@@ -141,7 +147,7 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
     return () => {
       isCancelled = true;
     };
-  }, [currentPage, scale, rotation, loading]);
+  }, [currentPage, scale, rotation, loading, viewMode]);
 
   const handlePrevPage = () => {
     if (currentPage > 1) setCurrentPage((prev) => prev - 1);
@@ -163,138 +169,158 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
     setRotation((prev) => (prev + 90) % 360);
   };
 
-  // If PDF.js fails (e.g. strict worker policy or password-protected PDF), seamlessly embed using native <object>
-  if (error) {
-    return (
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
-        {fileUrl ? (
-          <object
-            data={fileUrl}
-            type="application/pdf"
-            className="w-full h-full min-h-[500px] rounded-2xl border-0"
-          >
-            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl h-full">
-              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                <AlertCircle className="w-8 h-8" />
-              </div>
-              <div>
-                <h4 className="text-base font-bold text-slate-850 dark:text-white mb-1">
-                  Unable to display PDF preview directly
-                </h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">
-                  This document might be password-protected or uses features not supported by in-browser rendering.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  {onDownload && (
-                    <button
-                      type="button"
-                      onClick={onDownload}
-                      className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm"
-                    >
-                      <Download className="w-4 h-4" /> Download PDF
-                    </button>
-                  )}
-                  {fileUrl && (
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn-secondary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer"
-                    >
-                      <ExternalLink className="w-4 h-4" /> Open in New Tab
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          </object>
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
-            <AlertCircle className="w-8 h-8 text-amber-500" />
-            <p className="text-xs text-slate-500">Document URL is not available.</p>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col h-full overflow-hidden bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
-      {/* Floating Toolbar */}
+    <div ref={containerRef} className="flex-1 flex flex-col h-full w-full overflow-hidden bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200/80 dark:border-slate-800/80">
+      
+      {/* Viewer Header / Toolbar */}
       <div className="p-2 sm:p-2.5 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 backdrop-blur-md">
-        {/* Page Nav */}
-        <div className="flex items-center gap-1">
+        
+        {/* Left Side: View Mode Toggle (Native / Canvas) */}
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={handlePrevPage}
-            disabled={currentPage <= 1 || loading}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Previous Page"
+            onClick={() => setViewMode(prev => prev === 'native' ? 'canvas' : 'native')}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            title={viewMode === 'native' ? 'Switch to Canvas View' : 'Switch to Standard Browser Reader'}
           >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-xs font-bold text-slate-700 dark:text-slate-200 px-1 min-w-[70px] text-center">
-            {loading ? '...' : `${currentPage} / ${numPages}`}
-          </span>
-          <button
-            type="button"
-            onClick={handleNextPage}
-            disabled={currentPage >= numPages || loading}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            title="Next Page"
-          >
-            <ChevronRight className="w-4 h-4" />
+            {viewMode === 'native' ? (
+              <>
+                <Monitor className="w-3.5 h-3.5 text-brand-primary" />
+                <span className="hidden sm:inline">Native View</span>
+              </>
+            ) : (
+              <>
+                <Smartphone className="w-3.5 h-3.5 text-brand-primary" />
+                <span className="hidden sm:inline">Canvas View</span>
+              </>
+            )}
           </button>
         </div>
 
-        {/* Zoom & Rotation Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={handleZoomOut}
-            disabled={loading || scale <= 0.4}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
-            title="Zoom Out"
-          >
-            <ZoomOut className="w-4 h-4" />
-          </button>
-          <span className="text-[11px] font-mono font-semibold text-slate-500 dark:text-slate-400 min-w-[42px] text-center hidden sm:inline">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={handleZoomIn}
-            disabled={loading || scale >= 3.0}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
-            title="Zoom In"
-          >
-            <ZoomIn className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={handleRotate}
-            disabled={loading}
-            className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1"
-            title="Rotate 90deg"
-          >
-            <RotateCw className="w-4 h-4" />
-          </button>
+        {/* Center / Right: Canvas Controls if in Canvas Mode */}
+        {viewMode === 'canvas' && !canvasError ? (
+          <div className="flex items-center gap-2">
+            {/* Page Nav */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handlePrevPage}
+                disabled={currentPage <= 1 || loading}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Previous Page"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-200 px-1 min-w-[60px] text-center">
+                {loading ? '...' : `${currentPage}/${numPages}`}
+              </span>
+              <button
+                type="button"
+                onClick={handleNextPage}
+                disabled={currentPage >= numPages || loading}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Next Page"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Zoom Controls */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleZoomOut}
+                disabled={loading || scale <= 0.4}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleZoomIn}
+                disabled={loading || scale >= 3.0}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleRotate}
+                disabled={loading}
+                className="p-1 sm:p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ml-1"
+                title="Rotate 90deg"
+              >
+                <RotateCw className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-1.5">
+          {onDownload && (
+            <button
+              type="button"
+              onClick={onDownload}
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Download Document"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+          )}
+          {fileUrl && (
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              title="Open in Full Tab"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
         </div>
       </div>
 
-      {/* Main Document Viewing Canvas Area */}
-      <div className="flex-1 overflow-auto flex items-center justify-center p-3 sm:p-6 custom-scrollbar relative">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
-            <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-            <span className="text-xs font-semibold">Rendering PDF pages...</span>
-          </div>
+      {/* Main Body: Native iframe View OR Canvas View */}
+      <div className="flex-1 w-full h-full min-h-[500px] overflow-hidden relative">
+        {viewMode === 'native' ? (
+          <iframe
+            src={`${fileUrl}#toolbar=1&navpanes=0`}
+            title={fileName || 'PDF Document'}
+            className="w-full h-full min-h-[500px] border-0 rounded-b-2xl bg-white"
+          />
         ) : (
-          <div className="shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 transition-all duration-150">
-            <canvas ref={canvasRef} className="block max-w-none" />
+          <div className="w-full h-full overflow-auto flex items-center justify-center p-3 sm:p-6 custom-scrollbar relative">
+            {loading ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-16 text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+                <span className="text-xs font-semibold">Rendering PDF pages...</span>
+              </div>
+            ) : canvasError ? (
+              <div className="flex flex-col items-center justify-center p-6 text-center gap-3">
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
+                  Canvas mode encountered an issue parsing this layout. Switched to standard reader.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('native')}
+                  className="btn-primary py-2 px-4 text-xs font-bold"
+                >
+                  Switch to Standard Viewer
+                </button>
+              </div>
+            ) : (
+              <div className="shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 transition-all duration-150">
+                <canvas ref={canvasRef} className="block max-w-none" />
+              </div>
+            )}
           </div>
         )}
       </div>
+
     </div>
   );
 };
