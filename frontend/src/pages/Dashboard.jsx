@@ -708,7 +708,11 @@ const Dashboard = () => {
         console.warn('Speech recognition notice:', event.error);
         setIsListening(false);
         if (event.error !== 'no-speech') {
-          showToast('Voice typing error: ' + event.error, 'warning');
+          if (event.error === 'not-allowed') {
+            showToast('Microphone access blocked. Click the lock/tune icon in your browser URL bar and allow Microphone.', 'warning');
+          } else {
+            showToast('Voice typing notice: ' + event.error, 'warning');
+          }
         }
       };
 
@@ -5479,113 +5483,225 @@ const Dashboard = () => {
 
         {/* TAB 5: SETTINGS */}
         {activeTab === 'settings' && (
-          <div className="glass-card p-6 flex flex-col gap-6 animate-fade-in max-w-xl">
-            <div>
-              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Appearance & Preferences</h3>
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Personalize your workspace aesthetics and default vault layout.
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    {theme === 'dark' ? <Moon className="w-4 h-4 text-amber-400" /> : <Sun className="w-4 h-4 text-amber-500" />}
-                    <div>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Theme Mode</p>
-                      <p className="text-[10px] text-slate-400 capitalize">{theme || 'System'} Theme</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleTheme}
-                    className="btn-secondary py-1.5 px-3 text-xs font-bold cursor-pointer"
-                  >
-                    Switch to {theme === 'dark' ? 'Light' : 'Dark'}
-                  </button>
+          <div className="space-y-6 animate-fade-in pb-10 max-w-4xl">
+            {/* Header Description */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-5 rounded-2xl bg-gradient-to-r from-sky-500/10 via-indigo-500/5 to-transparent border border-sky-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+                  <Sliders className="w-5 h-5" />
                 </div>
-
-                <div className="p-3.5 bg-slate-50 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 rounded-xl flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    {layoutMode === 'grid' ? <Grid className="w-4 h-4 text-brand-primary" /> : <List className="w-4 h-4 text-brand-primary" />}
-                    <div>
-                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Default Layout</p>
-                      <p className="text-[10px] text-slate-400 capitalize">{layoutMode} View</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleToggleLayout}
-                    className="btn-secondary py-1.5 px-3 text-xs font-bold cursor-pointer"
-                  >
-                    Switch to {layoutMode === 'grid' ? 'List' : 'Grid'}
-                  </button>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-850 dark:text-white">Workspace Preferences</h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Customize your console theme, layout preferences, and shared laboratory safety.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
-              <h3 className="text-base font-bold text-slate-800 dark:text-white mb-1">Inactivity Timeout Auto-Logout</h3>
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                To protect your credential safety on shared public laboratory stations, configure how long the console can remain idle before logging you out automatically.
-              </p>
-              
-              <div className="relative">
-                <select
-                  value={inactivityLimit}
-                  onChange={handleInactivityChange}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-700 dark:text-slate-300 outline-none"
-                >
-                  <option value="disabled">Disabled (Do not logout automatically)</option>
-                  <option value="5">5 Minutes</option>
-                  <option value="15">15 Minutes</option>
-                  <option value="30">30 Minutes</option>
-                </select>
+            {/* Appearance & Interface Card */}
+            <div className="glass-card p-6 flex flex-col gap-5 border border-slate-200/80 dark:border-slate-800">
+              <div className="border-b border-slate-150 dark:border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                    <Sun className="w-4 h-4 text-amber-500" /> Theme & Layout Experience
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Choose your preferred visual mode and file view</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Theme Mode Selector Cards */}
+                <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Theme Appearance</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => theme === 'dark' && toggleTheme()}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+                        theme !== 'dark'
+                          ? 'border-brand-primary bg-white dark:bg-slate-800 shadow-xs ring-2 ring-brand-primary/20'
+                          : 'border-slate-200 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Sun className={`w-4 h-4 ${theme !== 'dark' ? 'text-amber-500' : 'text-slate-400'}`} />
+                        {theme !== 'dark' && <CheckCircle2 className="w-4 h-4 text-brand-primary" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-white">Light Mode</p>
+                        <p className="text-[10px] text-slate-400">Bright & clear</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => theme !== 'dark' && toggleTheme()}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+                        theme === 'dark'
+                          ? 'border-brand-primary bg-slate-800 shadow-xs ring-2 ring-brand-primary/20'
+                          : 'border-slate-200 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Moon className={`w-4 h-4 ${theme === 'dark' ? 'text-amber-400' : 'text-slate-400'}`} />
+                        {theme === 'dark' && <CheckCircle2 className="w-4 h-4 text-brand-primary" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800 dark:text-white">Dark Mode</p>
+                        <p className="text-[10px] text-slate-400">Easy on the eyes</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Vault Layout Selector Cards */}
+                <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/70 dark:border-slate-800 space-y-3">
+                  <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Default Vault Layout</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => layoutMode !== 'grid' && handleToggleLayout()}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+                        layoutMode === 'grid'
+                          ? 'border-brand-primary bg-white dark:bg-slate-800 shadow-xs ring-2 ring-brand-primary/20'
+                          : 'border-slate-200 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <Grid className={`w-4 h-4 ${layoutMode === 'grid' ? 'text-brand-primary' : 'text-slate-400'}`} />
+                        {layoutMode === 'grid' && <CheckCircle2 className="w-4 h-4 text-brand-primary" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-850 dark:text-white">Grid View</p>
+                        <p className="text-[10px] text-slate-400">Visual cards</p>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => layoutMode !== 'list' && handleToggleLayout()}
+                      className={`p-3 rounded-xl border text-left flex flex-col gap-2 transition-all cursor-pointer ${
+                        layoutMode === 'list'
+                          ? 'border-brand-primary bg-white dark:bg-slate-800 shadow-xs ring-2 ring-brand-primary/20'
+                          : 'border-slate-200 dark:border-slate-700/60 hover:bg-white/50 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <List className={`w-4 h-4 ${layoutMode === 'list' ? 'text-brand-primary' : 'text-slate-400'}`} />
+                        {layoutMode === 'list' && <CheckCircle2 className="w-4 h-4 text-brand-primary" />}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-slate-850 dark:text-white">List View</p>
+                        <p className="text-[10px] text-slate-400">Compact rows</p>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
-              <div className="flex justify-between items-center gap-4 mb-1">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white">Active Sessions & Logins</h3>
+            {/* Inactivity Auto-Logout Timeout */}
+            <div className="glass-card p-6 flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800">
+              <div className="border-b border-slate-150 dark:border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-brand-primary" /> Inactivity Auto-Logout (Lab Computer Safety)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Prevents students on college lab computers from accessing your files if you forget to log out.
+                  </p>
+                </div>
+                <span className="hidden sm:inline px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  Protected
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                {[
+                  { value: '5', label: '5 Minutes', desc: 'High security (Recommended for labs)' },
+                  { value: '15', label: '15 Minutes', desc: 'Balanced protection' },
+                  { value: '30', label: '30 Minutes', desc: 'Extended session' },
+                  { value: 'disabled', label: 'Disabled', desc: 'Stay logged in indefinitely' }
+                ].map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => handleInactivityChange({ target: { value: opt.value } })}
+                    className={`p-3 rounded-xl border text-left flex flex-col justify-between gap-1 transition-all cursor-pointer ${
+                      inactivityLimit === opt.value
+                        ? 'border-brand-primary bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light ring-2 ring-brand-primary/20'
+                        : 'border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold">{opt.label}</span>
+                      {inactivityLimit === opt.value && <CheckCircle2 className="w-3.5 h-3.5" />}
+                    </div>
+                    <p className="text-[10px] text-slate-400 line-clamp-1">{opt.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Active Sessions & Logins */}
+            <div className="glass-card p-6 flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-150 dark:border-slate-800 pb-3">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-brand-primary" /> Active Sessions & Login Audit
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Real-time record of IP addresses and device connections to your vault account.
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={handleSignOutOthers}
-                  className="btn-primary py-1.5 px-3 text-[10px] font-bold shrink-0 cursor-pointer"
+                  className="btn-secondary py-1.5 px-3.5 text-xs font-bold text-red-600 dark:text-red-400 border-red-500/20 hover:bg-red-50 dark:hover:bg-red-950/20 shrink-0 cursor-pointer"
                 >
                   Sign Out Other Devices
                 </button>
               </div>
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
-                Verify your recent login activity to ensure your session was not left active on another device.
-              </p>
-              
-              <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800 rounded-xl overflow-hidden">
-                <div className="max-h-[160px] overflow-y-auto custom-scrollbar">
+
+              <div className="rounded-xl border border-slate-200/80 dark:border-slate-800 overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="max-h-[220px] overflow-y-auto custom-scrollbar divide-y divide-slate-200/60 dark:divide-slate-800">
                   {logsLoading ? (
-                    <div className="flex justify-center items-center py-6">
+                    <div className="flex justify-center items-center py-8">
                       <div className="w-5 h-5 rounded-full border-2 border-brand-primary border-t-transparent animate-spin"></div>
                     </div>
                   ) : loginLogs.length === 0 ? (
-                    <div className="text-center py-6 text-slate-400 text-xs">
-                      No login logs available.
+                    <div className="text-center py-8 text-slate-400 text-xs">
+                      No recent login records found.
                     </div>
                   ) : (
-                    <div className="divide-y divide-slate-150 dark:divide-slate-800/80">
-                      {loginLogs.map((log) => (
-                        <div key={log.id} className="flex justify-between items-center py-2.5 px-4 text-xs">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="font-semibold text-slate-700 dark:text-slate-300">
-                              IP: {log.ip_address || 'Unknown'}
-                            </span>
-                            <span className="text-[10px] text-slate-400 hidden sm:block">
-                              {log.email}
+                    loginLogs.map((log, idx) => (
+                      <div key={log.id || idx} className="p-3 sm:px-4 flex items-center justify-between gap-3 text-xs hover:bg-slate-100/50 dark:hover:bg-slate-800/40 transition-colors">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-8 h-8 rounded-lg bg-sky-500/10 text-brand-primary flex items-center justify-center shrink-0">
+                            <Globe className="w-4 h-4" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-slate-800 dark:text-slate-200 text-xs">
+                                {log.ip_address || 'Current IP'}
+                              </span>
+                              {idx === 0 && (
+                                <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                                  Current Active
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 truncate block">
+                              {log.email || user?.email}
                             </span>
                           </div>
-                          <span className="text-[10px] text-slate-400 hidden sm:block">
-                            {new Date(log.login_time).toLocaleString()}
-                          </span>
                         </div>
-                      ))}
-                    </div>
+                        <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                          {new Date(log.login_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                        </span>
+                      </div>
+                    ))
                   )}
                 </div>
               </div>
@@ -5595,186 +5711,261 @@ const Dashboard = () => {
 
         {/* TAB 6: PROFILE INFO */}
         {activeTab === 'profile' && (
-          <div className="space-y-6 animate-fade-in pb-8">
-            {/* 1. Quick Stats Overview Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
-                  <File className="w-5 h-5" />
+          <div className="space-y-6 animate-fade-in pb-12 max-w-5xl">
+            {/* Hero Profile Banner Card */}
+            <div className="rounded-2xl p-6 sm:p-7 bg-gradient-to-r from-sky-500/10 via-indigo-500/5 to-transparent border border-sky-500/20 relative overflow-hidden flex flex-col sm:flex-row items-center sm:items-start gap-6 shadow-xs">
+              <div className="relative shrink-0">
+                <div className="w-24 h-24 rounded-2xl border-3 border-white dark:border-slate-800 shadow-xl bg-gradient-to-tr from-brand-primary/20 via-sky-400/20 to-indigo-500/20 flex items-center justify-center font-display font-extrabold text-brand-primary text-3xl uppercase overflow-hidden ring-4 ring-brand-primary/10">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'ST')
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="absolute -bottom-2 -right-2 p-2 rounded-xl bg-brand-primary text-white shadow-lg hover:scale-105 active:scale-95 transition-transform cursor-pointer border-2 border-white dark:border-slate-900"
+                  title="Upload profile picture"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                </button>
+                <input
+                  type="file"
+                  ref={avatarInputRef}
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  accept="image/*"
+                />
+              </div>
+
+              <div className="flex-1 text-center sm:text-left min-w-0">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1.5">
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-850 dark:text-white truncate">
+                    {fullName || 'Student Explorer'}
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-primary/15 text-brand-primary uppercase tracking-wider flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Student Vault
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-4 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 mt-2">
+                  <span className="flex items-center gap-1.5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    {user?.email}
+                  </span>
+                  {college && (
+                    <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                      <GraduationCap className="w-3.5 h-3.5 text-brand-primary shrink-0" />
+                      {college}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    Member since {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '2026'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Metrics Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+              <div className="glass-card p-4.5 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 hover:-translate-y-0.5 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-brand-primary/10 text-brand-primary flex items-center justify-center shrink-0">
+                  <File className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Vault Files</p>
-                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vault Files</p>
+                  <h4 className="text-lg font-black text-slate-850 dark:text-white mt-0.5">
                     {files.filter(f => !f.is_deleted).length}
                   </h4>
-                  <p className="text-[10px] text-slate-400 truncate">Total active files</p>
+                  <p className="text-[10px] text-slate-400">Active documents</p>
                 </div>
               </div>
 
-              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                  <UploadCloud className="w-5 h-5" />
+              <div className="glass-card p-4.5 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 hover:-translate-y-0.5 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                  <HardDrive className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Storage Used</p>
-                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
-                    {Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%
+                  <div className="flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Storage</p>
+                    <span className="text-[10px] font-bold text-emerald-500">
+                      {Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%
+                    </span>
+                  </div>
+                  <h4 className="text-base font-black text-slate-850 dark:text-white mt-0.5 truncate">
+                    {formatBytes(usedStorage)}
                   </h4>
-                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-1.5 overflow-hidden">
-                    <div 
-                      className="bg-emerald-500 h-full rounded-full transition-all" 
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full mt-1 overflow-hidden">
+                    <div
+                      className="bg-emerald-500 h-full rounded-full transition-all"
                       style={{ width: `${Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%` }}
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                  <Clipboard className="w-5 h-5" />
+              <div className="glass-card p-4.5 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 hover:-translate-y-0.5 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                  <Clipboard className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Clipboard Notes</p>
-                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Clipboard Notes</p>
+                  <h4 className="text-lg font-black text-slate-850 dark:text-white mt-0.5">
                     {notes.filter(n => !n.is_deleted).length}
                   </h4>
-                  <p className="text-[10px] text-slate-400 truncate">Saved text clippings</p>
+                  <p className="text-[10px] text-slate-400">Saved snippets</p>
                 </div>
               </div>
 
-              <div className="glass-card p-4.5 border-slate-200/70 dark:border-slate-800 flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
-                  <Shield className="w-5 h-5" />
+              <div className="glass-card p-4.5 border-slate-200/80 dark:border-slate-800 flex items-center gap-3.5 hover:-translate-y-0.5 transition-transform duration-200">
+                <div className="w-11 h-11 rounded-xl bg-sky-500/10 text-brand-primary flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Security Tier</p>
-                  <h4 className="text-xl font-bold text-slate-800 dark:text-white mt-0.5 flex items-center gap-1.5">
-                    Active <Check className="w-4 h-4 text-emerald-500" />
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Encryption</p>
+                  <h4 className="text-base font-black text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                    AES-256 <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </h4>
-                  <p className="text-[10px] text-slate-400 truncate">AES-256 Enabled</p>
+                  <p className="text-[10px] text-slate-400">End-to-End Ready</p>
                 </div>
               </div>
             </div>
 
+            {/* 2-Column Responsive Form Layout */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-              {/* Left: Profile Information */}
-              <div className="glass-card p-6 flex flex-col gap-5 border-slate-200/70 dark:border-slate-800">
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-4">
-                  <div>
-                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                      <User className="w-4.5 h-4.5 text-brand-primary" /> Profile Information
+              {/* Left Column: Personal Information & Storage Upgrade */}
+              <div className="space-y-6">
+                {/* Personal Information */}
+                <div className="glass-card p-6 flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800">
+                  <div className="border-b border-slate-150 dark:border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                      <User className="w-4 h-4 text-brand-primary" /> Profile Details
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Manage your personal identification details</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Update your personal identification information</p>
                   </div>
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-brand-primary/10 text-brand-primary uppercase tracking-wider">
-                    Student Vault
-                  </span>
-                </div>
-                
-                {/* Profile Hero Avatar Box */}
-                <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800/60">
-                  <div className="relative shrink-0">
-                    <div className="w-20 h-20 rounded-2xl border-2 border-brand-primary/40 bg-gradient-to-tr from-brand-primary/20 to-sky-400/20 flex items-center justify-center font-display font-bold text-brand-primary text-2xl uppercase overflow-hidden shadow-inner">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                      ) : (
-                        (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
-                      )}
-                    </div>
-                    <button 
-                      onClick={() => avatarInputRef.current?.click()}
-                      className="absolute -bottom-1.5 -right-1.5 p-1.5 rounded-xl w-7 h-7 flex items-center justify-center shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
-                      type="button"
-                      title="Upload avatar photo"
-                    >
-                      <Camera className="w-3.5 h-3.5 text-slate-600 dark:text-slate-300" />
-                    </button>
-                    <input 
-                      type="file" 
-                      ref={avatarInputRef} 
-                      onChange={handleAvatarUpload} 
-                      className="hidden" 
-                      accept="image/*" 
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <h4 className="text-lg font-bold text-slate-800 dark:text-white truncate">
-                      {fullName || 'Student User'}
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5 mt-0.5 truncate">
-                      <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      {user?.email}
-                    </p>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1 flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      Member since: {user?.created_at ? new Date(user.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'Recent'}
-                    </p>
-                  </div>
-                </div>
 
-                <form onSubmit={handleProfileSave} className="space-y-4 pt-1">
-                  <div>
-                    <label className="label-title flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-brand-primary" /> Full Display Name *
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Enter your full display name"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="input-field"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="label-title flex items-center gap-1.5">
-                      <GraduationCap className="w-3.5 h-3.5 text-brand-primary" /> College / Institution
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="E.g. XYZ Institute of Technology"
-                      value={college}
-                      onChange={(e) => setCollege(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                  <div>
-                    <label className="label-title flex items-center gap-1.5">
-                      <Mail className="w-3.5 h-3.5 text-slate-400" /> Registered Email (Linked Account)
-                    </label>
-                    <div className="relative">
+                  <form onSubmit={handleProfileSave} className="space-y-4">
+                    <div>
+                      <label className="label-title">FULL DISPLAY NAME</label>
                       <input
                         type="text"
-                        value={user?.email || ''}
-                        disabled
-                        className="input-field bg-slate-100/70 dark:bg-slate-900/60 text-slate-500 dark:text-slate-400 cursor-not-allowed pr-8"
+                        placeholder="Enter your full name"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="input-field"
+                        required
                       />
-                      <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5" />
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-1 block">Email address cannot be changed directly for security reasons.</span>
+
+                    <div>
+                      <label className="label-title">COLLEGE / INSTITUTION</label>
+                      <input
+                        type="text"
+                        placeholder="E.g. XYZ Institute of Engineering & Technology"
+                        value={college}
+                        onChange={(e) => setCollege(e.target.value)}
+                        className="input-field"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="label-title">REGISTERED ACCOUNT EMAIL</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={user?.email || ''}
+                          disabled
+                          className="input-field bg-slate-100/80 dark:bg-slate-900/80 text-slate-400 cursor-not-allowed pr-8 font-mono text-xs"
+                        />
+                        <Lock className="w-3.5 h-3.5 text-slate-400 absolute right-3 top-3.5" />
+                      </div>
+                      <span className="text-[10px] text-slate-400 mt-1 block">
+                        Account email is locked for credential security.
+                      </span>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full btn-primary py-2.5 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                    >
+                      <Check className="w-4 h-4" /> Save Profile Details
+                    </button>
+                  </form>
+                </div>
+
+                {/* Storage Quota & Capacity Upgrade */}
+                <div className="glass-card p-6 flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800">
+                  <div className="border-b border-slate-150 dark:border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                      <UploadCloud className="w-4 h-4 text-brand-primary" /> Storage Quota & Capacity
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Manage your free cloud storage allocation</p>
                   </div>
-                  <button 
-                    type="submit" 
-                    className="w-full btn-primary py-3 text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md mt-2"
-                  >
-                    <Check className="w-4 h-4" /> Save Profile Details
-                  </button>
-                </form>
+
+                  <div className="p-4 rounded-xl bg-slate-50/80 dark:bg-slate-900/60 border border-slate-200/60 dark:border-slate-800 flex flex-col gap-2.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-slate-500 dark:text-slate-400 font-medium">Allocated Usage:</span>
+                      <strong className="font-bold text-slate-850 dark:text-white">
+                        {formatBytes(usedStorage)} / <span className="text-brand-primary">{formatBytes(storageLimit)}</span>
+                      </strong>
+                    </div>
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          (usedStorage / (storageLimit || 1)) > 0.85 ? 'bg-red-500' : 'bg-brand-primary'
+                        }`}
+                        style={{ width: `${Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%` }}
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                      Standard student vaults start with 100 MB free quota. Request additional storage for semester lab work.
+                    </p>
+                  </div>
+
+                  {requestPending ? (
+                    <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-semibold">
+                      <AlertTriangle className="w-4.5 h-4.5 flex-shrink-0" />
+                      <span>Pending Upgrade Request: Admin will review your allocation request shortly.</span>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleUpgradeRequest} className="space-y-3">
+                      <div>
+                        <label className="label-title">REQUEST ADDITIONAL STORAGE TARGET</label>
+                        <select
+                          value={requestedLimit}
+                          onChange={(e) => setRequestedLimit(e.target.value)}
+                          className="input-field py-2 text-xs"
+                        >
+                          <option value="209715200">200 MB (+100 MB Upgrade)</option>
+                          <option value="314572800">300 MB (+200 MB Upgrade)</option>
+                          <option value="524288000">500 MB (+400 MB High Capacity)</option>
+                          <option value="1073741824">1 GB (Full Project Tier)</option>
+                        </select>
+                      </div>
+                      <button type="submit" className="w-full btn-secondary py-2.5 text-xs font-bold cursor-pointer">
+                        Submit Storage Request
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
 
-              {/* Right: Security & Storage Quota & Danger Zone */}
-              <div className="flex flex-col gap-6">
-                {/* Security (Change Password) */}
-                <div className="glass-card p-6 flex flex-col gap-4 border-slate-200/70 dark:border-slate-800">
-                  <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                      <Lock className="w-4.5 h-4.5 text-brand-primary" /> Security & Password
+              {/* Right Column: Password & Credentials & Danger Zone */}
+              <div className="space-y-6">
+                {/* Security & Password */}
+                <div className="glass-card p-6 flex flex-col gap-4 border border-slate-200/80 dark:border-slate-800">
+                  <div className="border-b border-slate-150 dark:border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-slate-850 dark:text-white flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-brand-primary" /> Security & Password
                     </h3>
                     <p className="text-xs text-slate-400 mt-0.5">Update your account login password</p>
                   </div>
+
                   <form onSubmit={handlePasswordUpdate} className="space-y-4">
                     <div>
-                      <label className="label-title">New Password</label>
+                      <label className="label-title">NEW PASSWORD</label>
                       <div className="relative">
                         <input
                           type={showNewPassword ? 'text' : 'password'}
@@ -5794,12 +5985,13 @@ const Dashboard = () => {
                         </button>
                       </div>
                     </div>
+
                     <div>
-                      <label className="label-title">Confirm New Password</label>
+                      <label className="label-title">CONFIRM NEW PASSWORD</label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? 'text' : 'password'}
-                          placeholder="Re-enter new password"
+                          placeholder="Re-enter password"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           className="input-field pr-10"
@@ -5815,83 +6007,29 @@ const Dashboard = () => {
                         </button>
                       </div>
                     </div>
-                    <button 
-                      type="submit" 
-                      disabled={passwordLoading} 
-                      className="w-full btn-primary py-2.5 text-xs font-bold cursor-pointer"
+
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      className="w-full btn-primary py-2.5 text-xs font-bold cursor-pointer shadow-xs disabled:opacity-50"
                     >
                       {passwordLoading ? 'Updating Password...' : 'Update Password'}
                     </button>
                   </form>
                 </div>
 
-                {/* Storage upgrade request */}
-                <div className="glass-card p-6 flex flex-col gap-4 border-slate-200/70 dark:border-slate-800">
-                  <div className="border-b border-slate-100 dark:border-slate-800/80 pb-3">
-                    <h3 className="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                      <UploadCloud className="w-4.5 h-4.5 text-brand-primary" /> Storage Quota & Upgrades
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Manage your personal cloud capacity</p>
-                  </div>
-
-                  <div className="p-4 rounded-xl bg-slate-50/70 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 flex flex-col gap-2.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="text-slate-500 dark:text-slate-400 font-medium">Used:</span>
-                      <strong className="font-bold text-slate-800 dark:text-white">
-                        {formatBytes(usedStorage)} / <span className="text-brand-primary">{formatBytes(storageLimit)}</span>
-                      </strong>
-                    </div>
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full rounded-full transition-all ${
-                          (usedStorage / (storageLimit || 1)) > 0.85 ? 'bg-red-500' : 'bg-brand-primary'
-                        }`} 
-                        style={{ width: `${Math.min(100, Math.round((usedStorage / (storageLimit || 1)) * 100))}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
-                      Standard student vaults start with 100 MB. You can request high-capacity allocation for laboratory assignments, datasets, and archives.
-                    </p>
-                  </div>
-
-                  {requestPending ? (
-                    <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl text-xs font-semibold">
-                      <AlertTriangle className="w-4.5 h-4.5 flex-shrink-0" />
-                      <span>You have a pending upgrade request. An administrator will review it shortly.</span>
-                    </div>
-                  ) : (
-                    <form onSubmit={handleUpgradeRequest} className="space-y-4">
-                      <div>
-                        <label className="label-title">CHOOSE NEW STORAGE TARGET</label>
-                        <select
-                          value={requestedLimit}
-                          onChange={(e) => setRequestedLimit(e.target.value)}
-                          className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-700 dark:text-slate-300 outline-none"
-                        >
-                          <option value="209715200">200 MB (+100 MB)</option>
-                          <option value="314572800">300 MB (+200 MB)</option>
-                          <option value="524288000">500 MB (+400 MB)</option>
-                          <option value="1073741824">1 GB (Pro Student Tier)</option>
-                        </select>
-                      </div>
-                      <button type="submit" className="w-full btn-primary py-2.5 text-xs font-bold cursor-pointer">
-                        Request Storage Upgrade
-                      </button>
-                    </form>
-                  )}
-                </div>
-
-                {/* Danger Zone */}
-                <div className="glass-card p-6 border-red-500/25 bg-red-500/5 flex flex-col gap-3">
-                  <h3 className="text-base font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
-                    <ShieldAlert className="w-4.5 h-4.5" /> Danger Zone
+                {/* Account Danger Zone */}
+                <div className="glass-card p-6 border border-red-500/20 bg-red-500/5 flex flex-col gap-3">
+                  <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4" /> Danger Zone
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Deleting your account will permanently wipe all vault files, clipboard notes, and profile configurations. This cannot be undone.
+                    Permanently delete your account and all associated vault files, clipboard notes, and configurations.
                   </p>
                   <button
-                    onClick={triggerWipeAccount}
-                    className="w-full btn-danger py-2.5 text-xs font-bold mt-1 cursor-pointer"
+                    type="button"
+                    onClick={handleDeleteAccount}
+                    className="btn-danger bg-red-600 hover:bg-red-750 text-white py-2 px-4 text-xs font-bold self-start mt-1 cursor-pointer border-0 shadow-xs"
                   >
                     Delete Account
                   </button>
