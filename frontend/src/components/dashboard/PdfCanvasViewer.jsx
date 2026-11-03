@@ -1,9 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCw, Loader2, Download, ExternalLink, AlertCircle } from 'lucide-react';
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Configure PDF.js worker from local static asset
+if (typeof window !== 'undefined') {
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+  } catch (err) {
+    console.warn('Failed to set PDF workerSrc:', err);
+  }
+}
 
 const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
   const [numPages, setNumPages] = useState(0);
@@ -33,8 +39,11 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
 
         const loadingTask = pdfjsLib.getDocument({
           data: new Uint8Array(arrayBuffer),
-          cMapUrl: 'https://unpkg.com/pdfjs-dist@6.5.438/cmaps/',
+          cMapUrl: '/cmaps/',
           cMapPacked: true,
+          standardFontDataUrl: '/standard_fonts/',
+          enableXfa: true,
+          isEvalSupported: false,
         });
 
         const pdf = await loadingTask.promise;
@@ -70,7 +79,9 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
     return () => {
       isCancelled = true;
       if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
+        try {
+          renderTaskRef.current.cancel();
+        } catch {}
       }
     };
   }, [fileUrl]);
@@ -85,7 +96,9 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
       try {
         // Cancel any pending render task to prevent collision
         if (renderTaskRef.current) {
-          renderTaskRef.current.cancel();
+          try {
+            renderTaskRef.current.cancel();
+          } catch {}
         }
 
         const page = await pdfDocRef.current.getPage(currentPage);
@@ -117,7 +130,7 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
         renderTaskRef.current = renderTask;
         await renderTask.promise;
       } catch (err) {
-        if (err.name !== 'RenderingCancelledException') {
+        if (err?.name !== 'RenderingCancelledException') {
           console.error('Page render error:', err);
         }
       }
@@ -150,41 +163,57 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
     setRotation((prev) => (prev + 90) % 360);
   };
 
+  // If PDF.js fails (e.g. strict worker policy or password-protected PDF), seamlessly embed using native <object>
   if (error) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl border border-slate-200 dark:border-slate-800">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-          <AlertCircle className="w-8 h-8" />
-        </div>
-        <div>
-          <h4 className="text-base font-bold text-slate-850 dark:text-white mb-1">
-            Unable to display PDF preview directly
-          </h4>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">
-            This document might be password-protected or uses features not supported by in-browser rendering.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {onDownload && (
-              <button
-                type="button"
-                onClick={onDownload}
-                className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm"
-              >
-                <Download className="w-4 h-4" /> Download PDF
-              </button>
-            )}
-            {fileUrl && (
-              <a
-                href={fileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-secondary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer"
-              >
-                <ExternalLink className="w-4 h-4" /> Open in New Tab
-              </a>
-            )}
+      <div className="flex-1 flex flex-col h-full w-full overflow-hidden bg-slate-100 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800">
+        {fileUrl ? (
+          <object
+            data={fileUrl}
+            type="application/pdf"
+            className="w-full h-full min-h-[500px] rounded-2xl border-0"
+          >
+            <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4 bg-slate-50 dark:bg-slate-900/60 rounded-2xl h-full">
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
+                <AlertCircle className="w-8 h-8" />
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-slate-850 dark:text-white mb-1">
+                  Unable to display PDF preview directly
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mb-4">
+                  This document might be password-protected or uses features not supported by in-browser rendering.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {onDownload && (
+                    <button
+                      type="button"
+                      onClick={onDownload}
+                      className="btn-primary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      <Download className="w-4 h-4" /> Download PDF
+                    </button>
+                  )}
+                  {fileUrl && (
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary py-2 px-4 text-xs font-bold flex items-center gap-2 cursor-pointer"
+                    >
+                      <ExternalLink className="w-4 h-4" /> Open in New Tab
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </object>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
+            <AlertCircle className="w-8 h-8 text-amber-500" />
+            <p className="text-xs text-slate-500">Document URL is not available.</p>
           </div>
-        </div>
+        )}
       </div>
     );
   }
