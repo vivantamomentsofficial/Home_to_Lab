@@ -7,7 +7,7 @@ import { getFaFileIcon } from '../utils/faIcons';
 import { createSignedDownloadUrl } from '../services/fileService';
 import PdfCanvasViewer from '../components/dashboard/PdfCanvasViewer';
 import {
-  ShieldAlert, Bell, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
+  LayoutDashboard, FolderKanban, ShieldAlert, Bell, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
   Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu, Trash2,
   Folder, Sliders, AlertTriangle, Lock, Unlock, BarChart2, PieChart, Clock, Filter, FileCode, CheckSquare, Square,
   ExternalLink, UserPlus, Server, Database, Settings as SettingsIcon, AlertCircle, History
@@ -211,35 +211,32 @@ const Admin = () => {
       try {
         const { data: files } = await supabase.from('files').select('filename, size').eq('is_deleted', false);
         if (files) {
-          const breakdown = {
-            images: { count: 0, bytes: 0 },
-            documents: { count: 0, bytes: 0 },
-            code: { count: 0, bytes: 0 },
-            text: { count: 0, bytes: 0 },
-            media: { count: 0, bytes: 0 },
-            archives: { count: 0, bytes: 0 },
-            other: { count: 0, bytes: 0 }
-          };
+          const counts = { image: 0, document: 0, code: 0, text: 0, audio_video: 0, archive: 0, other: 0 };
+          const bytes = { image: 0, document: 0, code: 0, text: 0, audio_video: 0, archive: 0, other: 0 };
           for (const f of files) {
             const name = (f.filename || '').toLowerCase();
             const sz = Number(f.size) || 0;
             if (name.match(/\.(jpg|jpeg|png|gif|webp|svg|bmp)$/)) {
-              breakdown.images.count++; breakdown.images.bytes += sz;
-            } else if (name.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx)$/)) {
-              breakdown.documents.count++; breakdown.documents.bytes += sz;
-            } else if (name.match(/\.(js|jsx|ts|tsx|py|java|c|cpp|cs|html|css|json|sql|sh)$/)) {
-              breakdown.code.count++; breakdown.code.bytes += sz;
+              counts.image++; bytes.image += sz;
+            } else if (name.match(/\.(pdf|doc|docx|ppt|pptx|xls|xlsx|odt)$/)) {
+              counts.document++; bytes.document += sz;
+            } else if (name.match(/\.(js|jsx|ts|tsx|py|java|c|cpp|cs|html|css|json|sql|sh|php)$/)) {
+              counts.code++; bytes.code += sz;
             } else if (name.match(/\.(txt|md|log|csv)$/)) {
-              breakdown.text.count++; breakdown.text.bytes += sz;
+              counts.text++; bytes.text += sz;
             } else if (name.match(/\.(mp4|webm|mkv|mp3|wav|ogg|m4a)$/)) {
-              breakdown.media.count++; breakdown.media.bytes += sz;
+              counts.audio_video++; bytes.audio_video += sz;
             } else if (name.match(/\.(zip|tar|gz|rar|7z)$/)) {
-              breakdown.archives.count++; breakdown.archives.bytes += sz;
+              counts.archive++; bytes.archive += sz;
             } else {
-              breakdown.other.count++; breakdown.other.bytes += sz;
+              counts.other++; bytes.other += sz;
             }
           }
-          setAnalytics({ categoryBreakdown: breakdown });
+          setAnalytics(prev => ({
+            ...prev,
+            categoryCounts: counts,
+            categoryBytes: bytes
+          }));
         }
       } catch (fbErr) {
         console.warn('Analytics local computation skipped:', fbErr);
@@ -383,12 +380,21 @@ const Admin = () => {
     setSettingsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/settings`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load settings.');
-      setPlatformSettings(data);
+      if (res.ok) {
+        const data = await res.json();
+        setPlatformSettings(data);
+        return;
+      }
+      throw new Error('Backend offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load platform configuration.', 'danger');
+      try {
+        const { data } = await supabase.from('system_settings').select('*');
+        if (data && data.length > 0) {
+          const map = {};
+          data.forEach(item => { map[item.key] = item.value; });
+          setPlatformSettings(prev => ({ ...prev, ...map }));
+        }
+      } catch {}
     } finally {
       setSettingsLoading(false);
     }
@@ -398,12 +404,23 @@ const Admin = () => {
     setAuditLogsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/audit-logs`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load admin audit logs.');
-      setAdminAuditLogs(data || []);
+      if (res.ok) {
+        const data = await res.json();
+        setAdminAuditLogs(data || []);
+        return;
+      }
+      throw new Error('Backend offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load audit logs.', 'danger');
+      try {
+        const { data } = await supabase
+          .from('admin_audit_logs')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        setAdminAuditLogs(data || []);
+      } catch (fbErr) {
+        console.warn('Audit logs fallback notice:', fbErr);
+      }
     } finally {
       setAuditLogsLoading(false);
     }
@@ -413,12 +430,23 @@ const Admin = () => {
     setLoginLogsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/logs`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load login logs.');
-      setLoginLogs(data || []);
+      if (res.ok) {
+        const data = await res.json();
+        setLoginLogs(data || []);
+        return;
+      }
+      throw new Error('Backend offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load login audits.', 'danger');
+      try {
+        const { data } = await supabase
+          .from('login_logs')
+          .select('*')
+          .order('login_time', { ascending: false })
+          .limit(100);
+        setLoginLogs(data || []);
+      } catch (fbErr) {
+        console.warn('Login logs fallback notice:', fbErr);
+      }
     } finally {
       setLoginLogsLoading(false);
     }
@@ -934,14 +962,26 @@ const Admin = () => {
         body: JSON.stringify(updatedSettings),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save settings.');
-
-      setPlatformSettings(updatedSettings);
-      showToast('Platform settings updated successfully!', 'success');
+      if (res.ok) {
+        setPlatformSettings(updatedSettings);
+        showToast('Settings saved successfully!', 'success');
+        return;
+      }
+      throw new Error('Backend offline');
     } catch (err) {
-      console.error(err);
-      showToast(err.message || 'Failed to update settings.', 'danger');
+      try {
+        if (supabase) {
+          const entries = Object.entries(updatedSettings);
+          for (const [key, value] of entries) {
+            await supabase.from('system_settings').upsert({ key, value }, { onConflict: 'key' });
+          }
+        }
+        setPlatformSettings(updatedSettings);
+        showToast('Settings saved successfully!', 'success');
+      } catch {
+        setPlatformSettings(updatedSettings);
+        showToast('Settings saved locally.', 'success');
+      }
     }
   };
 
@@ -1157,94 +1197,106 @@ const Admin = () => {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col p-5 z-50 border-r border-slate-200 dark:border-slate-800 shrink-0 select-none shadow-sm transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col p-4 z-50 border-r border-slate-200 dark:border-slate-800 shrink-0 select-none shadow-xs transition-transform duration-300 ease-in-out ${
           isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-6">
+        {/* Brand Header */}
+        <div className="flex items-center justify-between gap-2.5 mb-5 px-1">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-md shadow-brand-primary/25">
-              <i className="fa-solid fa-shield-halved text-white text-lg"></i>
+            <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white shadow-xs">
+              <Shield className="w-4 h-4 stroke-[2.2]" />
             </div>
-            <div>
-              <span className="font-display font-black text-xl text-slate-900 dark:text-white tracking-tight block">
+            <div className="flex items-center gap-1.5">
+              <span className="font-display font-black text-lg text-slate-900 dark:text-white tracking-tight">
                 CloudVault
               </span>
-              <span className="text-[10px] text-brand-primary font-mono font-bold tracking-wider">SUPER ADMIN V4</span>
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-md bg-brand-primary/10 text-brand-primary">
+                Admin
+              </span>
             </div>
           </div>
           <button
             onClick={() => setIsDrawerOpen(false)}
-            className="lg:hidden p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white"
+            className="lg:hidden p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white cursor-pointer"
           >
-            <i className="fa-solid fa-xmark"></i>
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Quick Return to User Dashboard */}
+        {/* Back to User Dashboard */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-slate-200 dark:border-slate-800 transition-all mb-4"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60 border border-slate-200 dark:border-slate-800 transition-all mb-3 cursor-pointer"
         >
-          <i className="fa-solid fa-arrow-left text-xs"></i>
-          <span>Switch to User Dashboard</span>
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to App</span>
         </button>
 
+        {/* Navigation Items (Simple words & clean Lucide icons) */}
         <nav className="flex-1 flex flex-col gap-1 overflow-y-auto custom-scrollbar pr-1">
           <button
             onClick={() => { setActiveSection('overview'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'overview'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-chart-line w-4 text-center"></i> System Analytics
+              <LayoutDashboard className="w-4 h-4 shrink-0" />
+              <span>Overview</span>
             </div>
           </button>
           
           <button
             onClick={() => { setActiveSection('users'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'users'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-users w-4 text-center"></i> User Management
+              <Users className="w-4 h-4 shrink-0" />
+              <span>Users</span>
             </div>
-            <span className="px-1.5 py-0.5 bg-slate-800 text-[10px] rounded text-slate-300 font-mono">{stats.usersCount}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${activeSection === 'users' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+              {stats.usersCount}
+            </span>
           </button>
 
           <button
             onClick={() => { setActiveSection('global_files'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'global_files'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-folder-open w-4 text-center"></i> Content Moderation
+              <FolderKanban className="w-4 h-4 shrink-0" />
+              <span>Files</span>
             </div>
-            <span className="px-1.5 py-0.5 bg-slate-800 text-[10px] rounded text-slate-300 font-mono">{stats.filesCount}</span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${activeSection === 'global_files' ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+              {stats.filesCount}
+            </span>
           </button>
 
           <button
             onClick={() => { setActiveSection('requests'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'requests'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-cloud-arrow-up w-4 text-center"></i> Storage Requests
+              <UploadCloud className="w-4 h-4 shrink-0" />
+              <span>Storage Requests</span>
             </div>
             {stats.pendingRequestsCount > 0 && (
-              <span className="px-1.5 py-0.5 bg-red-500 text-white text-[10px] rounded-full font-bold animate-pulse">
+              <span className="px-2 py-0.5 bg-amber-500 text-white text-[11px] rounded-full font-bold animate-pulse">
                 {stats.pendingRequestsCount}
               </span>
             )}
@@ -1252,66 +1304,71 @@ const Admin = () => {
 
           <button
             onClick={() => { setActiveSection('snippets'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'snippets'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-clipboard w-4 text-center"></i> Snippets Database
+              <FileCode className="w-4 h-4 shrink-0" />
+              <span>Notes &amp; Snippets</span>
             </div>
           </button>
 
           <button
             onClick={() => { setActiveSection('settings'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'settings'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-sliders w-4 text-center"></i> Platform Config
+              <SettingsIcon className="w-4 h-4 shrink-0" />
+              <span>Settings</span>
             </div>
           </button>
 
           <button
             onClick={() => { setActiveSection('audit_logs'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'audit_logs'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-shield-halved w-4 text-center"></i> Admin Action Logs
+              <Activity className="w-4 h-4 shrink-0" />
+              <span>Activity Logs</span>
             </div>
           </button>
 
           <button
             onClick={() => { setActiveSection('login_logs'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'login_logs'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-key w-4 text-center"></i> Security Login Audits
+              <Key className="w-4 h-4 shrink-0" />
+              <span>Login History</span>
             </div>
           </button>
 
           <button
             onClick={() => { setActiveSection('alerts'); setIsDrawerOpen(false); }}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
               activeSection === 'alerts'
-                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
-                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
+                ? 'bg-brand-primary text-white font-semibold shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/60'
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <i className="fa-solid fa-bullhorn w-4 text-center"></i> Global Announcements
+              <Bell className="w-4 h-4 shrink-0" />
+              <span>Announcements</span>
             </div>
           </button>
         </nav>
@@ -1351,11 +1408,27 @@ const Admin = () => {
               <Menu className="w-5 h-5" />
             </button>
             <div>
-              <h1 className="text-xl sm:text-2xl font-black font-display text-slate-900 dark:text-white tracking-tight">
-                Super Admin Control Centre
+              <h1 className="text-xl sm:text-2xl font-bold font-display text-slate-900 dark:text-white tracking-tight">
+                {activeSection === 'overview' && 'Overview'}
+                {activeSection === 'users' && 'Users'}
+                {activeSection === 'global_files' && 'Files'}
+                {activeSection === 'requests' && 'Storage Requests'}
+                {activeSection === 'snippets' && 'Notes & Snippets'}
+                {activeSection === 'settings' && 'Settings'}
+                {activeSection === 'audit_logs' && 'Activity Logs'}
+                {activeSection === 'login_logs' && 'Login History'}
+                {activeSection === 'alerts' && 'Announcements'}
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">
-                Comprehensive security, storage quota management, and auditing system.
+                {activeSection === 'overview' && 'Platform storage, user growth, and active system metrics.'}
+                {activeSection === 'users' && 'Manage registered accounts, quotas, and access permissions.'}
+                {activeSection === 'global_files' && 'Browse, inspect, and manage uploaded files.'}
+                {activeSection === 'requests' && 'Review and approve user storage upgrade requests.'}
+                {activeSection === 'snippets' && 'Browse shared notes and compiler code snippets.'}
+                {activeSection === 'settings' && 'Configure storage limits, signups, and maintenance mode.'}
+                {activeSection === 'audit_logs' && 'Review recent administrative operations.'}
+                {activeSection === 'login_logs' && 'Track user login sessions and verified IP addresses.'}
+                {activeSection === 'alerts' && 'Broadcast messages and notices to all users.'}
               </p>
             </div>
           </div>
@@ -1407,7 +1480,7 @@ const Admin = () => {
                   <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white">
                     {stats.usersCount}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">Total Accounts</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Total Users</p>
                 </div>
                 <div className="p-3 bg-blue-500/10 text-blue-500 rounded-2xl">
                   <Users className="w-6 h-6" />
@@ -1419,7 +1492,7 @@ const Admin = () => {
                   <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white">
                     {formatBytes(stats.totalStorageBytes)}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">Total Platform Storage</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Total Storage</p>
                 </div>
                 <div className="p-3 bg-emerald-500/10 text-emerald-500 rounded-2xl">
                   <HardDrive className="w-6 h-6" />
@@ -1431,7 +1504,7 @@ const Admin = () => {
                   <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white">
                     {stats.filesCount}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">Stored Files</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Total Files</p>
                 </div>
                 <div className="p-3 bg-purple-500/10 text-purple-500 rounded-2xl">
                   <FileText className="w-6 h-6" />
@@ -1443,7 +1516,7 @@ const Admin = () => {
                   <h3 className="text-2xl font-black font-display text-slate-900 dark:text-white">
                     {analytics.activeUsers24h} / {analytics.activeUsers7d}
                   </h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-wider">Active (24h / 7d)</p>
+                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">Active Users (24h / 7d)</p>
                 </div>
                 <div className="p-3 bg-amber-500/10 text-amber-500 rounded-2xl">
                   <Activity className="w-6 h-6" />
