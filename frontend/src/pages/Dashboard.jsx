@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import QRCode from 'qrcode';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -51,12 +51,12 @@ import ShareModal from '../components/dashboard/ShareModal';
 import StorageAnalytics from '../components/dashboard/StorageAnalytics';
 
 import {
-  ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
+  LayoutDashboard, ShieldAlert, Bell, Folder, File, FileText, HelpCircle,
   Grid, List, Search, MoreVertical, Eye, Download, Trash, Edit3, Share2, Plus, ArrowLeft,
   X, Check, AlertTriangle, Shield, Camera, Menu, Mic, RotateCcw, Lock, Unlock, Play,
   History, UploadCloud, Clipboard, FolderKanban, Calendar, ArrowUpDown, Globe, Clock, Sparkles, Copy,
   EyeOff, User, GraduationCap, Mail, Sun, Moon, QrCode, RefreshCw, MicOff, ChevronRight, Home, FolderPlus,
-  Sliders, CheckCircle2, ArrowRight, ShieldCheck, HardDrive, Zap
+  Sliders, CheckCircle2, ArrowRight, ShieldCheck, HardDrive, Zap, ExternalLink
 } from 'lucide-react';
 
 
@@ -100,6 +100,7 @@ const Dashboard = () => {
   const { theme, toggleTheme } = useTheme();
   const { showToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -111,6 +112,8 @@ const Dashboard = () => {
 
   // Active workspace tab: 'overview' | 'upload' | 'clipboard' | 'vault' | 'settings' | 'profile'
   const [activeTab, setActiveTab] = useState('overview');
+
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Profile fields state
@@ -133,7 +136,8 @@ const Dashboard = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
-  const fileInputRef = useRef(null);
+  const vaultFileInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
 
   // Inactivity logout state
   const [inactivityLimit, setInactivityLimit] = useState(() => {
@@ -152,6 +156,18 @@ const Dashboard = () => {
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
+
+  // Sync tab and filter from URL search parameters (e.g. from CommandPalette)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    const filterParam = searchParams.get('filter');
+    if (tabParam && ['overview', 'upload', 'clipboard', 'vault', 'settings', 'profile'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+    if (filterParam) {
+      setActiveFilter(filterParam);
+    }
+  }, [searchParams]);
   const [sortOption, setSortOption] = useState('newest');
   const [dateFilter, setDateFilter] = useState('all'); // 'all' | 'today' | '7days' | '30days'
   const [folderScope, setFolderScope] = useState('all'); // 'all' | 'current'
@@ -249,6 +265,7 @@ const Dashboard = () => {
   // File Previews Lightbox (Unified multi-format media preview)
   const [previewImage, setPreviewImage] = useState(null);
   const [previewText, setPreviewText] = useState(null);
+  const [previewDoc, setPreviewDoc] = useState(null); // { title: string, url: string, type: string, size?: number, storagePath?: string }
   const [previewMedia, setPreviewMedia] = useState(null); // { type: 'image'|'video'|'audio'|'pdf'|'text', title: string, url?: string, content?: string }
 
   // QR Code Modal State
@@ -1397,14 +1414,24 @@ const Dashboard = () => {
         fileToUpload = new window.File([encryptedBuffer], fileNameToSave, { type: 'application/octet-stream' });
       }
 
-      // Task 2.2: Versioning - Check if file with same name exists in same folder
+      // Determine folder_id for new upload record: keep root uploads at root (null) unless inside a folder
+      let assignedFolderId = (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId;
+      if (assignedFolderId === 'null' || assignedFolderId === 'undefined' || assignedFolderId === '') {
+        assignedFolderId = null;
+      }
+
+      // Task 2.2: Versioning - Check if file with same name exists in same assigned folder
       const existingSameName = files.find(f => 
         !f.is_deleted && 
         f.filename === fileNameToSave && 
-        (f.folder_id === currentFolderId || (!f.folder_id && !currentFolderId))
+        (f.folder_id === assignedFolderId || (!f.folder_id && !assignedFolderId))
       );
-      if (existingSameName) {
-        await saveFileVersionRecord(supabase, existingSameName);
+      if (existingSameName && !String(existingSameName.id).startsWith('storage_')) {
+        try {
+          await saveFileVersionRecord(supabase, existingSameName);
+        } catch (vErr) {
+          console.warn('Versioning record note:', vErr);
+        }
       }
 
       const uniquePrefix = Date.now() + '_' + Math.random().toString(36).substring(2, 6);
@@ -1485,12 +1512,6 @@ const Dashboard = () => {
         };
       });
 
-      // Determine folder_id for new upload record: keep root uploads at root (null) unless inside a folder
-      let assignedFolderId = (uploadTargetFolderId !== undefined && uploadTargetFolderId !== null) ? uploadTargetFolderId : currentFolderId;
-      if (assignedFolderId === 'null' || assignedFolderId === 'undefined' || assignedFolderId === '') {
-        assignedFolderId = null;
-      }
-
       // Register file entry in DB catalog with content_hash & folder_id
       const fileCategory = getFileCategory(fileNameToSave, fileToUpload.type || 'application/octet-stream');
       
@@ -1505,14 +1526,7 @@ const Dashboard = () => {
       if (assignedFolderId) filePayload.folder_id = assignedFolderId;
       if (contentHash) filePayload.content_hash = contentHash;
 
-      // If a file with the same name exists, preserve version history
-      if (existingSameName && !String(existingSameName.id).startsWith('storage_')) {
-        try {
-          await saveFileVersionRecord(supabase, existingSameName);
-        } catch (vErr) {
-          console.warn('Versioning record note:', vErr);
-        }
-      }
+      // Version history already captured above if existing file found
 
       // Always insert new file record so existing files are never overwritten or deleted
       let { error: dbError } = await supabase
@@ -2752,7 +2766,7 @@ const Dashboard = () => {
       else if (category === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
         const blob = new Blob([decryptedBuffer], { type: 'application/pdf' });
         const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
+        setPreviewDoc({ title: cleanName, url: url, type: 'pdf', size: decryptedBuffer.byteLength });
       } 
       else if (category === 'text' || category === 'code') {
         const textDecoder = new TextDecoder();
@@ -2766,7 +2780,9 @@ const Dashboard = () => {
         setPreviewMedia({ type: category, title: cleanName, url: url });
       }
       else {
-        showToast('Preview is not supported for this file type.', 'warning');
+        const blob = new Blob([decryptedBuffer]);
+        const url = URL.createObjectURL(blob);
+        setPreviewDoc({ title: cleanName, url: url, type: 'generic', size: decryptedBuffer.byteLength });
       }
       
       setActiveDownloads((prev) => {
@@ -2926,14 +2942,27 @@ const Dashboard = () => {
     } 
     else if (category === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
       try {
-        showToast('Opening PDF document...', 'info');
+        showToast('Loading PDF document preview...', 'info');
+        if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
+          URL.revokeObjectURL(previewDoc.url);
+        }
         const { data, error } = await supabase.storage
           .from('vault')
-          .createSignedUrl(file.storage_path, 600);
+          .download(file.storage_path);
         if (error) throw error;
-        window.open(data.signedUrl, '_blank');
+        
+        const blob = new Blob([data], { type: 'application/pdf' });
+        const blobUrl = URL.createObjectURL(blob);
+        setPreviewDoc({
+          title: file.filename,
+          url: blobUrl,
+          type: 'pdf',
+          size: file.size,
+          storagePath: file.storage_path
+        });
       } catch (e) {
-        showToast('Failed to preview PDF.', 'danger');
+        console.error('PDF preview error:', e);
+        showToast('Failed to load PDF preview.', 'danger');
       }
     } 
     else if (category === 'text' || category === 'code') {
@@ -2963,7 +2992,26 @@ const Dashboard = () => {
       }
     }
     else {
-      showToast('Preview is not supported for this file type.', 'warning');
+      try {
+        const { data } = await supabase.storage
+          .from('vault')
+          .createSignedUrl(file.storage_path, 600);
+        setPreviewDoc({
+          title: file.filename,
+          url: data?.signedUrl || null,
+          type: 'generic',
+          size: file.size,
+          storagePath: file.storage_path
+        });
+      } catch (e) {
+        setPreviewDoc({
+          title: file.filename,
+          url: null,
+          type: 'generic',
+          size: file.size,
+          storagePath: file.storage_path
+        });
+      }
     }
   };
 
@@ -3149,52 +3197,90 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300">
       
-      {/* Mobile Top bar */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 border-b border-brand-border-light dark:border-brand-border-dark z-30 shadow-xs sticky top-0">
+      {/* Sleek Modern Mobile Top bar */}
+      <header className="lg:hidden flex items-center justify-between px-4 py-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 z-30 sticky top-0 shadow-xs">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2 bg-slate-50 dark:bg-slate-850 rounded-xl text-slate-600 dark:text-slate-350 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            aria-label="Open Navigation Menu"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="flex items-center gap-1.5">
-            <Shield className="w-5.5 h-5.5 text-brand-primary stroke-[2.5]" />
-            <span className="font-display font-black text-lg text-slate-850 dark:text-white">
-              CloudVault
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center text-brand-primary shadow-xs">
+              <Shield className="w-4.5 h-4.5 stroke-[2.5]" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-black text-base text-slate-850 dark:text-white leading-tight">
+                Cloud<span className="text-brand-primary">Vault</span>
+              </span>
+              <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                Student Vault
+              </span>
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          {/* Quick Search Ctrl+K trigger */}
           <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true }));
+            }}
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
+            title="Search & Commands (Ctrl+K)"
+            aria-label="Quick Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
+          {/* Theme Toggle */}
+          <button
+            type="button"
             onClick={toggleTheme}
-            className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
             title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             aria-label="Toggle Theme"
           >
-            {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-600" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
           </button>
-          <div 
+
+          {/* User Profile Avatar Pill */}
+          <button
+            type="button"
             onClick={() => {
               setActiveTab('profile');
               setIsDrawerOpen(false);
             }}
-            className="w-8.5 h-8.5 rounded-full bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center font-display font-semibold text-brand-primary text-xs uppercase cursor-pointer overflow-hidden"
+            className="relative w-8.5 h-8.5 rounded-full ring-2 ring-brand-primary/30 hover:ring-brand-primary/60 bg-brand-primary/10 flex items-center justify-center font-display font-bold text-brand-primary text-xs uppercase cursor-pointer overflow-hidden transition-all ml-1"
+            title="My Profile"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               (fullName ? fullName.substring(0, 2) : user?.email?.substring(0, 2) || 'U')
             )}
-          </div>
+            <span className="absolute bottom-0 right-0 w-2 h-2 bg-emerald-500 border border-white dark:border-slate-900 rounded-full"></span>
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Sidebar navigation */}
+      {/* Mobile Drawer Backdrop - Placed BEFORE aside with z-40 so it NEVER blurs or obscures the sidebar */}
+      {isDrawerOpen && (
+        <div 
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300 animate-fade-in"
+          onClick={() => setIsDrawerOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar navigation - z-50 ensures it stays crisp, clean, and never blurred on mobile */}
       <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-64 bg-white dark:bg-slate-900 border-r border-brand-border-light dark:border-brand-border-dark flex flex-col p-5 z-40 shrink-0 select-none transition-transform duration-300 ease-in-out ${
-          isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 border-r border-slate-200/80 dark:border-slate-800 flex flex-col p-5 z-50 shrink-0 select-none transition-transform duration-300 ease-out shadow-2xl lg:shadow-none ${
+          isDrawerOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-8 shrink-0">
@@ -3243,7 +3329,7 @@ const Dashboard = () => {
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <i className="fa-solid fa-cloud-arrow-up w-4 text-center"></i> Send to Server
+            <i className="fa-solid fa-cloud-arrow-up w-4 text-center"></i> Upload Files
           </button>
 
           <button
@@ -3257,7 +3343,7 @@ const Dashboard = () => {
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <i className="fa-solid fa-clipboard w-4 text-center"></i> Clipboard Paste
+            <i className="fa-solid fa-clipboard w-4 text-center"></i> Quick Notes
           </button>
 
           <button
@@ -3271,7 +3357,7 @@ const Dashboard = () => {
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <i className="fa-solid fa-folder-tree w-4 text-center"></i> Vault Explorer
+            <i className="fa-solid fa-folder-tree w-4 text-center"></i> My Files
           </button>
 
           <button
@@ -3299,7 +3385,7 @@ const Dashboard = () => {
                 : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/40'
             }`}
           >
-            <i className="fa-solid fa-user-gear w-4 text-center"></i> Profile Info
+            <i className="fa-solid fa-user-gear w-4 text-center"></i> Profile
           </button>
 
           {/* Admin Dedicated View Link */}
@@ -3343,16 +3429,10 @@ const Dashboard = () => {
         </div>
       </aside>
 
-      {/* Mobile Drawer Backdrop */}
-      {isDrawerOpen && (
-        <div 
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden"
-          onClick={() => setIsDrawerOpen(false)}
-        ></div>
-      )}
+
 
       {/* Main dashboard content body */}
-      <main className="flex-1 lg:h-screen lg:overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10 custom-scrollbar">
+      <main className="flex-1 lg:h-screen lg:overflow-y-auto p-4 sm:p-6 lg:p-8 pb-28 lg:pb-8 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10 custom-scrollbar">
         <GlobalAnnouncementBanner />
         
         {activeAlert && (
@@ -3450,63 +3530,79 @@ const Dashboard = () => {
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-6 animate-fade-in">
-            {/* Hero Welcome & Security Banner */}
-            <div className="glass-card relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-brand-primary/25 dark:border-brand-primary/30 bg-gradient-to-br from-brand-primary/10 via-indigo-600/5 to-purple-600/10 dark:from-brand-primary/15 dark:via-indigo-950/40 dark:to-purple-950/25 shadow-xs backdrop-blur-md">
-              {/* Decorative Background Glows */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none -mr-24 -mt-24"></div>
+          <div 
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                handleUploadQueue(Array.from(e.dataTransfer.files));
+              }
+            }}
+            className="space-y-6 animate-fade-in"
+          >
+            {/* 1. Hero Welcome Card */}
+            <div className="glass-card relative overflow-hidden rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800/80 bg-gradient-to-br from-white/95 via-slate-50/90 to-sky-500/5 dark:from-slate-900/95 dark:via-slate-900/90 dark:to-indigo-950/30 shadow-xs backdrop-blur-xl">
+              {/* Decorative Subtle Ambient Glows */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-brand-primary/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
               <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none"></div>
 
               <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 <div className="space-y-3 max-w-2xl">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-primary/10 dark:bg-brand-primary/20 border border-brand-primary/20 text-brand-primary dark:text-brand-primary-light text-xs font-bold tracking-wide">
                     <Sparkles className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-                    <span>{getGreeting()}, {fullName ? fullName.split(' ')[0] : (user?.email?.split('@')[0] || 'Explorer')}</span>
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>{getGreeting()}, {fullName ? fullName.split(' ')[0] : (user?.email?.split('@')[0] || 'User')}!</span>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   </div>
 
-                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-900 dark:text-white tracking-tight">
-                    Encrypted Cloud Vault
+                  <h2 className="text-2xl sm:text-3xl font-black font-display text-slate-850 dark:text-white tracking-tight">
+                    Welcome to Your Cloud Vault
                   </h2>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Zero-Knowledge client-side protection is active. Every file and code snippet is encrypted with <span className="font-bold text-slate-800 dark:text-white">AES-256 GCM</span> before leaving your device.
+                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Your personal, secure cloud storage. Upload files, organize them into folders, and keep quick notes safely encrypted.
                   </p>
 
-                  {/* Micro Trust Indicators */}
+                  {/* Micro Indicators */}
                   <div className="flex flex-wrap items-center gap-2 pt-1">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AES-256 Armed
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" /> AES-256 Protected
                     </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-                      <Zap className="w-3.5 h-3.5 text-indigo-500" /> Resumable Sync
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-sky-500/10 border border-sky-500/20 text-[11px] font-bold text-sky-600 dark:text-sky-400">
+                      <Zap className="w-3.5 h-3.5 text-sky-500" /> Instant Sync
                     </div>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-[11px] font-bold text-purple-600 dark:text-purple-400">
-                      <QrCode className="w-3.5 h-3.5 text-purple-500" /> Instant QR Beam
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-[11px] font-bold text-purple-600 dark:text-purple-400">
+                      <QrCode className="w-3.5 h-3.5 text-purple-500" /> QR Sharing
                     </div>
                   </div>
                 </div>
 
                 {/* Hero Quick Action Buttons */}
-                <div className="flex flex-wrap sm:flex-nowrap lg:flex-col gap-2.5 shrink-0">
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2.5 shrink-0 w-full sm:w-auto">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-primary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 shadow-sm hover:shadow-md hover:scale-[1.01] transition-all cursor-pointer"
+                    onClick={() => vaultFileInputRef.current?.click()}
+                    className="btn-primary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 shadow-md shadow-brand-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer"
                   >
-                    <UploadCloud className="w-4 h-4" /> Upload New File
+                    <UploadCloud className="w-4 h-4 stroke-[2.2]" /> Upload Files
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab('clipboard')}
                     className="btn-secondary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
                   >
-                    <Clipboard className="w-4 h-4 text-amber-500" /> New Clipboard Note
+                    <Edit3 className="w-4 h-4 text-emerald-500" /> New Note
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCreateFolder}
+                    className="btn-secondary py-3 px-5 text-xs font-bold flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer"
+                  >
+                    <FolderPlus className="w-4 h-4 text-amber-500" /> New Folder
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Storage Analytics Component */}
+            {/* 2. Storage Analytics Component */}
             <StorageAnalytics 
               totalStorageUsed={usedStorage}
               maxStorageBytes={storageLimit}
@@ -3515,159 +3611,108 @@ const Dashboard = () => {
               files={files}
             />
 
-            {/* Quick Action Toolbar */}
-            <div className="glass-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3 border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 uppercase tracking-wider">Fast Vault Tools</h4>
-                  <p className="text-[10px] text-slate-400">Quick create and maintenance utilities</p>
+            {/* 3. Interactive Quick Actions Tile Hub */}
+            <div className="glass-card p-5 sm:p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800/80">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-850 dark:text-white uppercase tracking-wider">Quick Actions</h3>
+                    <p className="text-[10px] text-slate-400">Shortcuts to create, upload, and organize files</p>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="btn-primary py-2 px-3 text-xs font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {/* 1. Upload */}
+                <div
+                  onClick={() => vaultFileInputRef.current?.click()}
+                  className="p-4 rounded-2xl bg-sky-500/5 hover:bg-sky-500/10 border border-sky-500/15 hover:border-sky-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <UploadCloud className="w-3.5 h-3.5" /> Upload File
-                </button>
-                <button
-                  type="button"
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <UploadCloud className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">Upload</span>
+                    <span className="text-[10px] text-slate-400">Add files</span>
+                  </div>
+                </div>
+
+                {/* 2. New Folder */}
+                <div
                   onClick={handleCreateFolder}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="p-4 rounded-2xl bg-amber-500/5 hover:bg-amber-500/10 border border-amber-500/15 hover:border-amber-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <Folder className="w-3.5 h-3.5 text-amber-500" /> New Folder
-                </button>
-                <button
-                  type="button"
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FolderPlus className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">Folder</span>
+                    <span className="text-[10px] text-slate-400">Organize files</span>
+                  </div>
+                </div>
+
+                {/* 3. Text Document */}
+                <div
                   onClick={handleOpenCreateTxtModal}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="p-4 rounded-2xl bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/15 hover:border-indigo-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <FileText className="w-3.5 h-3.5 text-blue-500" /> Create TXT
-                </button>
-                <button
-                  type="button"
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <FileText className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">Text File</span>
+                    <span className="text-[10px] text-slate-400">Create .txt</span>
+                  </div>
+                </div>
+
+                {/* 4. Voice Memo */}
+                <div
                   onClick={() => setShowRecordModal(true)}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="p-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500/10 border border-rose-500/15 hover:border-rose-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <Mic className="w-3.5 h-3.5 text-rose-500" /> Record Audio
-                </button>
-                <button
-                  type="button"
+                  <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Mic className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">Voice Memo</span>
+                    <span className="text-[10px] text-slate-400">Record audio</span>
+                  </div>
+                </div>
+
+                {/* 5. Quick Note */}
+                <div
                   onClick={() => setActiveTab('clipboard')}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="p-4 rounded-2xl bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/15 hover:border-emerald-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <Edit3 className="w-3.5 h-3.5 text-emerald-500" /> New Note
-                </button>
-                <button
-                  type="button"
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Edit3 className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">New Note</span>
+                    <span className="text-[10px] text-slate-400">Save thoughts</span>
+                  </div>
+                </div>
+
+                {/* 6. Clean Duplicates */}
+                <div
                   onClick={() => setShowDuplicateCleanerModal(true)}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                  className="p-4 rounded-2xl bg-purple-500/5 hover:bg-purple-500/10 border border-purple-500/15 hover:border-purple-500/30 transition-all duration-200 cursor-pointer flex flex-col items-center text-center gap-2 group hover:-translate-y-0.5 hover:shadow-xs"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500" /> Deduplicate
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('vault')}
-                  className="btn-secondary py-2 px-3 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <FolderKanban className="w-3.5 h-3.5 text-indigo-500" /> Explorer
-                </button>
+                  <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Copy className="w-5 h-5 stroke-[2.2]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 dark:text-white block">Duplicates</span>
+                    <span className="text-[10px] text-slate-400">Clean copies</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Direct Inline Dropzone for Overview */}
-            <div
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                  handleUploadQueue(Array.from(e.dataTransfer.files));
-                }
-              }}
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-brand-primary/30 hover:border-brand-primary/70 bg-gradient-to-br from-brand-primary/5 via-transparent to-indigo-500/5 rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center gap-3 transition-all cursor-pointer group hover:shadow-md"
-            >
-              <div className="w-14 h-14 rounded-2xl bg-brand-primary/10 text-brand-primary flex items-center justify-center group-hover:scale-110 group-hover:bg-brand-primary group-hover:text-white transition-all shadow-xs">
-                <UploadCloud className="w-7 h-7" />
-              </div>
-              <div>
-                <p className="font-bold text-sm sm:text-base text-slate-800 dark:text-white">
-                  Quick Upload to Encrypted Cloud
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md">
-                  Drag & drop files here or <span className="text-brand-primary font-semibold underline underline-offset-2">browse from your computer</span>. Stored with client-side zero-knowledge encryption.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
-                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                  <Lock className="w-2.5 h-2.5 text-amber-500" /> AES-256 GCM
-                </span>
-                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                  <Check className="w-2.5 h-2.5 text-emerald-500" /> Multi-File Queue
-                </span>
-                <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center gap-1">
-                  <ShieldCheck className="w-2.5 h-2.5 text-indigo-500" /> Chunked Transfer
-                </span>
-              </div>
-            </div>
-
-            {/* 3 Quick Navigation Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div
-                onClick={() => setActiveTab('upload')}
-                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-brand-primary/50 hover:shadow-md transition-all group"
-              >
-                <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary group-hover:bg-brand-primary group-hover:text-white transition-all">
-                  <UploadCloud className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Send Files</h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">Advanced Uploader</p>
-                  <p className="text-[11px] text-slate-400 truncate">Multi-file queue & encryption</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-brand-primary group-hover:translate-x-1 transition-all" />
-              </div>
-
-              <div
-                onClick={() => setActiveTab('clipboard')}
-                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-amber-500/50 hover:shadow-md transition-all group"
-              >
-                <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                  <Clipboard className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Clipboard Snippets</h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                    {notes.filter(n => !n.is_deleted).length} Active Snippets
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate">Fast code & text clipping</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 group-hover:translate-x-1 transition-all" />
-              </div>
-
-              <div
-                onClick={() => setActiveTab('vault')}
-                className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer hover:border-rose-500/50 hover:shadow-md transition-all group"
-              >
-                <div className="p-3 bg-rose-500/10 rounded-2xl text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-all">
-                  <FolderKanban className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Vault Explorer</h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 mt-0.5">
-                    {files.filter(f => !f.is_deleted).length} Encrypted Files
-                  </p>
-                  <p className="text-[11px] text-slate-400 truncate">Folders & hierarchical view</p>
-                </div>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-rose-500 group-hover:translate-x-1 transition-all" />
-              </div>
-            </div>
-
-            {/* Split Grid: Recent Files & Recent Snippets */}
+            {/* 6. Split Grid: Recent Files & Recent Notes */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Files Panel */}
               <div className="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs">
@@ -3677,7 +3722,7 @@ const Dashboard = () => {
                       <div className="w-7 h-7 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
                         <File className="w-3.5 h-3.5" />
                       </div>
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Vault Files</h3>
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Files</h3>
                       <span className="text-[10px] font-bold px-2 py-0.5 bg-brand-primary/10 text-brand-primary rounded-full">
                         {files.filter(f => !f.is_deleted).length} Total
                       </span>
@@ -3724,7 +3769,7 @@ const Dashboard = () => {
                       <p className="font-medium">No files uploaded in your vault yet.</p>
                       <button
                         type="button"
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => vaultFileInputRef.current?.click()}
                         className="btn-primary py-2 px-4 text-xs font-bold mt-1"
                       >
                         Upload First File
@@ -3737,7 +3782,7 @@ const Dashboard = () => {
                         .filter(file => {
                           if (overviewFileFilter === 'all') return true;
                           const cat = getFileCategory(file.filename, file.file_type);
-                          if (overviewFileFilter === 'documents') return cat === 'document' || cat === 'text';
+                          if (overviewFileFilter === 'documents') return cat === 'document';
                           if (overviewFileFilter === 'images') return cat === 'image';
                           if (overviewFileFilter === 'code') return cat === 'code';
                           if (overviewFileFilter === 'media') return cat === 'video' || cat === 'audio';
@@ -3802,8 +3847,8 @@ const Dashboard = () => {
                             <button
                               type="button"
                               onClick={() => handleGenerateShareCode(file)}
-                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
-                              title="Share Code"
+                              className="p-1.5 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-lg text-slate-500 hover:text-purple-600 dark:text-slate-400 dark:hover:text-purple-400 transition-colors"
+                              title="Share with 6-digit code"
                             >
                               <Share2 className="w-3.5 h-3.5" />
                             </button>
@@ -3815,16 +3860,16 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* Recent Clippings Panel */}
+              {/* Recent Notes Panel */}
               <div className="glass-card p-5 sm:p-6 rounded-3xl flex flex-col justify-between border-slate-200/80 dark:border-slate-800 shadow-xs">
                 <div>
                   <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500">
-                        <Clipboard className="w-3.5 h-3.5" />
+                        <Edit3 className="w-3.5 h-3.5" />
                       </div>
-                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Clippings</h3>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-500 rounded-full">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-white">Recent Notes</h3>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-full">
                         {notes.filter(n => !n.is_deleted).length} Total
                       </span>
                     </div>
@@ -3840,55 +3885,62 @@ const Dashboard = () => {
                   {notes.filter(n => !n.is_deleted).length === 0 ? (
                     <div className="py-10 text-center text-slate-400 text-xs flex flex-col items-center gap-3">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400">
-                        <Clipboard className="w-6 h-6 opacity-60" />
+                        <Edit3 className="w-6 h-6 opacity-60" />
                       </div>
-                      <p className="font-medium">No saved notes or code clippings yet.</p>
+                      <p className="font-medium">No notes saved yet.</p>
                       <button
                         type="button"
                         onClick={() => setActiveTab('clipboard')}
-                        className="btn-secondary py-2 px-4 text-xs font-bold mt-1"
+                        className="btn-primary py-2 px-4 text-xs font-bold mt-1"
                       >
-                        Create First Note
+                        Write First Note
                       </button>
                     </div>
                   ) : (
                     <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-                      {notes.filter(n => !n.is_deleted).slice(0, 5).map((note) => (
+                      {notes
+                        .filter(n => !n.is_deleted)
+                        .slice(0, 5)
+                        .map((note) => (
                         <div
                           key={note.id}
-                          className="py-2.5 flex items-start justify-between gap-3 group hover:bg-slate-50/70 dark:hover:bg-slate-800/40 rounded-xl px-2.5 transition-colors"
+                          className="py-2.5 flex items-center justify-between gap-3 group hover:bg-slate-50/70 dark:hover:bg-slate-800/40 rounded-xl px-2.5 transition-colors"
                         >
                           <div
                             onClick={() => handleViewNote(note)}
-                            className="min-w-0 flex-1 cursor-pointer"
+                            className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer"
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="p-2 bg-amber-50 dark:bg-amber-950/30 rounded-xl shrink-0 text-amber-500">
+                              <Clipboard className="w-4 h-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
                               <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-amber-500 transition-colors">
                                 {note.title}
                               </p>
-                              {note.is_encrypted && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.2 bg-amber-50 dark:bg-amber-950/40 text-amber-600 rounded flex items-center gap-0.5">
-                                  <Lock className="w-2.5 h-2.5" /> Encrypted
-                                </span>
-                              )}
+                              <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">
+                                {note.is_encrypted ? (
+                                  <span className="text-amber-500 font-semibold flex items-center gap-1">
+                                    <Lock className="w-2.5 h-2.5" /> Password Protected
+                                  </span>
+                                ) : (
+                                  (decryptedNotesMap[note.id] || note.content).slice(0, 60)
+                                )}
+                              </p>
                             </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-mono">
-                              {note.is_encrypted && !decryptedNotesMap[note.id] ? 'Locked AES content' : (decryptedNotesMap[note.id] || note.content)}
-                            </p>
                           </div>
 
-                          <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               type="button"
                               onClick={() => {
                                 const textToCopy = decryptedNotesMap[note.id] || note.content;
                                 navigator.clipboard.writeText(textToCopy);
                                 setCopiedSnippetId(note.id);
-                                showToast('Snippet copied to clipboard!', 'success');
+                                showToast('Note copied to clipboard!', 'success');
                                 setTimeout(() => setCopiedSnippetId(null), 2000);
                               }}
-                              className="p-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 rounded-lg text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100 transition-colors"
-                              title="Copy snippet"
+                              className="p-1.5 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg text-slate-500 hover:text-amber-600 transition-colors"
+                              title="Copy text"
                             >
                               {copiedSnippetId === note.id ? (
                                 <Check className="w-3.5 h-3.5 text-emerald-500" />
@@ -3913,48 +3965,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* CloudVault Trust & Security Architecture Badges */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shrink-0">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Zero-Knowledge Guarantee</h5>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Encryption happens in your local browser using AES-256 GCM. Your private files cannot be accessed by anyone else.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400 shrink-0">
-                  <QrCode className="w-5 h-5" />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Instant QR Mobile Transfer</h5>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Transfer files to mobile phones or lab computers with a one-time secure QR code without typing passwords.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl glass-card border border-slate-200/70 dark:border-slate-800 flex items-start gap-3">
-                <div className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 shrink-0">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h5 className="text-xs font-bold text-slate-800 dark:text-white">Smart Hash Deduplication</h5>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
-                    Detect and remove duplicate files with SHA-256 hashing to maximize your free cloud storage quota.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+            
+</div>
         )}
 
-        {/* TAB 2: SEND TO SERVER (UPLOADER) */}
         {activeTab === 'upload' && (
           <div className="flex flex-col gap-6 animate-fade-in">
             {uploadLocked ? (
@@ -3963,9 +3977,9 @@ const Dashboard = () => {
                   <ShieldAlert className="w-10 h-10 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-red-800">Upload Privileges Revoked</h3>
+                  <h3 className="text-lg font-bold text-red-800">Uploads Locked</h3>
                   <p className="text-xs text-red-600 mt-2 max-w-sm">
-                    Your administrator has locked file uploads on this account. Please contact college lab support if you believe this is in error.
+                    File uploads are currently locked for your account. Please reach out to the administrator if you need access.
                   </p>
                 </div>
               </div>
@@ -4002,10 +4016,10 @@ const Dashboard = () => {
                     <Folder className="w-4.5 h-4.5 text-amber-500 shrink-0" />
                     <div>
                       <span className="text-xs font-bold text-slate-800 dark:text-white block">
-                        Upload Destination Folder
+                        Save To Folder
                       </span>
                       <span className="text-[10px] text-slate-400">
-                        Select which folder new files will be uploaded into
+                        Choose which folder to place your uploaded files in
                       </span>
                     </div>
                   </div>
@@ -4034,14 +4048,14 @@ const Dashboard = () => {
                       className="w-4 h-4 text-brand-primary border-slate-300 rounded focus:ring-brand-primary cursor-pointer"
                     />
                     <label htmlFor="enable-encryption" className="text-xs font-bold text-slate-700 dark:text-slate-350 cursor-pointer select-none">
-                      Encrypt before upload (AES-256-GCM, passphrase never leaves your browser)
+                      Lock with password before upload (AES-256 encryption)
                     </label>
                   </div>
                   
                   {isEncryptionEnabled && (
                     <input
                       type="password"
-                      placeholder="Passphrase to Encrypt"
+                      placeholder="Enter password to protect file"
                       value={uploadPassphrase}
                       onChange={(e) => setUploadPassphrase(e.target.value)}
                       className="w-full md:w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3.5 py-1.5 text-xs text-slate-700 dark:text-slate-300 outline-none focus:border-brand-primary"
@@ -4071,7 +4085,7 @@ const Dashboard = () => {
                   <ShieldAlert className="w-8 h-8 stroke-[2.5]" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-red-800">Clipboard Sync Locked</h3>
+                  <h3 className="text-sm font-bold text-red-800">Notes Locked</h3>
                   <p className="text-[11px] text-red-600 mt-1.5 leading-relaxed">
                     Your administrator has locked clipboard snippet creations. You can view existing clippings but cannot save new ones.
                   </p>
@@ -4089,7 +4103,7 @@ const Dashboard = () => {
                     <label className="label-title">TITLE</label>
                     <input
                       type="text"
-                      placeholder="E.g. Java Code outline"
+                      placeholder="e.g. Project Notes, To-Do List, Code"
                       value={noteTitle}
                       onChange={(e) => setNoteTitle(e.target.value)}
                       className="input-field"
@@ -4135,7 +4149,7 @@ const Dashboard = () => {
                     </div>
                     <textarea
                       rows={8}
-                      placeholder="Paste or write clipboard snippets..."
+                      placeholder="Type or paste your notes here..."
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
                       className="input-field font-mono text-xs"
@@ -4153,13 +4167,13 @@ const Dashboard = () => {
                         className="w-4 h-4 rounded accent-brand-primary cursor-pointer"
                       />
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                        <Lock className="w-3.5 h-3.5 text-brand-primary" /> Encrypt Snippet (AES-GCM)
+                        <Lock className="w-3.5 h-3.5 text-brand-primary" /> Password Protect Note
                       </span>
                     </label>
                     {noteEncrypt && (
                       <input
                         type="password"
-                        placeholder="Encryption passphrase"
+                        placeholder="Enter password for note"
                         value={notePassphrase}
                         onChange={(e) => setNotePassphrase(e.target.value)}
                         className="input-field py-1.5 text-xs"
@@ -4169,7 +4183,7 @@ const Dashboard = () => {
 
                   <div className="flex gap-2">
                     <button type="submit" className="flex-1 btn-primary py-2.5 text-sm">
-                      Save Snippet
+                      Save Note
                     </button>
                     {noteId && (
                       <button
@@ -4194,14 +4208,14 @@ const Dashboard = () => {
             {/* Right Column: List Snippets */}
             <div className="glass-card p-6 lg:col-span-2 flex flex-col gap-4">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-                <h3 className="text-base font-bold text-slate-800 dark:text-white">Notes Clippings</h3>
+                <h3 className="text-base font-bold text-slate-800 dark:text-white">My Saved Notes</h3>
                 
                 <div className="flex items-center gap-2 w-full md:w-auto">
                   <div className="relative flex-1 md:w-48">
                     <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
-                      placeholder="Search snippets..."
+                      placeholder="Search notes..."
                       value={noteSearch}
                       onChange={(e) => setNoteSearch(e.target.value)}
                       className="input-field pl-9 py-2 text-xs"
@@ -4888,7 +4902,8 @@ const Dashboard = () => {
                         key={file.id}
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', file.id)}
-                        className={`glass-card p-4 hover:shadow-md relative flex flex-col justify-between border-slate-100 dark:border-slate-800 transition-all ${activeMenuId === file.id ? 'z-50' : 'z-1'}`}
+                        onClick={() => handlePreviewFile(file)}
+                        className={`glass-card p-4 hover:shadow-md relative flex flex-col justify-between border-slate-100 dark:border-slate-800 transition-all cursor-pointer hover:border-brand-primary/40 group ${activeMenuId === file.id ? 'z-50' : 'z-1'}`}
                       >
                         {/* Checkbox select */}
                         <div className="absolute top-4 left-4 z-10">
@@ -5060,7 +5075,8 @@ const Dashboard = () => {
                             </p>
                             {file.folder_id && (
                               <span
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setCurrentFolderId(file.folder_id);
                                   setFolderScope('current');
                                 }}
@@ -5100,7 +5116,8 @@ const Dashboard = () => {
                         key={file.id}
                         draggable
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', file.id)}
-                        className={`glass-card p-3 flex items-center justify-between gap-4 hover:shadow-sm border-slate-100 dark:border-slate-800 transition-all ${activeMenuId === file.id ? 'relative z-50' : 'relative z-1'}`}
+                        onClick={() => handlePreviewFile(file)}
+                        className={`glass-card p-3 flex items-center justify-between gap-4 hover:shadow-sm border-slate-100 dark:border-slate-800 transition-all cursor-pointer hover:border-brand-primary/40 group ${activeMenuId === file.id ? 'relative z-50' : 'relative z-1'}`}
                       >
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           {/* Checkbox select */}
@@ -5138,8 +5155,9 @@ const Dashboard = () => {
                               <span>{formatBytes(file.size)} &bull; {new Date(file.created_at).toLocaleDateString()}</span>
                               {file.folder_id && (
                                 <span
-                                  onClick={() => {
-                                    setCurrentFolderId(file.folder_id);
+                                  onClick={(e) => {
+                                  e.stopPropagation();
+                                  setCurrentFolderId(file.folder_id);
                                     setFolderScope('current');
                                   }}
                                   className="inline-flex items-center gap-1 text-[10px] text-amber-600 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-1.5 py-0.5 rounded cursor-pointer hover:underline font-semibold"
@@ -5154,7 +5172,7 @@ const Dashboard = () => {
                         </div>
 
                         {/* Desktop inline action buttons */}
-                        <div className="hidden md:flex items-center gap-1.5 shrink-0">
+                        <div onClick={(e) => e.stopPropagation()} className="hidden md:flex items-center gap-1.5 shrink-0">
                           {file.is_deleted ? (
                             <>
                               <button
@@ -5579,7 +5597,7 @@ const Dashboard = () => {
                       )}
                     </div>
                     <button 
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => avatarInputRef.current?.click()}
                       className="absolute -bottom-1.5 -right-1.5 p-1.5 rounded-xl w-7 h-7 flex items-center justify-center shadow-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
                       type="button"
                       title="Upload avatar photo"
@@ -5588,7 +5606,7 @@ const Dashboard = () => {
                     </button>
                     <input 
                       type="file" 
-                      ref={fileInputRef} 
+                      ref={avatarInputRef} 
                       onChange={handleAvatarUpload} 
                       className="hidden" 
                       accept="image/*" 
@@ -6240,8 +6258,8 @@ const Dashboard = () => {
 
       {/* 5. Image Lightbox preview modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 p-4">
-          <div className="max-w-2xl w-full flex flex-col gap-3.5 relative animate-scale-up">
+        <div onClick={() => setPreviewImage(null)} className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 p-4 cursor-pointer">
+          <div onClick={(e) => e.stopPropagation()} className="max-w-2xl w-full flex flex-col gap-3.5 relative animate-scale-up cursor-default">
             <div className="flex justify-between items-center text-white">
               <h3 className="text-sm font-bold truncate pr-6">{previewImage.title}</h3>
               <button
@@ -6264,8 +6282,8 @@ const Dashboard = () => {
 
       {/* 6. Code/Text preview modal */}
       {previewText && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
-          <div className="glass-card max-w-xl w-full p-6 shadow-2xl animate-scale-up flex flex-col max-h-[85vh]">
+        <div onClick={() => setPreviewText(null)} className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 cursor-pointer">
+          <div onClick={(e) => e.stopPropagation()} className="glass-card max-w-xl w-full p-6 shadow-2xl animate-scale-up flex flex-col max-h-[85vh] cursor-default">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-base font-bold text-slate-800 dark:text-white truncate pr-6">
                 Preview: {previewText.title}
@@ -6304,18 +6322,133 @@ const Dashboard = () => {
         </div>
       )}
 
+      
+      {/* 6b. Document / PDF In-App Preview Modal */}
+      {previewDoc && (
+        <div 
+          className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-2 sm:p-4 animate-fade-in"
+          onClick={() => {
+            if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
+              URL.revokeObjectURL(previewDoc.url);
+            }
+            setPreviewDoc(null);
+          }}
+        >
+          <div 
+            className={`glass-card max-w-5xl w-full ${previewDoc.type === 'pdf' ? 'h-[92vh] sm:h-[88vh]' : 'max-h-[88vh]'} flex flex-col p-3 sm:p-5 shadow-2xl animate-scale-up border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex justify-between items-center pb-2.5 sm:pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0 gap-2">
+              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0 flex-1">
+                <div className="p-2 rounded-xl bg-brand-primary/10 text-brand-primary shrink-0">
+                  {getFileIcon(previewDoc.title)}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-850 dark:text-white truncate">
+                    {previewDoc.title}
+                  </h3>
+                  {previewDoc.size && (
+                    <p className="text-[10px] sm:text-[11px] text-slate-400">
+                      {formatBytes(previewDoc.size)} &bull; {previewDoc.type === 'pdf' ? 'PDF Document' : 'File Preview'}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {previewDoc.url && (
+                  <a
+                    href={previewDoc.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                    title="Open in new window"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                )}
+                {previewDoc.storagePath && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadFileDirect(previewDoc.storagePath, previewDoc.title)}
+                    className="btn-primary py-1.5 px-2.5 sm:px-3 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Download</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (previewDoc?.url && previewDoc.url.startsWith('blob:')) {
+                      URL.revokeObjectURL(previewDoc.url);
+                    }
+                    setPreviewDoc(null);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content Body */}
+            {previewDoc.type === 'pdf' ? (
+              <div className="flex-1 mt-3 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 relative">
+                <object
+                  data={`${previewDoc.url}#toolbar=1&navpanes=0`}
+                  type="application/pdf"
+                  className="w-full h-full rounded-xl"
+                >
+                  <iframe
+                    src={`${previewDoc.url}#toolbar=1&navpanes=0`}
+                    className="w-full h-full border-0 rounded-xl"
+                    title={previewDoc.title}
+                  />
+                </object>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
+                <div className="w-20 h-20 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-brand-primary">
+                  {getFileIcon(previewDoc.title)}
+                </div>
+                <div>
+                  <h4 className="text-base font-bold text-slate-850 dark:text-white mb-1">
+                    {previewDoc.title}
+                  </h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                    Direct visual preview is not supported for this file type in the browser. You can download and open it safely on your device.
+                  </p>
+                </div>
+                {previewDoc.storagePath && (
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadFileDirect(previewDoc.storagePath, previewDoc.title)}
+                    className="btn-primary py-2.5 px-5 text-xs font-bold flex items-center gap-2 mt-2 cursor-pointer shadow-sm"
+                  >
+                    <Download className="w-4 h-4" /> Download File
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 7. Quick Paste Modal (Ctrl+Shift+V) */}
       {showQuickPaste && (
         <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4">
           <div className="glass-card max-w-md w-full p-6 shadow-2xl animate-scale-up flex flex-col">
-            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Quick Clipboard Paste</h3>
+            <h3 className="text-base font-bold text-slate-800 dark:text-white mb-2">Quick Text Note</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-              Enter any text block. It will be written into a text file in your Vault and cataloged as a note snippet automatically.
+              Type or paste any text below. It will be saved directly into a file and also kept in your notes.
             </p>
 
             <textarea
               rows={8}
-              placeholder="Paste clipboard content here..."
+              placeholder="Type or paste your text here..."
               value={quickPasteText}
               onChange={(e) => setQuickPasteText(e.target.value)}
               className="input-field font-mono text-xs mb-6"
@@ -6542,7 +6675,7 @@ const Dashboard = () => {
               <div className="text-left">
                 <h3 className="text-base font-bold text-slate-800 dark:text-white">Record Voice Memo</h3>
                 <p className="text-[11px] text-slate-400 mt-0.5">
-                  Record audio lectures or guidelines and upload directly.
+                  Record your voice or lecture and save it directly to your vault.
                 </p>
               </div>
               <button
@@ -6564,7 +6697,7 @@ const Dashboard = () => {
                     </div>
                   </div>
                   <div className="text-lg font-black font-mono text-slate-800 dark:text-white">
-                    {Math.floor(recordDuration / 60)}:{(recordDuration % 65 || recordDuration % 60).toString().padStart(2, '0')}
+                    {Math.floor(recordDuration / 60)}:{(recordDuration % 60).toString().padStart(2, '0')}
                   </div>
                   <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest animate-pulse">Recording...</span>
                 </div>
@@ -6678,8 +6811,8 @@ const Dashboard = () => {
 
       {/* Video / Audio Preview Modal */}
       {previewMedia && (
-        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 p-4">
-          <div className="max-w-2xl w-full flex flex-col gap-3.5 relative animate-scale-up">
+        <div onClick={() => setPreviewMedia(null)} className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/85 p-3 sm:p-4 cursor-pointer">
+          <div onClick={(e) => e.stopPropagation()} className="max-w-2xl w-full flex flex-col gap-3.5 relative animate-scale-up cursor-default">
             <div className="flex justify-between items-center text-white">
               <div className="flex items-center gap-2">
                 <Play className="w-4 h-4 text-brand-primary" />
@@ -7339,6 +7472,79 @@ const Dashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Modern Mobile Bottom Navigation Bar (Fixed for effortless thumb access) */}
+      <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200/80 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-lg">
+        <button
+          type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'overview'
+              ? 'text-brand-primary font-bold'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+        >
+          <div className={`p-1 rounded-lg ${activeTab === 'overview' ? 'bg-brand-primary/10' : ''}`}>
+            <LayoutDashboard className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">Overview</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('vault')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'vault'
+              ? 'text-brand-primary font-bold'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+        >
+          <div className={`p-1 rounded-lg ${activeTab === 'vault' ? 'bg-brand-primary/10' : ''}`}>
+            <FolderKanban className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">Vault</span>
+        </button>
+
+        {/* Center Quick Upload Button */}
+        <button
+          type="button"
+          onClick={() => setActiveTab('upload')}
+          className="flex flex-col items-center -mt-5 cursor-pointer group"
+          title="Send Files"
+        >
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-primary to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-brand-primary/30 group-hover:scale-105 active:scale-95 transition-all">
+            <UploadCloud className="w-6 h-6 stroke-[2.2]" />
+          </div>
+          <span className="text-[10px] font-bold text-brand-primary mt-1">Upload</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('clipboard')}
+          className={`flex flex-col items-center gap-1 py-1 px-3 rounded-xl transition-all cursor-pointer ${
+            activeTab === 'clipboard'
+              ? 'text-brand-primary font-bold'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+          }`}
+        >
+          <div className={`p-1 rounded-lg ${activeTab === 'clipboard' ? 'bg-brand-primary/10' : ''}`}>
+            <Clipboard className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">Notes</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setIsDrawerOpen(true)}
+          className="flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-all cursor-pointer"
+          title="Open Menu"
+        >
+          <div className="p-1">
+            <Menu className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">Menu</span>
+        </button>
+      </nav>
 
     </div>
   );

@@ -92,7 +92,7 @@ const CommandPalette = () => {
         if (!user) {
           navigate('/login');
         } else {
-          navigate('/dashboard');
+          navigate('/dashboard?tab=vault&filter=trash');
         }
       },
     },
@@ -105,7 +105,7 @@ const CommandPalette = () => {
         if (!user) {
           navigate('/login');
         } else {
-          navigate('/dashboard');
+          navigate('/dashboard?tab=clipboard');
         }
       },
     },
@@ -118,7 +118,7 @@ const CommandPalette = () => {
         if (!user) {
           navigate('/login');
         } else {
-          navigate('/dashboard');
+          navigate('/dashboard?tab=settings');
         }
       },
     },
