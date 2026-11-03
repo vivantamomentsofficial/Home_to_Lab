@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useTheme } from '../context/ThemeContext';
 import { getFaFileIcon } from '../utils/faIcons';
 import { createSignedDownloadUrl } from '../services/fileService';
+import PdfCanvasViewer from '../components/dashboard/PdfCanvasViewer';
 import {
   ShieldAlert, Bell, ShieldCheck, Users, HardDrive, Clipboard, Activity, RefreshCw, ArrowLeft, Sun, Moon, LogOut,
   Search, Eye, Trash, Check, X, ShieldX, Key, Download, FileText, Plus, UserCheck, Shield, UploadCloud, Menu, Trash2,
@@ -121,6 +122,8 @@ const Admin = () => {
   // Global Alerts / Announcements State
   const [globalAlerts, setGlobalAlerts] = useState([]);
   const [alertsLoading, setAlertsLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [editStorageLimit, setEditStorageLimit] = useState('104857600');
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
@@ -149,12 +152,39 @@ const Admin = () => {
     setStatsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/stats`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to fetch statistics.');
-      setStats(data);
+      if (res.ok) {
+        const data = await res.json();
+        setStats(data);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast(err.message || 'Failed to load overall statistics.', 'danger');
+      console.warn('Backend /api/admin/stats unreachable, falling back to direct Supabase queries:', err);
+      try {
+        const [profilesRes, filesRes, notesRes, requestsRes, loginsRes] = await Promise.all([
+          supabase.from('profiles').select('id, used_storage, is_locked, is_suspended', { count: 'exact' }),
+          supabase.from('files').select('id, size', { count: 'exact' }).eq('is_deleted', false),
+          supabase.from('notes').select('id', { count: 'exact' }).eq('is_deleted', false),
+          supabase.from('storage_requests').select('id, status', { count: 'exact' }).eq('status', 'pending'),
+          supabase.from('login_logs').select('id', { count: 'exact' })
+        ]);
+        const profiles = profilesRes.data || [];
+        const files = filesRes.data || [];
+        const totalStorageBytes = files.reduce((acc, f) => acc + (Number(f.size) || 0), 0);
+        setStats({
+          usersCount: profilesRes.count || profiles.length || 0,
+          filesCount: filesRes.count || files.length || 0,
+          notesCount: notesRes.count || 0,
+          loginsCount: loginsRes.count || 0,
+          pendingRequestsCount: requestsRes.count || 0,
+          totalStorageBytes,
+          suspendedCount: profiles.filter(p => p.is_suspended).length,
+          lockedCount: profiles.filter(p => p.is_locked).length
+        });
+      } catch (fallbackErr) {
+        console.error('Supabase fetchStats fallback error:', fallbackErr);
+        showToast('Failed to load statistics.', 'danger');
+      }
     } finally {
       setStatsLoading(false);
     }
@@ -179,13 +209,27 @@ const Admin = () => {
     setUsersLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/users`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load user directory.');
-      setUsers(data || []);
-      setSelectedUserIds([]);
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data || []);
+        setSelectedUserIds([]);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to load user directories.', 'danger');
+      console.warn('Backend /api/admin/users unreachable, falling back to direct Supabase query:', err);
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        setUsers(data || []);
+        setSelectedUserIds([]);
+      } catch (fallbackErr) {
+        console.error('Supabase fetchUsers fallback error:', fallbackErr);
+        showToast('Failed to load user directory.', 'danger');
+      }
     } finally {
       setUsersLoading(false);
     }
@@ -196,13 +240,32 @@ const Admin = () => {
     try {
       const params = new URLSearchParams({ query: globalFileQuery, category: globalFileCatFilter });
       const res = await fetch(`${getApiUrl()}/api/admin/global-files?${params}`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to search files.');
-      setGlobalFiles(data || []);
-      setSelectedFileIds([]);
+      if (res.ok) {
+        const data = await res.json();
+        setGlobalFiles(data || []);
+        setSelectedFileIds([]);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to retrieve file search index.', 'danger');
+      console.warn('Backend /api/admin/global-files unreachable, falling back to direct Supabase query:', err);
+      try {
+        let query = supabase
+          .from('files')
+          .select('id, user_id, filename, file_type, size, is_deleted, storage_path, created_at')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (globalFileQuery) {
+          query = query.ilike('filename', `%${globalFileQuery}%`);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        setGlobalFiles(data || []);
+        setSelectedFileIds([]);
+      } catch (fallbackErr) {
+        console.error('Supabase fetchGlobalFiles fallback error:', fallbackErr);
+        showToast('Failed to retrieve files.', 'danger');
+      }
     } finally {
       setGlobalFilesLoading(false);
     }
@@ -215,14 +278,27 @@ const Admin = () => {
         fetch(`${getApiUrl()}/api/admin/requests`, { headers: getHeaders() }),
         fetch(`${getApiUrl()}/api/admin/request-history`, { headers: getHeaders() })
       ]);
-      const pendingData = await pendingRes.json();
-      const historyData = await historyRes.json();
-
-      setRequests(pendingData || []);
-      setRequestHistory(historyData || []);
+      if (pendingRes.ok && historyRes.ok) {
+        const pendingData = await pendingRes.json();
+        const historyData = await historyRes.json();
+        setRequests(pendingData || []);
+        setRequestHistory(historyData || []);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to fetch storage request directory.', 'danger');
+      console.warn('Backend /api/admin/requests unreachable, falling back to direct Supabase query:', err);
+      try {
+        const [pendingRes, historyRes] = await Promise.all([
+          supabase.from('storage_requests').select('*').eq('status', 'pending').order('created_at', { ascending: false }),
+          supabase.from('storage_requests').select('*').neq('status', 'pending').order('created_at', { ascending: false }).limit(50)
+        ]);
+        setRequests(pendingRes.data || []);
+        setRequestHistory(historyRes.data || []);
+      } catch (fallbackErr) {
+        console.error('Supabase fetchRequests fallback error:', fallbackErr);
+        showToast('Failed to fetch storage requests.', 'danger');
+      }
     } finally {
       setRequestsLoading(false);
     }
@@ -232,13 +308,28 @@ const Admin = () => {
     setSnippetsLoading(true);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/snippets`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load notes database.');
-      setSnippets(data || []);
-      setSelectedSnippetIds([]);
+      if (res.ok) {
+        const data = await res.json();
+        setSnippets(data || []);
+        setSelectedSnippetIds([]);
+        return;
+      }
+      throw new Error('Backend API offline');
     } catch (err) {
-      console.error(err);
-      showToast('Failed to retrieve snippets database.', 'danger');
+      console.warn('Backend /api/admin/snippets unreachable, falling back to direct Supabase query:', err);
+      try {
+        const { data, error } = await supabase
+          .from('notes')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+        if (error) throw error;
+        setSnippets(data || []);
+        setSelectedSnippetIds([]);
+      } catch (fallbackErr) {
+        console.error('Supabase fetchSnippets fallback error:', fallbackErr);
+        showToast('Failed to retrieve snippets.', 'danger');
+      }
     } finally {
       setSnippetsLoading(false);
     }
@@ -484,15 +575,37 @@ const Admin = () => {
 
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/users/${userProfile.id}/details`, { headers: getHeaders() });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to load user details.');
-      setTargetUserDetails(data);
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to fetch detailed user inventory.', 'danger');
+      if (res.ok) {
+        const data = await res.json();
+        setTargetUserDetails(data);
+        return;
+      }
+      throw new Error('Backend failed');
+    } catch (apiErr) {
+      console.warn('Backend details unreachable, querying Supabase directly:', apiErr);
+      try {
+        const [filesRes, snippetsRes] = await Promise.all([
+          supabase.from('files').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false }),
+          supabase.from('notes').select('*').eq('user_id', userProfile.id).order('created_at', { ascending: false })
+        ]);
+        setTargetUserDetails({
+          profile: userProfile,
+          files: filesRes.data || [],
+          snippets: snippetsRes.data || [],
+          logs: []
+        });
+      } catch (err) {
+        console.error('Direct fallback error:', err);
+        showToast('Failed to fetch detailed user inventory.', 'danger');
+      }
     } finally {
       setDetailLoading(false);
     }
+  };
+
+  const handleFetchUserDetails = async (userId) => {
+    const userProfile = users.find(u => u.id === userId) || { id: userId, email: impersonatedUser?.email || 'User' };
+    handleOpenUserDetail(userProfile);
   };
 
   const handleStartImpersonation = async (userId) => {
@@ -580,7 +693,16 @@ const Admin = () => {
       if (cat === 'image') {
         setPreviewMedia({ type: 'image', title: file.filename, url: signedUrl });
       } else if (cat === 'document' && file.filename.toLowerCase().endsWith('.pdf')) {
-        setPreviewMedia({ type: 'pdf', title: file.filename, url: signedUrl });
+        try {
+          const { data, error } = await supabase.storage.from('vault').download(file.storage_path);
+          if (error) throw error;
+          const blob = new Blob([data], { type: 'application/pdf' });
+          const blobUrl = URL.createObjectURL(blob);
+          setPreviewMedia({ type: 'pdf', title: file.filename, url: blobUrl, storagePath: file.storage_path });
+        } catch (pdfErr) {
+          console.warn('Direct blob fetch failed, falling back to signed URL:', pdfErr);
+          setPreviewMedia({ type: 'pdf', title: file.filename, url: signedUrl, storagePath: file.storage_path });
+        }
       } else if (['code', 'text'].includes(cat)) {
         const res = await fetch(signedUrl);
         const content = await res.text();
@@ -627,18 +749,29 @@ const Admin = () => {
         body: JSON.stringify({ [lockType]: !currentValue }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to toggle lock.');
-
-      showToast('User constraint privileges updated!', 'success');
-      setTargetUserDetails(prev => ({
-        ...prev,
-        profile: { ...prev.profile, [lockType]: !currentValue }
-      }));
-      fetchUsers();
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || 'Failed to update user lock.', 'danger');
+      if (res.ok) {
+        showToast('User constraint privileges updated!', 'success');
+        setTargetUserDetails(prev => ({
+          ...prev,
+          profile: { ...prev.profile, [lockType]: !currentValue }
+        }));
+        fetchUsers();
+        return;
+      }
+      throw new Error('Backend failed');
+    } catch {
+      try {
+        await supabase.from('profiles').update({ [lockType]: !currentValue }).eq('id', targetUserDetails.profile.id);
+        showToast('User constraint privileges updated!', 'success');
+        setTargetUserDetails(prev => ({
+          ...prev,
+          profile: { ...prev.profile, [lockType]: !currentValue }
+        }));
+        fetchUsers();
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Failed to update user lock.', 'danger');
+      }
     }
   };
 
@@ -870,17 +1003,34 @@ const Admin = () => {
   // REQUEST APPROVALS / REJECTIONS
   // -------------------------------------------------------------
   const handleApproveRequest = async (id) => {
+    const req = requests.find(r => r.id === id);
     try {
       const res = await fetch(`${getApiUrl()}/api/admin/requests/${id}/approve`, {
         method: 'POST',
         headers: getHeaders(),
       });
-      if (!res.ok) throw new Error('Approval failed.');
-      showToast('Upgrade request approved!', 'success');
-      fetchRequests();
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to approve request.', 'danger');
+      if (res.ok) {
+        showToast('Upgrade request approved!', 'success');
+        fetchRequests();
+        fetchStats();
+        return;
+      }
+      throw new Error('Backend failed');
+    } catch {
+      try {
+        if (req) {
+          await supabase.from('storage_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', id);
+          if (req.user_id && req.requested_limit) {
+            await supabase.from('profiles').update({ storage_limit: req.requested_limit }).eq('id', req.user_id);
+          }
+        }
+        showToast('Upgrade request approved!', 'success');
+        fetchRequests();
+        fetchStats();
+      } catch (err) {
+        console.error(err);
+        showToast('Failed to approve request: ' + err.message, 'danger');
+      }
     }
   };
 
@@ -890,12 +1040,23 @@ const Admin = () => {
         method: 'POST',
         headers: getHeaders(),
       });
-      if (!res.ok) throw new Error('Rejection failed.');
-      showToast('Upgrade request rejected.', 'success');
-      fetchRequests();
-    } catch (err) {
-      console.error(err);
-      showToast('Failed to reject request.', 'danger');
+      if (res.ok) {
+        showToast('Upgrade request rejected.', 'success');
+        fetchRequests();
+        fetchStats();
+        return;
+      }
+      throw new Error('Backend failed');
+    } catch {
+      try {
+        await supabase.from('storage_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
+        showToast('Upgrade request rejected.', 'success');
+        fetchRequests();
+        fetchStats();
+      } catch (err) {
+        console.error(err);
+        showToast('Failed to reject request: ' + err.message, 'danger');
+      }
     }
   };
 
@@ -940,9 +1101,17 @@ const Admin = () => {
         </div>
       )}
 
+      {/* Mobile Drawer Backdrop */}
+      {isDrawerOpen && (
+        <div
+          onClick={() => setIsDrawerOpen(false)}
+          className="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs lg:hidden transition-opacity"
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-slate-950 text-slate-100 flex flex-col p-5 z-40 border-r border-slate-850 shrink-0 select-none transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-slate-950 text-slate-100 flex flex-col p-5 z-50 border-r border-slate-850 shrink-0 select-none transition-transform duration-300 ease-in-out ${
           isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -1125,14 +1294,24 @@ const Admin = () => {
       <main className="flex-1 lg:h-screen lg:overflow-y-auto p-4 sm:p-6 lg:p-10 flex flex-col gap-6 overflow-x-hidden min-w-0 z-10 custom-scrollbar">
         
         {/* Header Bar */}
-        <header className="flex justify-between items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
-          <div>
-            <h1 className="text-2xl font-black font-display text-slate-900 dark:text-white tracking-tight">
-              Super Admin Control Centre
-            </h1>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Comprehensive security, storage quota management, and auditing system.
-            </p>
+        <header className="flex justify-between items-center gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="lg:hidden p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
+              title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black font-display text-slate-900 dark:text-white tracking-tight">
+                Super Admin Control Centre
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 hidden sm:block">
+                Comprehensive security, storage quota management, and auditing system.
+              </p>
+            </div>
           </div>
           
           <div className="flex items-center gap-3">
@@ -1153,8 +1332,16 @@ const Admin = () => {
             </div>
 
             <button
+              onClick={toggleTheme}
+              className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
+              title={theme === 'dark' ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4.5 h-4.5 text-amber-400" /> : <Moon className="w-4.5 h-4.5 text-slate-600" />}
+            </button>
+            <button
               onClick={refreshAll}
-              className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 transition-all"
+              className="p-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-700 dark:text-slate-300 transition-all cursor-pointer shadow-2xs"
               title="Refresh Workspace"
             >
               <RefreshCw className="w-4.5 h-4.5" />
@@ -1840,7 +2027,7 @@ const Admin = () => {
                         <td className="py-3 pl-4 text-right">
                           <div className="flex justify-end gap-1.5">
                             <button
-                              onClick={() => setPreviewText({ title: s.title, content: s.content })}
+                              onClick={() => setPreviewMedia({ type: "text", title: s.title, content: s.content })}
                               className="btn-secondary py-1 px-2.5 text-[10px]"
                             >
                               View
@@ -2479,11 +2666,14 @@ const Admin = () => {
                 />
               )}
               {previewMedia.type === 'pdf' && (
-                <iframe
-                  src={previewMedia.url}
-                  title={previewMedia.title}
-                  className="w-full h-[65vh] rounded-xl border border-slate-800 bg-white"
-                />
+                <div className="w-full h-[70vh] rounded-xl overflow-hidden flex flex-col">
+                  <PdfCanvasViewer
+                    fileUrl={previewMedia.url}
+                    fileName={previewMedia.title}
+                    storagePath={previewMedia.storagePath}
+                    onDownload={() => handleDownloadFileInAdmin({ filename: previewMedia.title, storage_path: previewMedia.storagePath })}
+                  />
+                </div>
               )}
               {previewMedia.type === 'text' && (
                 <textarea

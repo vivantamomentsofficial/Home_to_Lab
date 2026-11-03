@@ -31,11 +31,11 @@ router.get('/stats', async (req, res) => {
     const supabase = req.supabase;
 
     const [usersRes, filesRes, notesRes, pendingReqRes, profilesRes] = await Promise.all([
-      supabase.from('profiles').select('id', { count: 'exact', head: true }),
-      supabase.from('files').select('id, size'),
-      supabase.from('notes').select('id', { count: 'exact', head: true }),
-      supabase.from('storage_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-      supabase.from('profiles').select('storage_limit, is_suspended, upload_locked'),
+      supabase.from('profiles').select('id', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0 })),
+      supabase.from('files').select('id, size').then(r => r).catch(() => ({ data: [] })),
+      supabase.from('notes').select('id', { count: 'exact', head: true }).then(r => r).catch(() => ({ count: 0 })),
+      supabase.from('storage_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending').then(r => r).catch(() => ({ count: 0 })),
+      supabase.from('profiles').select('storage_limit, is_suspended, upload_locked').then(r => r).catch(() => ({ data: [] })),
     ]);
 
     let loginsCount = 0;
@@ -221,11 +221,11 @@ router.get('/users/:id/details', async (req, res) => {
     const supabase = req.supabase;
 
     const [profileRes, filesRes, notesRes, shareCodesRes, loginLogsRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
-      supabase.from('files').select('*').eq('user_id', id).order('created_at', { ascending: false }),
-      supabase.from('notes').select('*').eq('user_id', id).order('created_at', { ascending: false }),
-      supabase.from('share_codes').select('*, files!inner(user_id, filename)').filter('files.user_id', 'eq', id),
-      supabase.from('login_logs').select('*').eq('user_id', id).order('login_time', { ascending: false }).limit(20)
+      supabase.from('profiles').select('*').eq('id', id).maybeSingle().then(r => r).catch(() => ({ data: null })),
+      supabase.from('files').select('*').eq('user_id', id).order('created_at', { ascending: false }).then(r => r).catch(() => ({ data: [] })),
+      supabase.from('notes').select('*').eq('user_id', id).order('created_at', { ascending: false }).then(r => r).catch(() => ({ data: [] })),
+      supabase.from('share_codes').select('*, files!inner(user_id, filename)').filter('files.user_id', 'eq', id).then(r => r).catch(() => ({ data: [] })),
+      supabase.from('login_logs').select('*').eq('user_id', id).order('login_time', { ascending: false }).limit(20).then(r => r).catch(() => ({ data: [] }))
     ]);
 
     if (!profileRes.data) {
