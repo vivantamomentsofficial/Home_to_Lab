@@ -6028,7 +6028,7 @@ const Dashboard = () => {
                   </p>
                   <button
                     type="button"
-                    onClick={handleDeleteAccount}
+                    onClick={triggerWipeAccount}
                     className="btn-danger bg-red-600 hover:bg-red-750 text-white py-2 px-4 text-xs font-bold self-start mt-1 cursor-pointer border-0 shadow-xs"
                   >
                     Delete Account
@@ -6509,9 +6509,15 @@ const Dashboard = () => {
           previewText={previewText}
           onClose={() => setPreviewText(null)}
           onOpenInCompiler={(lang, code) => {
-            setActiveTab('compiler');
-            setPreviewText(null);
-            showToast(`Loaded ${previewText.title} into Compiler`, 'info');
+            try {
+              if (code || previewText?.content) {
+                navigator.clipboard.writeText(code || previewText.content);
+              }
+            } catch (err) {
+              console.warn('Clipboard write error:', err);
+            }
+            window.open('/compiler', '_blank');
+            showToast(`Code copied to clipboard! Opening Online Compiler...`, 'success');
           }}
         />
       )}
