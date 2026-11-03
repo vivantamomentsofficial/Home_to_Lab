@@ -156,16 +156,26 @@ const CodePreviewModal = ({ previewText, title, content, onClose, onOpenInCompil
               </button>
             </div>
 
-            {/* Run in compiler button */}
-            <button
-              type="button"
-              onClick={handleCompilerClick}
+            {/* Run in compiler link (Native <a> tag: NEVER blocked by popup blockers) */}
+            <a
+              href="/compiler"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                try {
+                  if (fileContent) {
+                    navigator.clipboard.writeText(fileContent);
+                  }
+                } catch (e) {
+                  console.warn('Clipboard write error:', e);
+                }
+              }}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 transition-colors cursor-pointer shadow-xs"
-              title="Open and Run Code in Online Compiler"
+              title="Open and Run Code in Online Compiler (Opens in new tab)"
             >
               <Play className="w-3.5 h-3.5 fill-current" />
               <span className="hidden sm:inline">Run Code</span>
-            </button>
+            </a>
 
             {/* Copy button */}
             <button

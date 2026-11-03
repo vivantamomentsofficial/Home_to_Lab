@@ -386,10 +386,10 @@ const Dashboard = () => {
           setIsDrawerOpen(false);
           setShowConfirmModal(false);
           await logout();
-          window.location.href = '/login';
+          window.location.href = '/';
         } catch (err) {
           console.error(err);
-          window.location.href = '/login';
+          window.location.href = '/';
         }
       }
     });
@@ -917,7 +917,7 @@ const Dashboard = () => {
 
           showToast('Account deleted successfully.', 'success');
           await logout();
-          window.location.href = '/login';
+          window.location.href = '/';
         } catch (err) {
           console.error(err);
           showToast('Purging failed: ' + err.message, 'danger');

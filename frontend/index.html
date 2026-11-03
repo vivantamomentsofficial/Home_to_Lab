@@ -71,9 +71,13 @@
 
     <!-- Domain Canonical Auto-Redirect -->
     <script>
-      if (window.location.hostname === 'hometolab.vercel.app' || window.location.hostname === 'hometolab.in') {
-        window.location.replace('https://www.hometolab.in' + window.location.pathname + window.location.search + window.location.hash);
-      }
+      (function() {
+        if (window.location.hostname === 'hometolab.vercel.app') {
+          window.location.replace('https://www.hometolab.in' + window.location.pathname + window.location.search + window.location.hash);
+        } else if (window.location.protocol === 'http:' && window.location.hostname === 'hometolab.in') {
+          window.location.replace('https://www.hometolab.in' + window.location.pathname + window.location.search + window.location.hash);
+        }
+      })();
     </script>
 
     <!-- Schema.org Structured Data (JSON-LD) for SEO -->
