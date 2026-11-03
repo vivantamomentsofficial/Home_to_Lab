@@ -25,10 +25,9 @@ export const useInactivityLogout = () => {
 
       const msLimit = minutes * 60 * 1000;
 
-      timerRef.current = setTimeout(() => {
+      timerRef.current = setTimeout(async () => {
         console.warn(`User session idle for ${minutes} minutes. Automating logout.`);
-        logout();
-        // Redirect to login page and append warning parameter
+        await logout();
         window.location.href = '/login?reason=timeout';
       }, msLimit);
     };

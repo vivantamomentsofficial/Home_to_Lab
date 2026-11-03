@@ -268,6 +268,7 @@ const Dashboard = () => {
   const [previewText, setPreviewText] = useState(null);
   const [previewDoc, setPreviewDoc] = useState(null); // { title: string, url: string, type: string, size?: number, storagePath?: string }
   const [previewMedia, setPreviewMedia] = useState(null); // { type: 'image'|'video'|'audio'|'pdf'|'text', title: string, url?: string, content?: string }
+  const isPreviewingRef = useRef(false);
 
   // QR Code Modal State
   const [showQRModal, setShowQRModal] = useState(false);
@@ -378,12 +379,13 @@ const Dashboard = () => {
       cancelText: 'Back',
       action: async () => {
         try {
-          await logout();
-          navigate('/');
           setIsDrawerOpen(false);
+          setShowConfirmModal(false);
+          await logout();
+          window.location.href = '/login';
         } catch (err) {
           console.error(err);
-          showToast('Failed to logout.', 'danger');
+          window.location.href = '/login';
         }
       }
     });
@@ -906,8 +908,8 @@ const Dashboard = () => {
           if (error) throw error;
 
           showToast('Account deleted successfully.', 'success');
-          logout();
-          navigate('/');
+          await logout();
+          window.location.href = '/login';
         } catch (err) {
           console.error(err);
           showToast('Purging failed: ' + err.message, 'danger');
@@ -2914,12 +2916,15 @@ const Dashboard = () => {
   };
 
   const handlePreviewFile = async (file) => {
+    if (isPreviewingRef.current) return;
     if (downloadLocked) {
       showToast('Preview privileges have been revoked by the administrator.', 'danger');
       return;
     }
 
-    if (file.filename.startsWith('[encrypted]_')) {
+    isPreviewingRef.current = true;
+    try {
+      if (file.filename.startsWith('[encrypted]_')) {
       setDecryptTargetFile(file);
       setDecryptActionType('preview');
       setDecryptPassphrase('');
@@ -3012,6 +3017,11 @@ const Dashboard = () => {
           storagePath: file.storage_path
         });
       }
+    }
+    } finally {
+      setTimeout(() => {
+        isPreviewingRef.current = false;
+      }, 500);
     }
   };
 
@@ -4928,9 +4938,7 @@ const Dashboard = () => {
 
                         <div>
                           <div className="flex justify-between items-start gap-2">
-                            <div 
-                              onClick={() => handlePreviewFile(file)}
-                              className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl ml-6 cursor-pointer hover:scale-105 transition-transform"
+                            <div className="p-2.5 bg-slate-50 dark:bg-slate-900 rounded-xl ml-6 cursor-pointer hover:scale-105 transition-transform"
                               title="Click to preview file"
                             >
                               {getFileIcon(file.filename)}
@@ -5065,9 +5073,7 @@ const Dashboard = () => {
                             </div>
                           </div>
                           
-                          <h4 
-                            onClick={() => handlePreviewFile(file)}
-                            className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
+                          <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-4 truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
                             title={file.filename}
                           >
                             {file.filename.startsWith('[encrypted]_') ? (
@@ -5139,17 +5145,13 @@ const Dashboard = () => {
                             className="w-3.5 h-3.5 text-brand-primary border-slate-350 rounded cursor-pointer mr-1 shrink-0"
                           />
 
-                          <div 
-                            onClick={() => handlePreviewFile(file)}
-                            className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
+                          <div className="p-2 bg-slate-50 dark:bg-slate-900 rounded-lg shrink-0 cursor-pointer hover:scale-105 transition-transform"
                             title="Click to preview file"
                           >
                             {getFileIcon(file.filename)}
                           </div>
                           <div className="min-w-0">
-                            <h4 
-                              onClick={() => handlePreviewFile(file)}
-                              className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
+                            <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate flex items-center gap-1.5 cursor-pointer hover:text-brand-primary transition-colors" 
                               title={file.filename}
                             >
                               {file.filename.startsWith('[encrypted]_') ? (

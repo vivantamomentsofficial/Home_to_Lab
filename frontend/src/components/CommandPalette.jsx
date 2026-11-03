@@ -145,10 +145,9 @@ const CommandPalette = () => {
         label: 'Sign Out of CloudVault',
         category: 'Account',
         icon: LogOut,
-        perform: () => {
-          logout();
-          showToast('Logged out successfully', 'info');
-          navigate('/');
+        perform: async () => {
+          await logout();
+          window.location.href = '/login';
         },
       }
     ] : [

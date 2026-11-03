@@ -20,11 +20,47 @@ const logLoginLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// Helper to accurately extract the client's real public IP address
+function extractRealIp(req) {
+  // If the frontend passed an externally-verified public IP
+  if (req.body?.public_ip && typeof req.body.public_ip === 'string') {
+    const pub = req.body.public_ip.trim();
+    if (pub && pub !== '127.0.0.1' && pub !== '::1' && pub !== 'localhost' && pub !== 'Unknown') {
+      return pub;
+    }
+  }
+
+  // Header inspection in priority order (Cloudflare, Nginx, Proxies, AWS, Vercel)
+  const candidates = [
+    req.headers['cf-connecting-ip'],
+    req.headers['x-real-ip'],
+    req.headers['x-client-ip'],
+    req.headers['x-forwarded-for'],
+    req.headers['true-client-ip'],
+    req.headers['fastly-client-ip'],
+    req.ip,
+    req.connection?.remoteAddress,
+    req.socket?.remoteAddress
+  ];
+
+  for (const c of candidates) {
+    if (!c) continue;
+    const parts = String(c).split(',').map(s => s.trim());
+    for (const part of parts) {
+      const clean = part.replace(/^::ffff:/, '');
+      if (clean && clean !== '127.0.0.1' && clean !== '::1' && clean !== 'localhost') {
+        return clean;
+      }
+    }
+  }
+
+  return req.ip?.replace(/^::ffff:/, '') || '127.0.0.1';
+}
+
 // POST /api/auth/log-login - Server-side IP capture for authenticated user login
 router.post('/log-login', logLoginLimiter, requireAuth, async (req, res) => {
   try {
-    const rawIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.ip;
-    const clientIp = rawIp || '127.0.0.1';
+    const clientIp = extractRealIp(req);
     const userAgent = req.headers['user-agent'] || 'Unknown';
 
     const { error } = await req.userSupabase
@@ -39,7 +75,19 @@ router.post('/log-login', logLoginLimiter, requireAuth, async (req, res) => {
 
     if (error) {
       console.warn('Failed to insert login_log record:', error.message);
-      return res.status(500).json({ error: error.message });
+    }
+
+    // Also update profiles table with last login IP and timestamp
+    try {
+      await req.supabase
+        .from('profiles')
+        .update({
+          last_login_ip: clientIp,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', req.user.id);
+    } catch (pErr) {
+      console.warn('Profile last_login_ip update skipped:', pErr.message);
     }
 
     return res.json({ success: true, ip: clientIp });

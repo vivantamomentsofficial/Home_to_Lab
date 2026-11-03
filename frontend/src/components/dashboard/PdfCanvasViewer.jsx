@@ -17,7 +17,7 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
     window.innerWidth < 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
   );
 
-  const [viewMode, setViewMode] = useState(isMobileDevice ? 'canvas' : 'native'); // 'native' | 'canvas'
+  const [viewMode, setViewMode] = useState('canvas'); // 'canvas' default for seamless cross-platform rendering
   const [numPages, setNumPages] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [scale, setScale] = useState(1.0);
@@ -175,23 +175,23 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
       {/* Viewer Header / Toolbar */}
       <div className="p-2 sm:p-2.5 bg-white/95 dark:bg-slate-900/95 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 shrink-0 backdrop-blur-md">
         
-        {/* Left Side: View Mode Toggle (Native / Canvas) */}
+        {/* Left Side: View Mode Toggle (Interactive Canvas / Standard Reader) */}
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => setViewMode(prev => prev === 'native' ? 'canvas' : 'native')}
+            onClick={() => setViewMode(prev => prev === 'canvas' ? 'native' : 'canvas')}
             className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
-            title={viewMode === 'native' ? 'Switch to Canvas View' : 'Switch to Standard Browser Reader'}
+            title={viewMode === 'canvas' ? 'Switch to Standard Browser Reader' : 'Switch to Interactive Canvas View'}
           >
-            {viewMode === 'native' ? (
+            {viewMode === 'canvas' ? (
               <>
                 <Monitor className="w-3.5 h-3.5 text-brand-primary" />
-                <span className="hidden sm:inline">Native View</span>
+                <span className="hidden sm:inline">Standard Reader</span>
               </>
             ) : (
               <>
                 <Smartphone className="w-3.5 h-3.5 text-brand-primary" />
-                <span className="hidden sm:inline">Canvas View</span>
+                <span className="hidden sm:inline">Interactive View</span>
               </>
             )}
           </button>
@@ -302,19 +302,31 @@ const PdfCanvasViewer = ({ fileUrl, fileName, storagePath, onDownload }) => {
             ) : canvasError ? (
               <div className="flex flex-col items-center justify-center p-6 text-center gap-3">
                 <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-                  Canvas mode encountered an issue parsing this layout. Switched to standard reader.
+                  Interactive renderer encountered an issue loading this layout.
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('native')}
-                  className="btn-primary py-2 px-4 text-xs font-bold"
-                >
-                  Switch to Standard Viewer
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('native')}
+                    className="btn-primary py-2 px-4 text-xs font-bold"
+                  >
+                    Switch to Standard Reader
+                  </button>
+                  {fileUrl && (
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-secondary py-2 px-4 text-xs font-bold"
+                    >
+                      Open in New Tab
+                    </a>
+                  )}
+                </div>
               </div>
             ) : (
-              <div className="shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 transition-all duration-150">
-                <canvas ref={canvasRef} className="block max-w-none" />
+              <div className="shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 transition-all duration-150 max-w-full">
+                <canvas ref={canvasRef} className="block max-w-full h-auto mx-auto" />
               </div>
             )}
           </div>

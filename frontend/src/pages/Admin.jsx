@@ -1064,14 +1064,16 @@ const Admin = () => {
     <div className="min-h-screen lg:h-screen lg:overflow-hidden flex flex-col lg:flex-row bg-brand-bg-light dark:bg-brand-bg-dark transition-colors duration-300 font-sans">
       
       {/* Mobile Top Bar */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-slate-950 text-white z-30 shadow-md border-b border-slate-850">
+      <div className="lg:hidden flex items-center justify-between p-4 bg-white dark:bg-slate-900 text-slate-900 dark:text-white z-30 shadow-sm border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <Shield className="w-6 h-6 text-red-500" />
-          <span className="font-display font-black text-lg text-white">CloudVault Admin</span>
+          <div className="w-8 h-8 rounded-lg bg-brand-primary/10 flex items-center justify-center text-brand-primary">
+            <Shield className="w-5 h-5 stroke-[2.2]" />
+          </div>
+          <span className="font-display font-black text-lg text-slate-900 dark:text-white">CloudVault Admin</span>
         </div>
         <button
           onClick={() => setIsDrawerOpen(true)}
-          className="p-2 bg-slate-900 rounded-xl text-slate-300"
+          className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:text-brand-primary transition-colors cursor-pointer"
         >
           <Menu className="w-5 h-5" />
         </button>
@@ -1111,25 +1113,25 @@ const Admin = () => {
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-slate-950 text-slate-100 flex flex-col p-5 z-50 border-r border-slate-850 shrink-0 select-none transition-transform duration-300 ease-in-out ${
+        className={`fixed lg:sticky lg:top-0 lg:h-screen lg:self-start inset-y-0 left-0 w-72 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 flex flex-col p-5 z-50 border-r border-slate-200 dark:border-slate-800 shrink-0 select-none shadow-sm transition-transform duration-300 ease-in-out ${
           isDrawerOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         <div className="flex items-center justify-between lg:justify-start gap-2.5 mb-6">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-red-600 to-rose-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 flex items-center justify-center shadow-md shadow-brand-primary/25">
               <i className="fa-solid fa-shield-halved text-white text-lg"></i>
             </div>
             <div>
-              <span className="font-display font-black text-xl text-white tracking-tight block">
+              <span className="font-display font-black text-xl text-slate-900 dark:text-white tracking-tight block">
                 CloudVault
               </span>
-              <span className="text-[10px] text-red-400 font-mono font-bold tracking-wider">SUPER ADMIN V4</span>
+              <span className="text-[10px] text-brand-primary font-mono font-bold tracking-wider">SUPER ADMIN V4</span>
             </div>
           </div>
           <button
             onClick={() => setIsDrawerOpen(false)}
-            className="lg:hidden p-1 bg-slate-850 rounded-lg text-slate-400 hover:text-white"
+            className="lg:hidden p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-500 hover:text-slate-800 dark:hover:text-white"
           >
             <i className="fa-solid fa-xmark"></i>
           </button>
@@ -1138,7 +1140,7 @@ const Admin = () => {
         {/* Quick Return to User Dashboard */}
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-900 border border-slate-800 transition-all mb-4"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/70 border border-slate-200 dark:border-slate-800 transition-all mb-4"
         >
           <i className="fa-solid fa-arrow-left text-xs"></i>
           <span>Switch to User Dashboard</span>
@@ -1149,8 +1151,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('overview'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'overview'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1162,8 +1164,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('users'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'users'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1176,8 +1178,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('global_files'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'global_files'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1190,8 +1192,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('requests'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'requests'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1208,8 +1210,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('snippets'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'snippets'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1221,8 +1223,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('settings'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'settings'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1234,8 +1236,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('audit_logs'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'audit_logs'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1247,8 +1249,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('login_logs'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'login_logs'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1260,8 +1262,8 @@ const Admin = () => {
             onClick={() => { setActiveSection('alerts'); setIsDrawerOpen(false); }}
             className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
               activeSection === 'alerts'
-                ? 'bg-gradient-to-r from-red-600 to-rose-650 text-white shadow-lg shadow-red-500/20'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/25 font-bold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-brand-primary dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 font-semibold'
             }`}
           >
             <div className="flex items-center gap-2.5">
@@ -1270,19 +1272,19 @@ const Admin = () => {
           </button>
         </nav>
 
-        <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-850">
+        <div className="mt-auto flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex flex-col">
-            <span className="font-bold text-slate-300 truncate max-w-[180px]">
+            <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[180px]">
               {session?.user?.email || 'Super Admin'}
             </span>
-            <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono flex items-center gap-1.5 mt-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping inline-block"></span>
               Admin Active
             </span>
           </div>
           <button
-            onClick={() => { logout(); navigate('/'); }}
-            className="p-2 text-slate-400 hover:text-red-400 hover:bg-slate-900 rounded-xl transition-all"
+            onClick={async () => { await logout(); window.location.href = '/login'; }}
+            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-xl transition-all cursor-pointer"
             title="Log Out"
           >
             <i className="fa-solid fa-right-from-bracket"></i>
@@ -1631,7 +1633,7 @@ const Admin = () => {
                           />
                         </td>
                         <td className="py-3 pr-4 font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-red-500/10 flex items-center justify-center font-display font-semibold text-red-500 text-[10px] uppercase">
+                          <div className="w-7 h-7 rounded-full bg-brand-primary/10 flex items-center justify-center font-display font-semibold text-brand-primary text-[10px] uppercase">
                             {u.full_name ? u.full_name.substring(0, 2) : 'U'}
                           </div>
                           <div>
@@ -1639,7 +1641,15 @@ const Admin = () => {
                             {u.college && <div className="text-[10px] text-slate-400 font-normal">{u.college}</div>}
                           </div>
                         </td>
-                        <td className="py-3 px-4 font-mono select-all text-xs">{u.email}</td>
+                        <td className="py-3 px-4 font-mono text-xs">
+                          <div className="select-all font-semibold text-slate-900 dark:text-slate-100">{u.email}</div>
+                          {u.last_login_ip && (
+                            <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span>
+                              <span>IP: <strong className="text-slate-700 dark:text-slate-300">{u.last_login_ip}</strong></span>
+                            </div>
+                          )}
+                        </td>
                         <td className="py-3 px-4">
                           <div className="flex flex-wrap gap-1">
                             {u.is_suspended && (

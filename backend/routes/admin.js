@@ -206,7 +206,36 @@ router.get('/users', async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return res.json(data || []);
+
+    const users = (data || []).map(u => ({ ...u }));
+    // Enrich with most recent public IP from login_logs for users missing last_login_ip
+    try {
+      const missingIpUserIds = users.filter(u => !u.last_login_ip).map(u => u.id);
+      if (missingIpUserIds.length > 0) {
+        const { data: logs } = await supabase
+          .from('login_logs')
+          .select('user_id, ip_address, login_time')
+          .in('user_id', missingIpUserIds)
+          .order('login_time', { ascending: false });
+        if (logs && logs.length > 0) {
+          const latestIpMap = {};
+          for (const l of logs) {
+            if (l.user_id && l.ip_address && !latestIpMap[l.user_id]) {
+              latestIpMap[l.user_id] = l.ip_address;
+            }
+          }
+          for (const u of users) {
+            if (!u.last_login_ip && latestIpMap[u.id]) {
+              u.last_login_ip = latestIpMap[u.id];
+            }
+          }
+        }
+      }
+    } catch (logErr) {
+      console.warn('IP enrichment warning:', logErr.message);
+    }
+
+    return res.json(users);
   } catch (err) {
     console.error('Failed to load user profiles:', err);
     return res.status(500).json({ error: `Failed to fetch user directory: ${err.message || String(err)}` });

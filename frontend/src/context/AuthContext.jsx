@@ -146,30 +146,56 @@ export const AuthProvider = ({ children }) => {
             }
           }
 
-          // Sync login logs if user signs in and is not anonymous (server-side IP capture)
+          // Sync login logs if user signs in and is not anonymous (accurate client IP capture)
           const isAnonymous = newSession && newSession.user && newSession.user.is_anonymous;
           if (event === 'SIGNED_IN' && !isAnonymous && newSession?.user) {
             try {
-              const logRes = await fetch(`${apiUrl}/api/auth/log-login`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${newSession.access_token}`
-                },
-                credentials: 'include'
-              });
+              // 1. Obtain accurate public IP from verified IP service
+              let publicIp = null;
+              try {
+                const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+                if (ipRes.ok) {
+                  const ipData = await ipRes.json();
+                  publicIp = ipData.ip;
+                }
+              } catch (ipErr) {
+                console.warn('Direct ipify lookup bypassed:', ipErr.message);
+              }
 
-              if (!logRes.ok) {
-                // Fallback to client insertion if backend endpoint is unavailable
+              // 2. Notify backend endpoint with public IP
+              let backendLogged = false;
+              try {
+                const logRes = await fetch(`${apiUrl}/api/auth/log-login`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${newSession.access_token}`
+                  },
+                  credentials: 'include',
+                  body: JSON.stringify({ public_ip: publicIp })
+                });
+                if (logRes.ok) backendLogged = true;
+              } catch {}
+
+              // 3. Direct Supabase insertion fallback if backend was offline or failed
+              if (!backendLogged) {
                 await client.from('login_logs').insert({
                   user_id: newSession.user.id,
                   email: newSession.user.email || 'guest@cloudvault.local',
                   login_time: new Date().toISOString(),
-                  ip_address: '127.0.0.1'
-                });
+                  ip_address: publicIp || 'Unknown',
+                  user_agent: navigator.userAgent || 'Unknown'
+                }).catch(() => {});
+              }
+
+              // 4. Update profile with last known login IP
+              if (publicIp) {
+                await client.from('profiles').update({
+                  last_login_ip: publicIp
+                }).eq('id', newSession.user.id).catch(() => {});
               }
             } catch (err) {
-              console.error('Failed to log login action via backend:', err);
+              console.error('Failed to log login action:', err);
             }
           }
         });
@@ -292,20 +318,28 @@ export const AuthProvider = ({ children }) => {
   // Sign out handler
   const logout = async () => {
     const activeClient = supabase || getOrInitSupabase();
-    if (!activeClient) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
-      await fetch(`${apiUrl}/api/auth/clear-cookie`, {
+      fetch(`${apiUrl}/api/auth/clear-cookie`, {
         method: 'POST',
         credentials: 'include'
-      });
-    } catch (cErr) {
-      console.warn('Backend clear-cookie warning:', cErr);
+      }).catch(() => {});
+    } catch {}
+
+    try {
+      if (activeClient) {
+        await activeClient.auth.signOut({ scope: 'local' }).catch(() => {});
+      }
+    } catch (err) {
+      console.warn('Sign out warning:', err);
+    } finally {
+      setUser(null);
+      setSession(null);
+      try {
+        localStorage.removeItem('sb-gxccllaqtdiuvnrialta-auth-token');
+        sessionStorage.removeItem('sb-gxccllaqtdiuvnrialta-auth-token');
+      } catch {}
     }
-    const { error } = await activeClient.auth.signOut();
-    if (error) console.error('Sign out error:', error);
-    setUser(null);
-    setSession(null);
   };
 
   // Self account deletion RPC handler
