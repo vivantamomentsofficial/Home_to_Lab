@@ -104,7 +104,7 @@ const BlogPost = () => {
 
       {/* Main Article Content */}
       <main className="py-12 px-4 sm:px-6 lg:px-[8%] max-w-3xl mx-auto w-full flex-1 z-10">
-        <div className="glass-card p-6 sm:p-10 shadow-lg border-slate-200/80 dark:border-slate-800 space-y-6 text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+        <div className="blog-article glass-card p-6 sm:p-10 shadow-lg border-slate-200/80 dark:border-slate-800 space-y-6 text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
           
           {post.content.split('\n\n').map((paragraph, index) => {
             const trimmed = paragraph.trim();

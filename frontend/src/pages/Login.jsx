@@ -234,7 +234,7 @@ const Login = () => {
   };
 
   return (
-    <div className="relative min-h-[100dvh] flex flex-col justify-center items-center py-4 px-3 sm:px-6 bg-slate-50 text-slate-800 overflow-x-hidden">
+    <div className="auth-page relative min-h-[100dvh] flex flex-col justify-center items-center py-4 px-3 sm:px-6 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 overflow-x-hidden">
       {/* Dynamic Animated Ambient Background */}
       <AnimatedBackground />
 
@@ -243,21 +243,21 @@ const Login = () => {
         <div className="w-full flex justify-between items-center mb-2.5">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-slate-600 hover:text-slate-900 text-xs font-bold border border-slate-200/80 transition-all shadow-2xs backdrop-blur-sm cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold border border-slate-200/80 dark:border-slate-800 transition-all shadow-2xs cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-brand-primary" /> Back to Home
           </Link>
         </div>
 
         {/* Center Card */}
-        <div className="w-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200/90 bg-white/95 backdrop-blur-md relative z-10 animate-scale-up">
+        <div className="auth-card w-full p-5 sm:p-7 rounded-2xl sm:rounded-3xl shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 relative z-10 animate-scale-up">
         {/* Header Icon */}
         <div className="flex justify-center mb-4">
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-9 h-9 rounded-xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center group-hover:scale-105 transition-transform shadow-2xs">
               <Shield className="w-4.5 h-4.5 text-brand-primary stroke-[2.5]" />
             </div>
-            <span className="font-display font-black text-xl text-slate-900 tracking-tight">
+            <span className="font-display font-black text-xl text-slate-900 dark:text-white tracking-tight">
               Cloud<span className="text-brand-primary">Vault</span>
             </span>
           </Link>

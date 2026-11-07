@@ -29,41 +29,28 @@ const BlogPost = React.lazy(() => import('./pages/BlogPost'));
 const AcceptableUsePolicy = React.lazy(() => import('./pages/AcceptableUsePolicy'));
 const OneCompilerStudio = React.lazy(() => import('./pages/OneCompilerStudio'));
 
-const LoadingFallback = ({ message = "Loading CloudVault Engine..." }) => (
-  <div className="min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-white relative overflow-hidden font-sans select-none transition-colors duration-300">
-    {/* Dynamic Background Glow Orbs */}
-    <div className="glow-orb glow-orb-primary"></div>
-    <div className="glow-orb glow-orb-accent"></div>
-
-    <div className="glass-card relative z-10 flex flex-col items-center max-w-sm w-full p-8 text-center shadow-2xl animate-scale-up">
-      {/* Animated Brand Logo Icon */}
-      <div className="relative mb-6">
-        <div className="w-16 h-16 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center shadow-lg">
-          <Shield className="w-8 h-8 text-brand-primary animate-pulse stroke-[2.5]" />
-        </div>
-        {/* Outer Rotating Ring */}
-        <div className="absolute -inset-2 rounded-2xl border-2 border-brand-primary/20 border-t-brand-primary animate-spin"></div>
+const LoadingFallback = ({ message = "Loading CloudVault..." }) => (
+  <div className="app-loader min-h-screen w-full flex flex-col items-center justify-center bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-white px-4 font-sans select-none">
+    <div className="app-loader-card relative z-10 flex flex-col items-center max-w-sm w-full p-8 sm:p-10 text-center">
+      <div className="mb-5 w-14 h-14 rounded-2xl bg-brand-primary/10 border border-brand-primary/20 flex items-center justify-center">
+        <Shield className="w-7 h-7 text-brand-primary stroke-[2.2]" />
       </div>
 
-      {/* Brand Title */}
       <h1 className="text-2xl font-black font-display tracking-tight text-slate-800 dark:text-white mb-1 flex items-center justify-center gap-1.5">
         Cloud<span className="text-brand-primary">Vault</span>
       </h1>
 
-      {/* Dynamic Status Subtitle */}
-      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide mb-6">
+      <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-6">
         {message}
       </p>
 
-      {/* Sleek Gradient Loader Bar */}
-      <div className="w-48 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden relative shadow-inner">
-        <div className="absolute inset-y-0 bg-gradient-to-r from-brand-primary via-cyan-500 to-indigo-500 rounded-full animate-loading-bar"></div>
+      <div className="w-48 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-full w-1/3 bg-brand-primary rounded-full animate-loading-bar"></div>
       </div>
 
-      {/* Encrypted Security Badge */}
-      <div className="mt-6 flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest bg-slate-100 dark:bg-slate-900 px-3.5 py-1.5 rounded-full border border-slate-200 dark:border-slate-800">
+      <div className="mt-6 flex items-center gap-1.5 text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-widest">
         <Lock className="w-3 h-3 text-brand-primary" />
-        <span>Secure HTTPS Connection</span>
+        <span>Secure connection</span>
       </div>
     </div>
   </div>

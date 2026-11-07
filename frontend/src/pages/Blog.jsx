@@ -93,7 +93,7 @@ const Blog = () => {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
             {filteredPosts.map((post) => (
-              <article key={post.id} className="glass-card p-6 sm:p-7 flex flex-col justify-between hover:border-brand-primary/40 transition-all group shadow-sm hover:shadow-xl">
+              <article key={post.id} className="blog-card glass-card p-6 sm:p-7 flex flex-col justify-between hover:border-brand-primary/40 transition-all group shadow-sm hover:shadow-xl">
                 <div>
                   <div className="flex justify-between items-center gap-2 mb-3">
                     <span className="px-2.5 py-1 bg-brand-primary/10 text-brand-primary dark:text-brand-primary-light text-[10px] font-extrabold rounded-md uppercase tracking-wider">

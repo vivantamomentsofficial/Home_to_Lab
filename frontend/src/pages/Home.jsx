@@ -446,7 +446,7 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light text-slate-800 antialiased selection:bg-brand-primary selection:text-white">
+    <div className="home-page relative min-h-screen flex flex-col overflow-x-hidden bg-brand-bg-light dark:bg-brand-bg-dark text-slate-800 dark:text-slate-100 antialiased selection:bg-brand-primary selection:text-white">
       <SEO
         title="CloudVault - Fast Lab File Transfer & Free Online Compiler for Students"
         description="Free Online Compiler & Student Personal Cloud Storage. Run code in C, C++, Java, Python, JavaScript, and SQL in your browser. Transfer files to college lab terminals via 6-digit PIN."
@@ -500,7 +500,7 @@ const Home = () => {
 
         {/* Hero Title (Original Tagline Maintained Exactly) */}
         <h1 className="hero-heading-fluid font-black font-display tracking-tight mb-4 text-slate-900 dark:text-white leading-tight">
-          Transfer Files &amp; Code <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">Home to Lab</span>, Instantly.
+        Transfer Files &amp; Code <span className="text-brand-primary">Home to Lab</span>, Instantly.
         </h1>
 
         {/* Hero Subtitle */}

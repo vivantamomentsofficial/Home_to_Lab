@@ -55,6 +55,9 @@ export const AuthProvider = ({ children }) => {
 
   // 1. Fetch Supabase configuration on mount
   useEffect(() => {
+    let cancelled = false;
+    let subscription = null;
+
     const fetchConfigAndInit = async () => {
       const DEFAULT_SUPABASE_URL = 'https://gxccllaqtdiuvnrialta.supabase.co';
       const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_RX7bF4fL5BYUdwUx3vGl3Q_xSe5A-ny';
@@ -64,10 +67,12 @@ export const AuthProvider = ({ children }) => {
 
       // If not in localStorage or env, try retrieving from the Node.js backend proxy
       if (!url || !key) {
+        const controller = new AbortController();
+        const timeoutId = window.setTimeout(() => controller.abort(), 5000);
         try {
           // Point to local Express backend during dev or relative route in prod
           const apiUrl = import.meta.env.VITE_API_URL || '';
-          const res = await fetch(`${apiUrl}/api/config`);
+          const res = await fetch(`${apiUrl}/api/config`, { signal: controller.signal });
           if (res.ok) {
             const data = await res.json();
             if (data.supabaseUrl && data.supabaseAnonKey) {
@@ -77,6 +82,8 @@ export const AuthProvider = ({ children }) => {
           }
         } catch (err) {
           console.warn('Backend configuration retrieval not available:', err);
+        } finally {
+          window.clearTimeout(timeoutId);
         }
       }
 
@@ -95,6 +102,7 @@ export const AuthProvider = ({ children }) => {
           },
         };
         const client = createClient(url, key, clientOptions);
+        if (cancelled) return;
         setSupabase(client);
         setConfig({ supabaseUrl: url, supabaseAnonKey: key });
 
@@ -107,11 +115,13 @@ export const AuthProvider = ({ children }) => {
           console.warn('Initial session fetch warning:', sErr);
         }
 
+        if (cancelled) return;
         setSession(initialSession);
         setUser(initialSession?.user || null);
 
         // Listen for Auth changes
-        const { data: { subscription } } = client.auth.onAuthStateChange(async (event, newSession) => {
+        const { data: { subscription: authSubscription } } = client.auth.onAuthStateChange(async (event, newSession) => {
+          if (cancelled) return;
           setSession(newSession);
           setUser(newSession?.user || null);
 
@@ -204,18 +214,21 @@ export const AuthProvider = ({ children }) => {
           }
         });
 
-        return () => {
-          subscription?.unsubscribe();
-        };
+        subscription = authSubscription;
       } catch (err) {
         console.error('Supabase initialization failed:', err);
-        setNeedsSetup(true);
+        if (!cancelled) setNeedsSetup(true);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchConfigAndInit();
+
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   // Login handler
@@ -321,6 +334,9 @@ export const AuthProvider = ({ children }) => {
 
   // Sign out handler
   const logout = async () => {
+    setLoading(false);
+    setUser(null);
+    setSession(null);
     const activeClient = supabase || getOrInitSupabase();
     try {
       const apiUrl = import.meta.env.VITE_API_URL || '';
@@ -339,6 +355,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       setSession(null);
+      setLoading(false);
       try {
         localStorage.removeItem('sb-gxccllaqtdiuvnrialta-auth-token');
         sessionStorage.removeItem('sb-gxccllaqtdiuvnrialta-auth-token');
